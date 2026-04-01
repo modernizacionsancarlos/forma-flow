@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() { return request.auth != null; }
+    function isSuperAdmin() { return exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid)); }
+    function getUserProfile() { return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data; }
+    function isTenantAdmin(tenantId) { return isSignedIn() && (isSuperAdmin() || (getUserProfile().tenantId == tenantId && getUserProfile().roleId == 'admin')); }
+    function isTenantMember(tenantId) { return isSignedIn() && (isSuperAdmin() || getUserProfile().tenantId == tenantId); }
+
+    // Super Admin root check
+    match /superAdmins/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow write: if isSuperAdmin(); // Only existing superadmins can manage others
+    }
+
+    // Shared root collections
+    match /userProfiles/{userId} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
+    }
+
+    match /tenants/{tenantId} {
+      allow read: if isSignedIn();
+      allow write: if isSuperAdmin();
+    }
+
+    match /Submissions/{subId} {
+      allow create: if isSignedIn();
+      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.tenant_id == getUserProfile().tenantId);
+      allow update: if isSignedIn() && (isSuperAdmin() || resource.data.tenant_id == getUserProfile().tenantId);
+    }
+
+    match /AuditLogs/{logId} {
+      allow create: if isSignedIn();
+      allow read: if isSuperAdmin() || (isSignedIn() && resource.data.tenant_id == getUserProfile().tenantId);
+    }
+    
+    // Legacy support for subcollections if needed (optional)
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read, write: if isTenantMember(tenantId);
+    }
+  }
+}

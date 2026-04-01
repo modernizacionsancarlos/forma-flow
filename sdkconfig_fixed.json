@@ -1,0 +1,18 @@
+﻿{
+  "status": "success",
+  "result": {
+    "fileName": "firebase-js-config.json",
+    "fileContents": "{\n  \"projectId\": \"formflow-central-cdbaa\",\n  \"appId\": \"1:537198713998:web:3848029cd0da6395963ddf\",\n  \"storageBucket\": \"formflow-central-cdbaa.firebasestorage.app\",\n  \"apiKey\": \"AIzaSyArkS3n2DgsSc6rk_cvhQW1GWE4K_wc6i0\",\n  \"authDomain\": \"formflow-central-cdbaa.firebaseapp.com\",\n  \"messagingSenderId\": \"537198713998\",\n  \"measurementId\": \"G-SDC74MDWMD\",\n  \"projectNumber\": \"537198713998\",\n  \"version\": \"2\"\n}",
+    "sdkConfig": {
+      "projectId": "formflow-central-cdbaa",
+      "appId": "1:537198713998:web:3848029cd0da6395963ddf",
+      "storageBucket": "formflow-central-cdbaa.firebasestorage.app",
+      "apiKey": "AIzaSyArkS3n2DgsSc6rk_cvhQW1GWE4K_wc6i0",
+      "authDomain": "formflow-central-cdbaa.firebaseapp.com",
+      "messagingSenderId": "537198713998",
+      "measurementId": "G-SDC74MDWMD",
+      "projectNumber": "537198713998",
+      "version": "2"
+    }
+  }
+}
