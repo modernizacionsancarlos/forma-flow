@@ -25,7 +25,7 @@ import { useAuth } from "../lib/AuthContext";
 import { useSubmissions } from "../api/useSubmissions";
 import { useGlobalStats, useRecentActivity } from "../api/useGlobalStats";
 
-const StatCard = ({ title, value, subtext, icon: Icon, color }) => (
+const StatCard = ({ title, value, subtext, icon, color }) => (
   <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl backdrop-blur-md relative overflow-hidden group hover:border-slate-700 transition-all duration-300">
     <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-5 group-hover:opacity-10 transition-opacity bg-${color === 'amber' ? 'yellow' : color}-500 blur-3xl`} />
     <div className="flex justify-between items-start">
@@ -37,7 +37,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, color }) => (
         <p className="text-[10px] text-slate-400 mt-2 font-medium italic">{subtext}</p>
       </div>
       <div className={`p-3 rounded-2xl bg-slate-950 border border-slate-800 text-${color}-500 shadow-xl group-hover:shadow-${color}-500/10 transition-all`}>
-        <Icon size={20} />
+        {React.createElement(icon, { size: 20 })}
       </div>
     </div>
   </div>
@@ -60,9 +60,9 @@ const ActivityItem = ({ title, time, type }) => (
 );
 
 const Dashboard = () => {
-  const { user, claims } = useAuth();
+  const { claims } = useAuth();
   const { queueCount, isSyncing } = useSubmissions();
-  const { data: stats, isLoading: statsLoading } = useGlobalStats();
+  const { data: stats } = useGlobalStats();
   const { data: activity, isLoading: activityLoading } = useRecentActivity();
 
   const chartData = stats?.chartData || [

@@ -1,99 +1,91 @@
 # Forma Flow - Modernización Municipal
 
-Sistema integral para la gestión de formularios, flujos de trabajo y reportes dinámicos. Diseñado para optimizar los procesos internos de la Municipalidad, permitiendo un seguimiento en tiempo real y una mejor organización de la información.
+Sistema SaaS integral para la gestión de formularios dinámicos, flujos de trabajo e inspecciones. Creado para optimizar los procesos internos de la Municipalidad, permitiendo la recolección de datos en tiempo real, auditoría de respuestas y organización de la información de forma centralizada.
 
-## 🚀 Uso del Sistema
+## 🌟 Características Principales
 
-La plataforma permite a los usuarios:
-- Gestionar formularios dinámicos y sus respectivos estados.
-- Visualizar métricas e indicadores clave mediante tableros dinámicos (Recharts).
-- Organizar tareas y procesos mediante un sistema de Drag and Drop.
-- Generar y descargar reportes detallados en formato PDF (jsPDF).
+Basado en la arquitectura premium "True Black", el sistema ofrece:
+- **FormBuilder Avanzado (Layout Tri-Pane)**: Creador de formularios drag-and-drop con inspector de propiedades contextual.
+- **Explorador de Respuestas (Mesa de Entradas)**: Interfaz de 3 columnas para navegar entre formularios, filtrar envíos y auditar respuestas al instante.
+- **Generación de Actas de Auditoría**: Descarga directa de reportes PDF tabulados usando jsPDF.
+- **Dashboards en Tiempo Real**: Tarjetas de métricas (Stat Cards) con estilo *Glow Ambient* para el monitoreo de KPIs de la plataforma.
+- **Sincronización Offline First**: Funcionamiento robusto incluso con conectividad intermitente.
 
 ## 🛠️ Stack Tecnológico
 
-Este proyecto está construido con herramientas modernas para asegurar rendimiento y escalabilidad:
+El proyecto está construido con un stack moderno, enfocado en performance y estética premium:
 
-### Core & Frameworks
-- **React 19**: Biblioteca principal para la interfaz de usuario.
-- **Vite**: Herramienta de construcción (build tool) ultra rápida para desarrollo moderno.
-- **React Router Dom**: Gestión de la navegación y rutas dinámicas.
-- **TanStack React Query**: Manejo eficiente de caché, sincronización y peticiones de datos.
+### Frontend
+- **React 19**: Biblioteca principal para la construcción de interfaces.
+- **Vite**: Bundler y entorno de desarrollo ultra rápido.
+- **Tailwind CSS v4**: Estilos utilitarios para un diseño *Glassmorphism* personalizado.
+- **Lucide React**: Íconos vectoriales modernos de alta resolución.
+- **Recharts**: Gráficos dinámicos para los paneles de administración.
+- **Zustand / Context API**: Manejo de estado global para la sesión y UI.
 
-### Estilo & UI
-- **Tailwind CSS**: Framework de utilidades CSS para un diseño personalizado y responsivo.
-- **Shadcn UI**: Componentes de interfaz de alta calidad, accesibles y personalizables.
-- **Lucide React**: Set de íconos vectoriales modernos de alta resolución.
+### Infraestructura (Firebase)
+Usamos **Firebase** como nuestro único backend (BaaS - Backend as a Service), aprovechando:
+- **Firestore**: Base de datos NoSQL en tiempo real para almacenar formularios, respuestas, configuraciones de tenants y usuarios.
+- **Authentication**: Autenticación segura de usuarios (Email/Password y proveedores OAuth).
+- **Storage**: Almacenamiento seguro en la nube para adjuntos, firmas e imágenes subidas en los formularios.
+- **Hosting**: Alojamiento web ultrarrápido con CDN global para distribuir la Single Page Application (SPA).
+- **Security Rules**: Reglas estrictas en Firestore y Storage para garantizar que cada tenant (municipio/departamento) solo acceda a su propia información.
 
-### Estructura del Proyecto
+## 💻 Desarrollo Local (Cómo probarlo en tu compu)
 
-El código fuente se organiza siguiendo las mejores prácticas de modularidad:
-- **`src/api/`**: Contiene la lógica de interacción directa con Firebase (Firestore, Auth, Storage).
-- **`src/components/`**: Componentes de UI reutilizables (Botones, Inputs, Layouts, etc.).
-- **`src/lib/`**: Utilidades, configuraciones y funciones auxiliares del sistema.
-- **`src/pages/`**: Vistas principales de la aplicación (Home, Dashboards, Listados).
-- **`src/App.jsx`**: Componente raíz que gestiona las rutas y el estado global.
-- **`src/main.jsx`**: Punto de entrada de la aplicación React.
+Para levantar el proyecto en tu entorno local, seguí estos pasos:
 
-### Firebase (Backend & Infraestructura)
-Utilizamos **Firebase** para la infraestructura del servidor, aprovechando los siguientes servicios:
-- **Firestore**: Base de datos NoSQL para el almacenamiento de datos en tiempo real.
-- **Authentication**: Sistema robusto de gestión de usuarios y accesos.
-- **Hosting**: Alojamiento optimizado para la aplicación web.
-- **Firebase Storage**: Almacenamiento seguro para archivos y documentos adjuntos.
-- **Firebase Rules**: Gestión de seguridad para el acceso a datos.
-
-## 💻 Desarrollo Local
-
-Para correr el proyecto en tu entorno local, seguí estos pasos:
-
-1. **Clonar el repositorio**:
+1. **Cloná el repositorio**:
    ```bash
    git clone <url-del-repo>
    cd forma-flow
    ```
 
-2. **Instalar dependencias**:
+2. **Instalá las dependencias**:
+   Solo tenés que abrir tu terminal en la carpeta del proyecto y correr este único comando para bajar todo lo necesario:
    ```bash
    npm install
    ```
 
-3. **Ejecutar en modo desarrollo**:
+3. **Configurá las variables de entorno**:
+   Creá un archivo `.env` en la raíz del proyecto (basado en un `.env.example` si existe) y pegá las credenciales de Firebase de tu proyecto de desarrollo.
+
+4. **Levantá el servidor de desarrollo**:
    ```bash
    npm run dev
    ```
-   Esto levantará el servidor local en `http://localhost:5173` (por defecto).
+   Esto va a iniciar Vite. Abrí tu navegador y entrá a `http://localhost:5173` para ver la app funcionando.
 
-4. **Construir para producción**:
-   ```bash
-   npm run build
-   ```
+## 🚀 Despliegue en Producción (Firebase Hosting)
 
-5. **Previsualizar la versión de producción**:
-   ```bash
-   npm run preview
-   ```
+Cuando quieras publicar una nueva versión para que esté disponible online, hacé lo siguiente:
 
-## 🌐 Despliegue en Firebase Hosting
-
-Para publicar los cambios en el entorno de producción:
-
-1. **Asegurate de estar autenticado en Firebase**:
+1. **Autenticate en Firebase CLI**:
+   Si no lo hiciste antes, iniciá sesión en la terminal:
    ```bash
    firebase login
    ```
 
-2. **Construí la aplicación**:
+2. **Asegurate de apuntar al proyecto correcto**:
+   Si tenés múltiples entornos (ej. dev y prod), seleccioná el proyecto correspondiente:
+   ```bash
+   firebase use <id-de-tu-proyecto-firebase>
+   ```
+
+3. **Construí la aplicación (Build)**:
+   Esto genera los archivos estáticos optimizados en la carpeta `dist`.
    ```bash
    npm run build
    ```
 
-3. **Desplegá a Hosting**:
+4. **Desplegá a Hosting**:
+   Subí los archivos de la carpeta `dist` a los servidores de Google.
    ```bash
    firebase deploy --only hosting
    ```
-   *(También podés usar `firebase deploy` para subir reglas de Firestore y Storage si hubo cambios en los archivos `.rules` o `.json`)*.
+   *(Nota: Podés usar simplemente `firebase deploy` si también necesitás actualizar las Reglas de Firestore/Storage o las Cloud Functions de una sola pasada).*
 
 ---
 
-**Desarrollado para el equipo de Modernización de la Municipalidad de San Carlos.**
+**Desarrollado para el equipo de Modernización de la Municipalidad de San Carlos.** 
+*Interfaces de nivel mundial para la gestión pública.*

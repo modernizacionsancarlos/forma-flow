@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Plus, Users, Building2, Shield, MoreVertical, Search, Filter, X, Check, AlertCircle, Trash2, Mail, Fingerprint } from "lucide-react";
+import { Plus, Users, Building2, Shield, MoreVertical, Search, Filter, X, Check, AlertCircle, Trash2, Mail, Fingerprint, Activity, Globe } from "lucide-react";
 import { useTenants } from "../api/useTenants";
 import { useUsers } from "../api/useUsers";
 import { useAuditLogs } from "../api/useAuditLogs";
@@ -18,6 +18,24 @@ const StatusBadge = ({ status }) => {
     </span>
   );
 };
+
+const StatCard = ({ title, value, subtext, icon, color }) => (
+  <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl backdrop-blur-md relative overflow-hidden group hover:border-slate-700 transition-all duration-300 shadow-2xl">
+    <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-5 group-hover:opacity-10 transition-opacity bg-${color === 'amber' ? 'yellow' : color}-500 blur-3xl`} />
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{title}</p>
+        <h3 className="text-3xl font-black text-white group-hover:scale-105 transition-transform duration-300">
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </h3>
+        <p className="text-[10px] text-slate-400 mt-2 font-medium italic">{subtext}</p>
+      </div>
+      <div className={`p-3 rounded-2xl bg-slate-950 border border-slate-800 text-${color}-500 shadow-xl group-hover:shadow-${color}-500/10 transition-all border-b-2 border-b-${color}-500/20`}>
+        {React.createElement(icon, { size: 20 })}
+      </div>
+    </div>
+  </div>
+);
 
 const UserModal = ({ isOpen, onClose, onSave, tenants, isSaving }) => {
   const [formData, setFormData] = useState({ email: "", role: "user", tenantId: "" });
@@ -406,6 +424,38 @@ const Admin = () => {
            <Plus size={18} className="group-hover:rotate-90 transition-transform" />
            <span>{activeTab === "tenants" ? "Nuevo Tenant" : "Vincular Usuario"}</span>
         </button>
+      </div>
+
+      {/* Admin Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-2 pb-4">
+        <StatCard 
+          title="Total Tenants" 
+          value={tenants?.length || 0} 
+          subtext="Organizaciones registradas" 
+          icon={Building2} 
+          color="emerald" 
+        />
+        <StatCard 
+          title="Usuarios Globales" 
+          value={users?.length || 0} 
+          subtext="Cuentas activas en la red" 
+          icon={Users} 
+          color="blue" 
+        />
+        <StatCard 
+          title="Eventos de Auditoría" 
+          value={auditLogs?.length || 0} 
+          subtext="Logs inmutables capturados" 
+          icon={Shield} 
+          color="purple" 
+        />
+         <StatCard 
+          title="Estado del Clúster" 
+          value="Saludable" 
+          subtext="Todas las instancias online" 
+          icon={Activity} 
+          color="amber" 
+        />
       </div>
 
       <div className="flex space-x-8 border-b border-white/5">

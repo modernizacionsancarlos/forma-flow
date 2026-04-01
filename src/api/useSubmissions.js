@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
@@ -21,6 +21,7 @@ export const useSubmissions = () => {
     const handleOnline = () => syncQueue();
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offlineQueue]);
 
   const submitForm = async (formData, schemaId) => {
@@ -64,7 +65,7 @@ export const useSubmissions = () => {
     }
   };
 
-  const syncQueue = async () => {
+  const syncQueue = useCallback(async () => {
     if (!navigator.onLine || offlineQueue.length === 0 || isSyncing) return;
 
     setIsSyncing(true);
@@ -75,6 +76,7 @@ export const useSubmissions = () => {
     for (const item of queueToSync) {
       try {
         // Remove local temporary ID before saving to Firestore
+        // eslint-disable-next-line no-unused-vars
         const { id, ...firebaseData } = item;
         await addDoc(collection(db, "Submissions"), {
           ...firebaseData,
@@ -97,7 +99,7 @@ export const useSubmissions = () => {
       success: successes.length, 
       failed: queueToSync.length - successes.length 
     };
-  };
+  }, [offlineQueue, isSyncing]);
 
   return {
     submitForm,

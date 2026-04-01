@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useForms } from "../api/useForms";
 import { useSubmissions } from "../api/useSubmissions";
-import { CheckCircle, AlertCircle, Send, ArrowRight, ShieldCheck, MapPin } from "lucide-react";
+import { CheckCircle, AlertCircle, ArrowRight, ShieldCheck, MapPin } from "lucide-react";
 
 const PublicFormView = () => {
   const { formId } = useParams();
@@ -26,14 +26,15 @@ const PublicFormView = () => {
           const allFields = schema.sections?.flatMap(s => s.fields) || schema.fields || [];
           const initialData = allFields.reduce((acc, f) => ({ ...acc, [f.id]: "" }), {});
           setFormData(initialData);
-        } else {
           setStatus("error");
         }
+      // eslint-disable-next-line no-unused-vars
       } catch (err) {
         setStatus("error");
       }
     };
     fetchForm();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
 
   const handleInputChange = (fieldId, value) => {

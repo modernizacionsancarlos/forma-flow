@@ -10,14 +10,15 @@ import {
   Users, 
   GitMerge, 
   Download, 
-  ShieldCheck, 
+  ShieldCheck,
+  RefreshCw,
   Settings, 
   LogOut 
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
 import SyncBanner from "./SyncBanner";
 
-const SidebarLink = ({ to, icon: Icon, children }) => {
+const SidebarLink = ({ to, icon, children }) => {
   const location = useLocation();
   const isActive = location.pathname.startsWith(to) && (to !== '/' || location.pathname === '/');
 
@@ -30,14 +31,14 @@ const SidebarLink = ({ to, icon: Icon, children }) => {
           : "text-slate-400 hover:bg-[#0b1b1b]/50 hover:text-slate-200 border-l-2 border-transparent"
       }`}
     >
-      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "text-[#10b981]" : "text-slate-500"} />
+      {React.createElement(icon, { size: 18, strokeWidth: isActive ? 2.5 : 2, className: isActive ? "text-[#10b981]" : "text-slate-500" })}
       <span className="text-sm font-medium">{children}</span>
     </Link>
   );
 };
 
 const MainLayout = ({ children }) => {
-  const { logout, claims } = useAuth();
+  const { logout } = useAuth();
 
   return (
     <div className="flex h-screen bg-[#060b13] text-white font-inter">
@@ -70,6 +71,7 @@ const MainLayout = ({ children }) => {
           <SidebarLink to="/workflows" icon={GitMerge}>Workflows</SidebarLink>
           <SidebarLink to="/exportaciones" icon={Download}>Exportaciones</SidebarLink>
           <SidebarLink to="/auditoria" icon={ShieldCheck}>Auditoría</SidebarLink>
+          <SidebarLink to="/sincronizacion" icon={RefreshCw}>Sincronización</SidebarLink>
           
           <div className="pt-6 mt-6 border-t border-slate-800/50">
              <SidebarLink to="/configuracion" icon={Settings}>Configuración</SidebarLink>

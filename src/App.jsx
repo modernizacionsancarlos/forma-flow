@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider, useAuth } from './lib/AuthContext'
@@ -12,6 +12,14 @@ import FormsList from './pages/FormsList'
 import Admin from './pages/Admin'
 import Submissions from './pages/Submissions'
 import PublicForm from './pages/PublicForm'
+import Empresas from './pages/Empresas'
+import Areas from './pages/Areas'
+import Usuarios from './pages/Usuarios'
+import Workflows from './pages/Workflows'
+import Exportaciones from './pages/Exportaciones'
+import Auditoria from './pages/Auditoria'
+import Sincronizacion from './pages/Sincronizacion'
+import Configuracion from './pages/Configuracion'
 import MainLayout from './components/ui/MainLayout'
 
 const queryClient = new QueryClient()
@@ -60,6 +68,54 @@ function App() {
             <Route path="/admin" element={
               <ProtectedRoute role="super_admin">
                 <MainLayout><Admin /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/empresas" element={
+              <ProtectedRoute role="super_admin">
+                <MainLayout><Empresas /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/areas" element={
+              <ProtectedRoute role="super_admin">
+                <MainLayout><Areas /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/usuarios" element={
+              <ProtectedRoute>
+                <MainLayout><Usuarios /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/workflows" element={
+              <ProtectedRoute>
+                <MainLayout><Workflows /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/exportaciones" element={
+              <ProtectedRoute>
+                <MainLayout><Exportaciones /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/auditoria" element={
+              <ProtectedRoute role="super_admin">
+                <MainLayout><Auditoria /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/sincronizacion" element={
+              <ProtectedRoute>
+                <MainLayout><Sincronizacion /></MainLayout>
+              </ProtectedRoute>
+            } />
+
+            <Route path="/configuracion" element={
+              <ProtectedRoute>
+                <MainLayout><Configuracion /></MainLayout>
               </ProtectedRoute>
             } />
 
