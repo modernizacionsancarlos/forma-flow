@@ -8,6 +8,7 @@ import './index.css'
 import Dashboard from './pages/Dashboard'
 import Login from './pages/Login'
 import FormBuilder from './pages/FormBuilder'
+import FormsList from './pages/FormsList'
 import Admin from './pages/Admin'
 import Submissions from './pages/Submissions'
 import PublicForm from './pages/PublicForm'
@@ -17,7 +18,7 @@ const queryClient = new QueryClient()
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, claims, loading } = useAuth()
-  if (loading) return <div className="flex items-center justify-center min-h-screen bg-slate-950"><p className="text-white">Cargando...</p></div>
+  if (loading) return <div className="flex items-center justify-center min-h-screen bg-[#06111C]"><p className="text-white">Cargando...</p></div>
   if (!user) return <Navigate to="/login" />
   if (role && claims.role !== role) return <Navigate to="/" />
   return children
@@ -39,6 +40,12 @@ function App() {
             } />
 
             <Route path="/forms" element={
+              <ProtectedRoute>
+                <MainLayout><FormsList /></MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/forms/new" element={
               <ProtectedRoute>
                 <MainLayout><FormBuilder /></MainLayout>
               </ProtectedRoute>

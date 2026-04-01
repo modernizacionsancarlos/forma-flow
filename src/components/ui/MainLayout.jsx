@@ -1,147 +1,104 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
-  BarChart3, 
-  LayoutGrid, 
-  Database, 
+  LayoutDashboard, 
+  Shield, 
+  Building2, 
+  MapPin, 
+  FileText, 
+  ClipboardList, 
+  Users, 
+  GitMerge, 
+  Download, 
+  ShieldCheck, 
   Settings, 
-  LogOut, 
-  User, 
-  Search, 
-  Bell,
-  RefreshCw
+  LogOut 
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { useSubmissions } from "../../api/useSubmissions";
 import SyncBanner from "./SyncBanner";
 
 const SidebarLink = ({ to, icon: Icon, children }) => {
   const location = useLocation();
-  const isActive = location.pathname === to;
+  const isActive = location.pathname.startsWith(to) && (to !== '/' || location.pathname === '/');
 
   return (
     <Link
       to={to}
-      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+      className={`flex items-center space-x-3 px-6 py-3 transition-colors duration-200 ${
         isActive
-          ? "bg-emerald-600/10 text-emerald-500 font-medium border-l-4 border-emerald-600"
-          : "text-slate-400 hover:bg-slate-900 hover:text-white"
+          ? "bg-[#0b1b1b] text-[#10b981] border-l-2 border-[#10b981]"
+          : "text-slate-400 hover:bg-[#0b1b1b]/50 hover:text-slate-200 border-l-2 border-transparent"
       }`}
     >
-      <Icon size={20} />
-      <span>{children}</span>
+      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "text-[#10b981]" : "text-slate-500"} />
+      <span className="text-sm font-medium">{children}</span>
     </Link>
   );
 };
 
 const MainLayout = ({ children }) => {
   const { logout, claims } = useAuth();
-  const { queueCount, isSyncing, syncQueue } = useSubmissions();
-  const location = useLocation();
-
-  const getPageTitle = () => {
-    switch (location.pathname) {
-      case "/": return "Panel de Control";
-      case "/forms": return "Constructor de Formularios";
-      case "/submissions": return "Gestor de Respuestas";
-      case "/admin": return "Administración del Sistema";
-      default: return "FormFlow";
-    }
-  };
 
   return (
-    <div className="flex h-screen bg-slate-950 text-white font-inter">
+    <div className="flex h-screen bg-[#060b13] text-white font-inter">
       {/* Sidebar */}
-      <aside className="w-72 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl">
-        <div className="p-8">
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <span className="text-xl font-bold italic">F</span>
+      <aside className="w-64 bg-[#0a101b] border-r border-slate-800/50 flex flex-col shadow-2xl relative z-20">
+        <div className="p-6">
+          <div className="flex items-center space-x-3 pb-8 border-b border-slate-800/50">
+            <div className="w-9 h-9 bg-[#10b981] rounded-xl flex items-center justify-center shadow-lg shadow-[#10b981]/20">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
             </div>
-            <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-              FormFlow
-            </span>
-          </div>
-
-          <nav className="space-y-1">
-            <SidebarLink to="/" icon={BarChart3}>Dashboard</SidebarLink>
-            <SidebarLink to="/forms" icon={LayoutGrid}>Form Builder</SidebarLink>
-            <SidebarLink to="/submissions" icon={Database}>Respuestas</SidebarLink>
-            <SidebarLink to="/admin" icon={Settings}>Administración</SidebarLink>
-          </nav>
-        </div>
-
-        <div className="mt-auto p-6 space-y-4">
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
-                <User size={16} className="text-emerald-500" />
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-medium truncate">Admin Central</p>
-                <p className="text-xs text-slate-500 truncate capitalize">{claims.role || 'Super Admin'}</p>
-              </div>
+            <div className="flex flex-col">
+               <span className="text-base font-bold text-white tracking-tight leading-none bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+                 FormFlow
+               </span>
+               <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">SaaS Multi-Tenant</span>
             </div>
-            <button
-              onClick={logout}
-              className="w-full flex items-center justify-center space-x-2 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-            >
-              <LogOut size={16} />
-              <span>Cerrar Sesión</span>
-            </button>
           </div>
         </div>
+
+        <nav className="flex-1 overflow-y-auto space-y-1 custom-scrollbar py-2">
+          <SidebarLink to="/" icon={LayoutDashboard}>Dashboard</SidebarLink>
+          <SidebarLink to="/admin" icon={Shield}>Admin Panel</SidebarLink>
+          <SidebarLink to="/empresas" icon={Building2}>Empresas</SidebarLink>
+          <SidebarLink to="/areas" icon={MapPin}>Áreas</SidebarLink>
+          <SidebarLink to="/forms" icon={FileText}>Formularios</SidebarLink>
+          <SidebarLink to="/submissions" icon={ClipboardList}>Respuestas</SidebarLink>
+          <SidebarLink to="/usuarios" icon={Users}>Usuarios</SidebarLink>
+          <SidebarLink to="/workflows" icon={GitMerge}>Workflows</SidebarLink>
+          <SidebarLink to="/exportaciones" icon={Download}>Exportaciones</SidebarLink>
+          <SidebarLink to="/auditoria" icon={ShieldCheck}>Auditoría</SidebarLink>
+          
+          <div className="pt-6 mt-6 border-t border-slate-800/50">
+             <SidebarLink to="/configuracion" icon={Settings}>Configuración</SidebarLink>
+             <button
+               onClick={logout}
+               className="w-full flex items-center space-x-3 px-6 py-3 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-[#0b1b1b]/50 border-l-2 border-transparent transition-colors"
+             >
+               <LogOut size={18} className="text-slate-500 hover:text-red-400" />
+               <span>Cerrar sesión</span>
+             </button>
+          </div>
+        </nav>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="h-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-10">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-100">{getPageTitle()}</h2>
-            <p className="text-xs text-slate-500">Gestión de recursos multitenant activos</p>
-          </div>
-
-          <div className="flex items-center space-x-6">
-            <div className="relative group">
-               <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
-               <input 
-                 type="text" 
-                 placeholder="Buscar..." 
-                 className="bg-slate-950 border border-slate-800 pr-4 pl-10 py-2 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all w-64"
-               />
-            </div>
-            
-            <div className="flex items-center space-x-3 px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-medium text-slate-400">
-               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-               <span>ID: {claims.tenantId || "Global_Central"}</span>
-            </div>
-
-            <div className="flex items-center space-x-2">
-                <button className="p-2 text-slate-400 hover:bg-slate-800 rounded-lg transition-all relative">
-                  <Bell size={20} />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full border-2 border-slate-900"></span>
-                </button>
-                <div className="h-8 w-[1px] bg-slate-800 mx-2"></div>
-                <button 
-                  onClick={syncQueue}
-                  disabled={isSyncing}
-                  className={`p-2 rounded-lg transition-all flex items-center space-x-2 ${
-                    queueCount > 0 ? "bg-emerald-600/10 text-emerald-500 border border-emerald-500/20" : "text-slate-400 hover:bg-slate-800"
-                  }`}
-                >
-                  <RefreshCw size={20} className={isSyncing ? "animate-spin" : ""} />
-                  {queueCount > 0 && <span className="text-xs font-bold leading-none">{queueCount}</span>}
-                </button>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Slot */}
-        <main className="flex-1 overflow-y-auto bg-slate-950 p-10 relative">
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#060b13]">
+        <main className="flex-1 overflow-y-auto relative p-0 w-full">
           {children}
           <SyncBanner />
         </main>
+      </div>
+
+      {/* Edit with Base 44 Badge */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center bg-black/80 rounded-full px-4 py-2 border border-slate-800 shadow-xl backdrop-blur">
+          <div className="w-5 h-5 bg-[#f97316] rounded-full mr-2 shadow-[0_0_10px_rgba(249,115,22,0.5)]"></div>
+          <span className="text-white text-xs font-semibold mr-3">Edit with <span className="font-bold">Base 44</span></span>
+          <button className="text-slate-400 hover:text-white transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
       </div>
     </div>
   );
