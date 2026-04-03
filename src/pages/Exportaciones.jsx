@@ -1,15 +1,54 @@
 import React, { useState } from "react";
-import { Search, Download, FileSpreadsheet, MoreVertical, X } from "lucide-react";
+import { Search, Download, FileSpreadsheet, MoreVertical, X, Loader2, Trash2 } from "lucide-react";
+import { useExports } from "../api/useExports";
+import { formatDistanceToNow } from "date-fns";
+import { es } from "date-fns/locale";
 
 const Exportaciones = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
+  const [newName, setNewName] = useState("");
+  const [newFormat, setNewFormat] = useState("CSV");
 
-  const mockExports = [
-    { id: "EXP-892", name: "Reporte Q3 Ventas", format: "CSV", size: "2.4 MB", date: "Hace 2 horas" },
-    { id: "EXP-891", name: "Auditoría de Sistemas", format: "XLSX", size: "15.1 MB", date: "Ayer" },
-    { id: "EXP-890", name: "Usuarios Inactivos", format: "JSON", size: "845 KB", date: "12 Oct 2026" },
-  ];
+  const { exportsList, isLoading, createExport, deleteExport } = useExports();
+
+  const filteredExports = exportsList.filter(exp => 
+    exp.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleCreateExport = async (e) => {
+    e.preventDefault();
+    if (!newName.trim()) return;
+
+    try {
+      await createExport.mutateAsync({
+        name: newName.trim(),
+        format: newFormat,
+        size: "Generando...", // Simulated processing status
+      });
+      setIsModalOpen(false);
+      setNewName("");
+      setNewFormat("CSV");
+    } catch (error) {
+      console.error("Error creating export:", error);
+    }
+  };
+
+  const handleDeleteExport = async (id) => {
+    if (window.confirm("¿Seguro que quieres eliminar este reporte?")) {
+      await deleteExport.mutateAsync(id);
+    }
+  };
+
+  const getFormatBadge = (format) => {
+    switch(format) {
+      case 'CSV': return 'text-amber-400 bg-amber-400/10 border-amber-400/20';
+      case 'JSON': return 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20';
+      case 'XLSX': return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20';
+      default: return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -39,6 +78,11 @@ const Exportaciones = () => {
                 className="w-full bg-slate-950/80 border border-white/5 pl-12 pr-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-medium text-slate-200 placeholder:text-slate-700"
               />
            </div>
+           
+           <div className="px-4 py-2 bg-slate-900 border border-white/5 rounded-xl whitespace-nowrap">
+             <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Total Reportes: </span>
+             <span className="text-xs font-black text-white ml-1">{isLoading ? "..." : filteredExports.length}</span>
+           </div>
         </div>
 
         <div className="overflow-x-auto rounded-[1.5rem] border border-white/5 bg-slate-950/20">
@@ -52,41 +96,62 @@ const Exportaciones = () => {
                </tr>
              </thead>
              <tbody className="divide-y divide-white/5">
-                {mockExports.map(exp => (
-                  <tr key={exp.id} className="hover:bg-slate-900/30 transition-colors group">
-                    <td className="py-4 pl-8">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700">
-                          <FileSpreadsheet size={20} className="text-slate-400 group-hover:text-orange-500 transition-colors" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-white">{exp.name}</p>
-                          <p className="text-[10px] font-mono text-slate-600">{exp.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4">
-                       <div className="flex items-center space-x-2">
-                         <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-tighter ${
-                           exp.format === 'CSV' ? 'text-amber-400 bg-amber-400/10 border-amber-400/20' :
-                           exp.format === 'JSON' ? 'text-cyan-400 bg-cyan-400/10 border-cyan-400/20' :
-                           'text-emerald-400 bg-emerald-400/10 border-emerald-400/20'
-                         }`}>
-                           {exp.format}
-                         </span>
-                         <span className="text-[10px] font-mono text-slate-500">{exp.size}</span>
-                       </div>
-                    </td>
-                    <td className="py-4">
-                      <span className="text-[11px] font-medium text-slate-400">{exp.date}</span>
-                    </td>
-                    <td className="py-4 pr-8 text-right">
-                       <button className="p-2 text-slate-600 hover:text-orange-500 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                          <Download size={16} />
-                       </button>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="4" className="py-8 text-center text-slate-500">
+                      <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+                      Cargando exportaciones...
                     </td>
                   </tr>
-                ))}
+                ) : filteredExports.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" className="py-8 text-center text-slate-500">
+                      No se encontraron reportes
+                    </td>
+                  </tr>
+                ) : (
+                  filteredExports.map(exp => (
+                    <tr key={exp.id} className="hover:bg-slate-900/30 transition-colors group">
+                      <td className="py-4 pl-8">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700">
+                            <FileSpreadsheet size={20} className="text-slate-400 group-hover:text-orange-500 transition-colors" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-white">{exp.name}</p>
+                            <p className="text-[10px] font-mono text-slate-600">{exp.id}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-4">
+                         <div className="flex items-center space-x-2">
+                           <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border tracking-tighter ${getFormatBadge(exp.format)}`}>
+                             {exp.format}
+                           </span>
+                           <span className="text-[10px] font-mono text-slate-500">{exp.size || "Procesando..."}</span>
+                         </div>
+                      </td>
+                      <td className="py-4">
+                        <span className="text-[11px] font-medium text-slate-400">
+                           {exp.created_date ? formatDistanceToNow(exp.created_date.toDate(), { locale: es, addSuffix: true }) : 'Desconocido'}
+                        </span>
+                      </td>
+                      <td className="py-4 pr-8 text-right">
+                         <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-2 text-slate-600 hover:text-orange-500 rounded-lg transition-colors">
+                                <Download size={16} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteExport(exp.id)}
+                              className="p-2 text-slate-600 hover:text-rose-500 rounded-lg transition-colors"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                         </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
              </tbody>
            </table>
         </div>
@@ -101,12 +166,58 @@ const Exportaciones = () => {
             </button>
             <h2 className="text-2xl font-bold mb-2 flex items-center space-x-2">
                <Download className="text-orange-500" />
-               <span>Generar Exportación</span>
+               <span className="text-white">Generar Exportación</span>
             </h2>
             <p className="text-slate-500 text-sm mb-8 italic">Extrae datos del sistema en el formato necesario.</p>
-            <button onClick={() => setIsModalOpen(false)} className="w-full bg-slate-800 hover:bg-slate-700 text-white font-bold py-3 rounded-xl transition-all">
-              Cerrar
-            </button>
+            
+            <form onSubmit={handleCreateExport} className="space-y-6">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nombre del Reporte</label>
+                <input 
+                  type="text" 
+                  autoFocus
+                  required
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Ej: Auditoría Anual"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formato</label>
+                <select 
+                  value={newFormat}
+                  onChange={(e) => setNewFormat(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all font-medium appearance-none"
+                >
+                  <option value="CSV">CSV tabular</option>
+                  <option value="XLSX">Excel XLSX</option>
+                  <option value="JSON">Raw JSON</option>
+                </select>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)} 
+                  className="flex-1 bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold py-3 rounded-xl transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  disabled={createExport.isPending || !newName.trim()}
+                  className="flex-1 flex items-center justify-center space-x-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-all"
+                >
+                  {createExport.isPending ? (
+                    <><Loader2 size={16} className="animate-spin" /> <span>Procesando...</span></>
+                  ) : (
+                    <span>Extraer Datos</span>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

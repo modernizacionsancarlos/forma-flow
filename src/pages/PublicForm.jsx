@@ -26,7 +26,6 @@ const PublicFormView = () => {
           const allFields = schema.sections?.flatMap(s => s.fields) || schema.fields || [];
           const initialData = allFields.reduce((acc, f) => ({ ...acc, [f.id]: "" }), {});
           setFormData(initialData);
-          setStatus("error");
         }
       // eslint-disable-next-line no-unused-vars
       } catch (err) {

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { 
   ArrowLeft,
@@ -37,16 +37,37 @@ const FIELD_TYPES = [
 ];
 
 const FormBuilder = () => {
-  const { saveForm } = useForms();
+  const { saveForm, getFormById } = useForms();
+  const [searchParams] = useSearchParams();
+  const formId = searchParams.get("id");
   
   const [title, setTitle] = useState("Nuevo Formulario");
   const [description, setDescription] = useState("");
-  const [fields, setFields] = useState([{ id: "mock_1", type: "text", label: "Nombre Completo", required: true }]);
+  const [fields, setFields] = useState([]);
   const [activeField, setActiveField] = useState(null);
   
   const [acceptsResponses, setAcceptsResponses] = useState(true);
   const [isPublic, setIsPublic] = useState(false);
   const [saveStatus, setSaveStatus] = useState("idle");
+  const [isLoading, setIsLoading] = useState(!!formId);
+
+  React.useEffect(() => {
+    if (formId && getFormById) {
+      const loadForm = async () => {
+         const schema = await getFormById(formId);
+         if (schema) {
+            setTitle(schema.title || "Sin título");
+            setDescription(schema.description || "");
+            setFields(schema.sections?.[0]?.fields || schema.fields || []);
+            setAcceptsResponses(schema.status === "active" || schema.status === "published");
+            setIsPublic(!!schema.is_public);
+         }
+         setIsLoading(false);
+      };
+      loadForm();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formId]);
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -77,6 +98,23 @@ const FormBuilder = () => {
     if (activeField?.id === id) setActiveField(null);
   };
 
+  const copyField = (field, e) => {
+    e.stopPropagation();
+    const newField = {
+      ...field,
+      id: `field_${crypto.randomUUID().split('-')[0]}`,
+      label: `${field.label} (Copia)`,
+    };
+    
+    // Insert it right after the copied field
+    const index = fields.findIndex(f => f.id === field.id);
+    const newFields = [...fields];
+    newFields.splice(index + 1, 0, newField);
+    
+    setFields(newFields);
+    setActiveField(newField);
+  };
+
   const updateActiveField = (updates) => {
     const updated = { ...activeField, ...updates };
     setActiveField(updated);
@@ -88,10 +126,12 @@ const FormBuilder = () => {
     try {
       if (saveForm) {
         await saveForm.mutateAsync({
+           id: formId || undefined,
            title,
            description,
            sections: [{ id: "default", title: "Default", fields }],
            is_public: isPublic,
+           status: acceptsResponses ? "active" : "draft"
         });
       }
       setSaveStatus("saved");
@@ -101,6 +141,15 @@ const FormBuilder = () => {
       setSaveStatus("error");
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-full bg-slate-950 items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+        <p className="text-slate-500 mt-4 font-bold tracking-widest uppercase text-xs">Cargando Formulario...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-full bg-slate-950 font-inter">
@@ -127,9 +176,6 @@ const FormBuilder = () => {
         </div>
 
         <div className="flex items-center space-x-4">
-          <button className="w-10 h-10 flex items-center justify-center bg-slate-900 hover:bg-slate-800 border border-white/5 rounded-xl text-slate-400 hover:text-white transition-colors">
-            <Settings size={18} />
-          </button>
           <button 
             onClick={handleSave}
             className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-emerald-500/20"
@@ -187,12 +233,6 @@ const FormBuilder = () => {
                 </button>
               ))}
             </div>
-          </div>
-          <div className="p-6 mt-auto border-t border-white/5">
-            <button className="w-full flex items-center justify-center space-x-2 bg-slate-900 hover:bg-slate-800 border border-emerald-500/20 text-emerald-500 px-4 py-3 rounded-xl text-xs font-bold transition-colors">
-              <Plus size={14} />
-              <span>Campo Personalizado</span>
-            </button>
           </div>
         </div>
 
@@ -263,7 +303,11 @@ const FormBuilder = () => {
 
                                     {/* Action buttons - appear on hover or active */}
                                     <div className={`flex items-center space-x-1 transition-opacity ${isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                                      <button className="p-1.5 text-slate-500 hover:text-white rounded-lg hover:bg-slate-800 transition-colors">
+                                      <button 
+                                        onClick={(e) => copyField(field, e)}
+                                        className="p-1.5 text-slate-500 hover:text-emerald-400 rounded-lg hover:bg-emerald-500/10 transition-colors"
+                                        title="Duplicar Campo"
+                                      >
                                         <Copy size={14} />
                                       </button>
                                       <button 
@@ -355,12 +399,12 @@ const FormBuilder = () => {
                 </div>
 
                 {/* Panel Lógica Condicional */}
-                <div className="pt-6 border-t border-white/5">
-                   <div className="bg-slate-900 border border-emerald-500/20 rounded-2xl p-4 relative overflow-hidden">
-                     <h4 className="text-[10px] font-black text-emerald-500 uppercase tracking-wider mb-1">Lógica de Visibilidad</h4>
+                <div className="pt-6 border-t border-white/5 opacity-50">
+                   <div className="bg-slate-900 border border-slate-500/20 rounded-2xl p-4 relative overflow-hidden">
+                     <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-wider mb-1">Lógica de Visibilidad</h4>
                      <p className="text-[10px] text-slate-500 mb-4 leading-relaxed font-medium">Condiciona este campo para que solo aparezca si se cumplen reglas.</p>
-                     <button className="w-full py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-xl text-[11px] font-bold transition-colors">
-                       + Add Condición
+                     <button className="w-full py-2 bg-slate-500/10 text-slate-400 border border-slate-500/30 rounded-xl text-[11px] font-bold cursor-not-allowed">
+                       Próximamente
                      </button>
                    </div>
                 </div>
