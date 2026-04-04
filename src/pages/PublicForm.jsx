@@ -21,6 +21,9 @@ import {
 import SignatureCanvas from "react-signature-canvas";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage as firebaseStorage } from "../lib/firebase";
+import { QRCodeSVG } from "qrcode.react";
+import { toast } from "react-hot-toast";
+
 
 // --- Sub-components for Form Fields ---
 
@@ -290,23 +293,64 @@ const PublicFormView = () => {
       <p className="text-slate-500 max-w-xs font-bold leading-relaxed uppercase text-[10px] tracking-widest opacity-70 mb-12">Tus datos han sido firmados y enviados de forma segura al nodo central de FormaFlow.</p>
       
       {submissionId && (
-        <div className="bg-slate-900/50 border border-emerald-500/20 rounded-[2.5rem] p-8 mb-12 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
-           <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-4">Código de Seguimiento Único</p>
-           <div className="flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-white/5">
-              <code className="text-lg font-black text-white tracking-wider">{submissionId}</code>
-              <button 
-                onClick={() => {
-                  navigator.clipboard.writeText(submissionId);
-                  alert("ID Copiado al portapapeles");
-                }}
-                className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 hover:text-white transition-all active:scale-90"
-              >
-                <ArrowRight size={18} />
-              </button>
-           </div>
-           <p className="mt-4 text-[9px] text-slate-600 font-bold uppercase tracking-widest italic">Guarda este código para consultar el estado de tu trámite en el portal.</p>
+        <div className="flex flex-col items-center w-full max-w-lg space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+          {/* Tracking Card */}
+          <div className="bg-slate-900/50 border border-emerald-500/20 rounded-[3rem] p-10 w-full backdrop-blur-xl relative overflow-hidden group">
+             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"></div>
+             
+             <div className="flex flex-col md:flex-row items-center gap-8">
+                {/* QR Section */}
+                <div className="p-4 bg-white rounded-3xl shadow-2xl shadow-emerald-500/20 group-hover:scale-105 transition-transform duration-500">
+                   <QRCodeSVG 
+                      value={`${window.location.origin}/portal?id=${submissionId}`}
+                      size={120}
+                      level="H"
+                      includeMargin={false}
+                   />
+                </div>
+
+                <div className="flex-1 text-center md:text-left space-y-4">
+                   <div>
+                      <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-1">Tu Código Único</p>
+                      <h2 className="text-2xl font-black text-white tracking-widest italic">{submissionId}</h2>
+                   </div>
+                   
+                   <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(submissionId);
+                          toast.success("¡Código copiado!", {
+                            style: { background: '#0f172a', color: '#fff', border: '1px solid rgba(16,185,129,0.2)' }
+                          });
+                        }}
+                        className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 border border-emerald-500/20"
+                      >
+                        Copiar Código
+                      </button>
+                      <button 
+                         onClick={() => {
+                           const url = `${window.location.origin}/portal?id=${submissionId}`;
+                           navigator.clipboard.writeText(url);
+                           toast.success("¡Enlace de seguimiento copiado!");
+                         }}
+                         className="px-4 py-2 bg-slate-950 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all active:scale-95 border border-white/5"
+                      >
+                        Copiar Enlace
+                      </button>
+                   </div>
+                </div>
+             </div>
+
+             <div className="mt-8 pt-8 border-t border-white/5 text-center">
+                <p className="text-[9px] text-slate-500 font-bold uppercase tracking-[0.2em] italic leading-relaxed">
+                   Escanea el código con tu celular para seguir el estado<br/>
+                   de tu trámite en tiempo real desde cualquier lugar.
+                </p>
+             </div>
+          </div>
         </div>
       )}
+
 
       <div className="flex flex-col sm:flex-row gap-4">
         <button onClick={() => window.location.reload()} className="px-10 py-5 bg-slate-900 text-white border border-slate-800 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-slate-800 transition-all active:scale-95">Nuevo Registro</button>
