@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
 import SyncBanner from "./SyncBanner";
+import Guard from "../auth/Guard";
+import { PERMISSIONS } from "../../lib/permissions";
 
 const SidebarLink = ({ to, icon, children }) => {
   const location = useLocation();
@@ -62,16 +64,33 @@ const MainLayout = ({ children }) => {
 
         <nav className="flex-1 overflow-y-auto space-y-1 custom-scrollbar py-2">
           <SidebarLink to="/" icon={LayoutDashboard}>Dashboard</SidebarLink>
-          <SidebarLink to="/admin" icon={Shield}>Admin Panel</SidebarLink>
-          <SidebarLink to="/empresas" icon={Building2}>Empresas</SidebarLink>
-          <SidebarLink to="/areas" icon={MapPin}>Áreas</SidebarLink>
+          
+          <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+            <SidebarLink to="/admin" icon={Shield}>Admin Panel</SidebarLink>
+            <SidebarLink to="/empresas" icon={Building2}>Empresas</SidebarLink>
+          </Guard>
+
+          <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
+            <SidebarLink to="/areas" icon={MapPin}>Áreas</SidebarLink>
+          </Guard>
+
           <SidebarLink to="/forms" icon={FileText}>Formularios</SidebarLink>
           <SidebarLink to="/submissions" icon={ClipboardList}>Respuestas</SidebarLink>
-          <SidebarLink to="/usuarios" icon={Users}>Usuarios</SidebarLink>
-          <SidebarLink to="/workflows" icon={GitMerge}>Workflows</SidebarLink>
+          
+          <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS}>
+            <SidebarLink to="/usuarios" icon={Users}>Usuarios</SidebarLink>
+          </Guard>
+
+          <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
+            <SidebarLink to="/workflows" icon={GitMerge}>Workflows</SidebarLink>
+          </Guard>
+
           <SidebarLink to="/exportaciones" icon={Download}>Exportaciones</SidebarLink>
-          <SidebarLink to="/auditoria" icon={ShieldCheck}>Auditoría</SidebarLink>
-          <SidebarLink to="/sincronizacion" icon={RefreshCw}>Sincronización</SidebarLink>
+          
+          <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+            <SidebarLink to="/auditoria" icon={ShieldCheck}>Auditoría</SidebarLink>
+            <SidebarLink to="/sincronizacion" icon={RefreshCw}>Sincronización</SidebarLink>
+          </Guard>
           
           <div className="pt-6 mt-6 border-t border-slate-800/50">
              <SidebarLink to="/configuracion" icon={Settings}>Configuración</SidebarLink>

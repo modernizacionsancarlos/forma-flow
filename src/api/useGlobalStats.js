@@ -1,23 +1,45 @@
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, limit, orderBy } from "firebase/firestore";
+import { collection, getDocs, query, limit, orderBy, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
-export const useGlobalStats = () => {
+export const useGlobalStats = (tenantId = null) => {
     return useQuery({
-        queryKey: ["global-stats"],
+        queryKey: ["global-stats", tenantId],
         queryFn: async () => {
-            // Optimization: Fetch only needed data
-            const submSnap = await getDocs(collection(db, "Submissions"));
-            const tenantsSnap = await getDocs(collection(db, "tenants"));
-            const usersSnap = await getDocs(collection(db, "userProfiles"));
+            // Base collections
+            let submissionsRef = collection(db, "Submissions");
+            let usersProfilesRef = collection(db, "userProfiles");
+            
+            // Apply filtering if tenantId is provided
+            let submQuery = submissionsRef;
+            let usersQuery = usersProfilesRef;
+
+            if (tenantId) {
+                submQuery = query(submissionsRef, where("tenant_id", "==", tenantId));
+                usersQuery = query(usersProfilesRef, where("tenantId", "==", tenantId));
+            }
+
+            const submSnap = await getDocs(submQuery);
+            const usersSnap = await getDocs(usersQuery);
+            
+            // Tenants count only makes sense for global view, or 1 for tenant view
+            let totalTenants = 0;
+            if (!tenantId) {
+                const tenantsSnap = await getDocs(collection(db, "tenants"));
+                totalTenants = tenantsSnap.size;
+            } else {
+                totalTenants = 1;
+            }
 
             const now = new Date();
             const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
             // Real data aggregation for the last 7 days
             const last7DaysSubmissions = submSnap.docs.filter(d => {
-                const date = d.data().created_date ? 
-                             (d.data().created_date.toDate ? d.data().created_date.toDate() : new Date(d.data().created_date)) : 
+                const data = d.data();
+                const rawDate = data.created_date || data.timestamp;
+                const date = rawDate ? 
+                             (rawDate.toDate ? rawDate.toDate() : new Date(rawDate)) : 
                              null;
                 return date && date >= sevenDaysAgo;
             });
@@ -35,7 +57,8 @@ export const useGlobalStats = () => {
 
             // Populate with real values
             last7DaysSubmissions.forEach(doc => {
-                const rawDate = doc.data().created_date;
+                const data = doc.data();
+                const rawDate = data.created_date || data.timestamp;
                 const date = rawDate?.toDate ? rawDate.toDate() : new Date(rawDate);
                 const dayName = days[date.getDay()];
                 if (chartDataMap[dayName]) {
@@ -47,7 +70,7 @@ export const useGlobalStats = () => {
 
             return {
                 totalSubmissions: submSnap.size,
-                totalTenants: tenantsSnap.size,
+                totalTenants: totalTenants,
                 totalUsers: usersSnap.size,
                 recentSubmissionsCount: last7DaysSubmissions.length,
                 chartData: finalChartData
@@ -57,11 +80,28 @@ export const useGlobalStats = () => {
     });
 };
 
-export const useRecentActivity = () => {
+export const useRecentActivity = (tenantId = null) => {
     return useQuery({
-        queryKey: ["recent-activity"],
+        queryKey: ["recent-activity", tenantId],
         queryFn: async () => {
-            const q = query(collection(db, "AuditLogs"), orderBy("timestamp", "desc"), limit(15));
+            let activityRef = collection(db, "AuditLogs");
+            let q;
+            
+            if (tenantId) {
+                q = query(
+                    activityRef, 
+                    where("tenant_id", "==", tenantId),
+                    orderBy("timestamp", "desc"), 
+                    limit(15)
+                );
+            } else {
+                q = query(
+                    activityRef, 
+                    orderBy("timestamp", "desc"), 
+                    limit(15)
+                );
+            }
+
             const snap = await getDocs(q);
             return snap.docs.map(doc => {
                 const data = doc.data();

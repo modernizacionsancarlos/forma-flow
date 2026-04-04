@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { 
   BarChart3, 
   Users, 
@@ -9,7 +9,9 @@ import {
   TrendingUp,
   Activity,
   Zap,
-  Globe
+  Globe,
+  Filter,
+  LayoutDashboard
 } from "lucide-react";
 import { 
   BarChart, 
@@ -24,6 +26,9 @@ import {
 import { useAuth } from "../lib/AuthContext";
 import { useSubmissions } from "../api/useSubmissions";
 import { useGlobalStats, useRecentActivity } from "../api/useGlobalStats";
+import { useTenants } from "../api/useTenants";
+import { Guard } from "../components/auth/Guard";
+import { PERMISSIONS } from "../lib/permissions";
 
 const StatCard = ({ title, value, subtext, icon, color }) => (
   <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl backdrop-blur-md relative overflow-hidden group hover:border-slate-700 transition-all duration-300">
@@ -60,10 +65,19 @@ const ActivityItem = ({ title, time, type }) => (
 );
 
 const Dashboard = () => {
-  const { claims } = useAuth();
+  const { currentProfile } = useAuth();
+  const [selectedTenant, setSelectedTenant] = useState(null);
+  const { tenants } = useTenants();
+
+  // Determine which tenantId to use for stats
+  // If super_admin, use selectedTenant (can be null for global)
+  // Otherwise, strictly use currentProfile.tenantId
+  const isSuperAdmin = currentProfile?.role === 'super_admin';
+  const effectiveTenantId = isSuperAdmin ? selectedTenant : currentProfile?.tenantId;
+
   const { queueCount, isSyncing } = useSubmissions();
-  const { data: stats } = useGlobalStats();
-  const { data: activity, isLoading: activityLoading } = useRecentActivity();
+  const { data: stats } = useGlobalStats(effectiveTenantId);
+  const { data: activity, isLoading: activityLoading } = useRecentActivity(effectiveTenantId);
 
   const chartData = stats?.chartData || [
     { name: 'Mon', count: 40 },
@@ -80,17 +94,38 @@ const Dashboard = () => {
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
           <div className="flex items-center space-x-2 mb-2">
-            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 rounded-full text-[10px] font-black uppercase tracking-widest">Enterprise v2.1</span>
+            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 rounded-full text-[10px] font-black uppercase tracking-widest">Enterprise v2.2</span>
             <span className="h-1 w-1 bg-slate-700 rounded-full"></span>
-            <span className="text-xs font-bold text-slate-400 capitalize">{claims.tenantId || "Infraestructura Global"}</span>
+            <span className="text-xs font-bold text-slate-400 capitalize">
+              {effectiveTenantId || "Infraestructura Global"}
+            </span>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter">
             System <span className="text-emerald-500">Overview</span>
           </h1>
-          <p className="text-slate-500 text-sm mt-1 font-medium italic">Rendimiento global operativo.</p>
+          <p className="text-slate-500 text-sm mt-1 font-medium italic">
+            {effectiveTenantId ? `Panel de control: ${effectiveTenantId}` : "Rendimiento global operativo."}
+          </p>
         </div>
-        
-        <div className="flex space-x-2 overflow-x-auto pb-1">
+
+        <div className="flex items-center space-x-4">
+          <Guard permission={PERMISSIONS.MANAGE_TENANTS} fallback={null}>
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-2xl px-4 py-2 space-x-2">
+              <Filter size={14} className="text-slate-500" />
+              <select 
+                value={selectedTenant || ""}
+                onChange={(e) => setSelectedTenant(e.target.value || null)}
+                className="bg-transparent text-xs font-bold text-slate-300 focus:outline-none appearance-none cursor-pointer"
+              >
+                <option value="">Vista Global</option>
+                {tenants?.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          </Guard>
+          
+          <div className="flex space-x-2 overflow-x-auto pb-1">
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl px-4 py-2 flex items-center space-x-3 whitespace-nowrap">
              <div className="flex -space-x-1">
                <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-900" />
@@ -102,8 +137,9 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Stats Grid */}
+    {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Total Submissions" 

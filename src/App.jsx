@@ -22,6 +22,7 @@ import Auditoria from './pages/Auditoria'
 import Sincronizacion from './pages/Sincronizacion'
 import Configuracion from './pages/Configuracion'
 import MainLayout from './components/ui/MainLayout'
+import JoinOrganization from './components/auth/JoinOrganization'
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -54,6 +55,7 @@ function App() {
           }}
         />
         <Router>
+          <JoinOrganization />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/view/:formId" element={<PublicForm />} />

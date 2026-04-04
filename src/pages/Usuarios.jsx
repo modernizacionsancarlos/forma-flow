@@ -1,10 +1,13 @@
 import React, { useState } from "react";
-import { Plus, Users, Search, X, Trash2, Mail, Fingerprint } from "lucide-react";
+import { Plus, Users, Search, X, Trash2, Mail, Fingerprint, Send, ShieldAlert, History } from "lucide-react";
 import { useUsers } from "../api/useUsers";
 import { useTenants } from "../api/useTenants";
+import { useInvitations } from "../api/useInvitations";
+import { ROLES, PERMISSIONS } from "../lib/permissions";
+import { Guard } from "../components/auth/Guard";
 
 const UserModal = ({ isOpen, onClose, onSave, tenants, isSaving }) => {
-  const [formData, setFormData] = useState({ email: "", role: "user", tenantId: "" });
+  const [formData, setFormData] = useState({ email: "", role: "lector", tenantId: "" });
 
   if (!isOpen) return null;
 
@@ -17,10 +20,10 @@ const UserModal = ({ isOpen, onClose, onSave, tenants, isSaving }) => {
         </button>
         
         <h2 className="text-2xl font-bold mb-2 flex items-center space-x-2">
-           <Users className="text-blue-500" />
-           <span>Vincular Usuario</span>
+           <Send className="text-blue-500" />
+           <span>Invitar Usuario</span>
         </h2>
-        <p className="text-slate-500 text-sm mb-8 italic">Registra un nuevo operador en el sistema central.</p>
+        <p className="text-slate-500 text-sm mb-8 italic">Envía una invitación formal para unirse a la plataforma.</p>
 
         <form onSubmit={(e) => { e.preventDefault(); onSave(formData); }} className="space-y-6">
           <div>
@@ -48,9 +51,9 @@ const UserModal = ({ isOpen, onClose, onSave, tenants, isSaving }) => {
                 onChange={(e) => setFormData({...formData, role: e.target.value})}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all appearance-none font-bold disabled:opacity-50 text-white"
               >
-                <option value="user">Operador</option>
-                <option value="admin">Admin Tenant</option>
-                <option value="super_admin">Super Admin</option>
+                {Object.entries(ROLES).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
               </select>
             </div>
             <div>
@@ -107,9 +110,12 @@ const UserRow = ({ user, onDelete }) => (
        <span className={`px-2 py-1 rounded-md text-[10px] font-black uppercase border ${
          user.role === 'admin' ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' :
          user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-500 border-purple-500/30' :
+         user.role === 'editor' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' :
+         user.role === 'lector' ? 'bg-slate-500/10 text-slate-500 border-slate-500/30' :
+         user.role === 'firmante' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' :
          'bg-slate-500/10 text-slate-500 border-slate-500/30'
        }`}>
-         {user.role || "User"}
+         {ROLES[user.role] || user.role || "User"}
        </span>
     </td>
     <td className="py-4 pr-8 text-right">
@@ -124,8 +130,9 @@ const Usuarios = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   
-  const { users, isLoading: usersLoading, createUser, deleteUser } = useUsers();
+  const { users, isLoading: usersLoading, deleteUser } = useUsers();
   const { tenants } = useTenants();
+  const { pendingInvitations, createInvitation, revokeInvitation } = useInvitations();
 
   const filteredUsers = users?.filter(u => 
     u.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -134,10 +141,20 @@ const Usuarios = () => {
 
   const handleSaveUser = async (data) => {
     try {
-      await createUser.mutateAsync(data);
+      await createInvitation.mutateAsync(data);
       setIsUserModalOpen(false);
     } catch (error) {
-      alert("Error al vincular usuario: " + error.message);
+      alert("Error al enviar invitación: " + error.message);
+    }
+  };
+
+  const handleRevokeInvitation = async (id) => {
+    if (window.confirm("¿Estás seguro de revocar esta invitación?")) {
+      try {
+        await revokeInvitation.mutateAsync(id);
+      } catch (error) {
+        alert("Error al revocar invitación: " + error.message);
+      }
     }
   };
 
@@ -154,16 +171,61 @@ const Usuarios = () => {
           <h1 className="text-3xl font-black text-white tracking-tighter w-fit flex flex-col">
              <span className="bg-gradient-to-r from-blue-400 to-indigo-600 bg-clip-text text-transparent">Usuarios</span>
           </h1>
-          <p className="text-slate-500 text-sm mt-1 font-medium italic">Directorio global y vinculaciones</p>
+          <p className="text-slate-500 text-sm mt-1 font-medium italic">Gestión de accesos y control de identidades</p>
         </div>
-        <button 
-          onClick={() => setIsUserModalOpen(true)}
-          className="flex items-center space-x-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all bg-blue-600 hover:bg-blue-700 shadow-glow-cyan text-white active:scale-95 disabled:opacity-50"
-        >
-           <Plus size={18} />
-           <span>Vincular Usuario</span>
-        </button>
+        <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS} fallback={null}>
+          <button 
+            onClick={() => setIsUserModalOpen(true)}
+            className="flex items-center space-x-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all bg-blue-600 hover:bg-blue-700 shadow-glow-cyan text-white active:scale-95 disabled:opacity-50"
+          >
+             <Plus size={18} />
+             <span>Invitar Nuevo</span>
+          </button>
+        </Guard>
       </div>
+
+      {/* Invitaciones Pendientes */}
+      {pendingInvitations?.length > 0 && (
+        <div className="bg-slate-900/50 border border-amber-500/10 rounded-[2.5rem] p-8 shadow-2xl backdrop-blur-xl">
+           <h3 className="text-amber-500 text-[10px] font-black uppercase tracking-[0.2em] mb-6 flex items-center space-x-2">
+             <History size={16} />
+             <span>Invitaciones Pendientes</span>
+           </h3>
+           <div className="overflow-x-auto rounded-[1.5rem] border border-white/5 bg-slate-950/20">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-white/5 border-b border-white/5">
+                    <th className="py-4 pl-8 text-[10px] font-black text-slate-600 uppercase">Email</th>
+                    <th className="py-4 text-[10px] font-black text-slate-600 uppercase">Rol</th>
+                    <th className="py-4 text-[10px] font-black text-slate-600 uppercase">Tenant</th>
+                    <th className="py-4 pr-8 text-right text-[10px] font-black text-slate-600 uppercase tracking-widest">Acción</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {pendingInvitations.map(inv => (
+                    <tr key={inv.id} className="group hover:bg-white/5 transition-colors">
+                      <td className="py-3 pl-8 text-sm font-medium text-slate-300">{inv.email}</td>
+                      <td className="py-3">
+                         <span className="bg-slate-800 text-slate-400 text-[10px] font-bold px-2 py-0.5 rounded border border-white/5 uppercase">
+                           {ROLES[inv.role] || inv.role}
+                         </span>
+                      </td>
+                      <td className="py-3 text-xs text-slate-500 italic">{inv.tenantId}</td>
+                      <td className="py-3 pr-8 text-right">
+                         <button 
+                           onClick={() => handleRevokeInvitation(inv.id)}
+                           className="p-2 text-slate-600 hover:text-red-500 transition-colors"
+                         >
+                            <ShieldAlert size={16} />
+                         </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+           </div>
+        </div>
+      )}
 
       <div className="bg-slate-950/40 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl backdrop-blur-xl">
         <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
