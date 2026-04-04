@@ -27,14 +27,12 @@ const PublicFormView = () => {
           const initialData = allFields.reduce((acc, f) => ({ ...acc, [f.id]: "" }), {});
           setFormData(initialData);
         }
-      // eslint-disable-next-line no-unused-vars
-      } catch (err) {
+      } catch {
         setStatus("error");
       }
     };
     fetchForm();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formId]);
+  }, [formId, getFormById]);
 
   const handleInputChange = (fieldId, value) => {
     setFormData(prev => ({ ...prev, [fieldId]: value }));

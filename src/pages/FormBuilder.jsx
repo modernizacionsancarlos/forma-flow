@@ -66,8 +66,7 @@ const FormBuilder = () => {
       };
       loadForm();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formId]);
+  }, [formId, getFormById]);
 
   const onDragEnd = (result) => {
     if (!result.destination) return;
@@ -136,8 +135,7 @@ const FormBuilder = () => {
       }
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);
-    // eslint-disable-next-line no-unused-vars
-    } catch (err) {
+    } catch {
       setSaveStatus("error");
     }
   };

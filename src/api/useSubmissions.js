@@ -16,13 +16,7 @@ export const useSubmissions = () => {
     localStorage.setItem("formflow_sync_queue", JSON.stringify(offlineQueue));
   }, [offlineQueue]);
 
-  // Automatic sync when connection is restored
-  useEffect(() => {
-    const handleOnline = () => syncQueue();
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [offlineQueue]);
+
 
   const submitForm = async (formData, schemaId) => {
     const submissionId = crypto.randomUUID();
@@ -76,8 +70,7 @@ export const useSubmissions = () => {
     for (const item of queueToSync) {
       try {
         // Remove local temporary ID before saving to Firestore
-        // eslint-disable-next-line no-unused-vars
-        const { id, ...firebaseData } = item;
+        const { id: _id, ...firebaseData } = item;
         await addDoc(collection(db, "Submissions"), {
           ...firebaseData,
           created_date: Timestamp.fromMillis(item.created_date),
@@ -100,6 +93,13 @@ export const useSubmissions = () => {
       failed: queueToSync.length - successes.length 
     };
   }, [offlineQueue, isSyncing]);
+
+  // Automatic sync when connection is restored
+  useEffect(() => {
+    const handleOnline = () => syncQueue();
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [syncQueue]);
 
   return {
     submitForm,

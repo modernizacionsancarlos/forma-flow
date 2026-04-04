@@ -1,6 +1,7 @@
 import React from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
+import toast, { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import './index.css'
 
@@ -22,11 +23,17 @@ import Sincronizacion from './pages/Sincronizacion'
 import Configuracion from './pages/Configuracion'
 import MainLayout from './components/ui/MainLayout'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => toast.error(error.message || 'Error al cargar los datos')
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => toast.error(error.message || 'Ocurrió un error en la solicitud')
+  })
+})
 
 const ProtectedRoute = ({ children, role }) => {
-  const { user, claims, loading } = useAuth()
-  if (loading) return <div className="flex items-center justify-center min-h-screen bg-[#06111C]"><p className="text-white">Cargando...</p></div>
+  const { user, claims } = useAuth()
   if (!user) return <Navigate to="/login" />
   if (role && claims.role !== role) return <Navigate to="/" />
   return children
@@ -36,6 +43,16 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <Toaster 
+          position="bottom-right" 
+          toastOptions={{
+            style: {
+              background: '#0B1726',
+              color: '#fff',
+              border: '1px solid #1A2E44'
+            }
+          }}
+        />
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />

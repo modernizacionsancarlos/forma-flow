@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth } from "./firebase";
+import Loader from "../components/ui/Loader";
 
 const AuthContext = createContext();
 
@@ -56,7 +57,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? <Loader fullScreen text="Autenticando..." /> : children}
     </AuthContext.Provider>
   );
 };
