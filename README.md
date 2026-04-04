@@ -4,6 +4,14 @@ Sistema SaaS integral para la gestión de formularios dinámicos, flujos de trab
 
 ---
 
+## 📚 Wiki Oficial del Proyecto
+
+Hemos centralizado todos los detalles operativos (Estructura de Funciones, Interfaz de Botones, Lógica de Firebase y Layouts UI/UX) en nuestra **Wiki Interna** para mantener este documento introductorio ágil.
+
+👉 **[Explorar la Wiki Detallada de Forma Flow aquí](docs/wiki/Home.md)**
+
+---
+
 ## 📊 Diagramas de Flujo del Sistema
 
 A continuación se detallan los flujos de trabajo principales de **Forma Flow**, desde la creación de un formulario hasta el análisis de las respuestas.
