@@ -21,7 +21,9 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell
+  Cell,
+  PieChart,
+  Pie
 } from "recharts";
 import { useAuth } from "../lib/AuthContext";
 import { useSubmissions } from "../api/useSubmissions";
@@ -79,15 +81,10 @@ const Dashboard = () => {
   const { data: stats } = useGlobalStats(effectiveTenantId);
   const { data: activity, isLoading: activityLoading } = useRecentActivity(effectiveTenantId);
 
-  const chartData = stats?.chartData || [
-    { name: 'Mon', count: 40 },
-    { name: 'Tue', count: 65 },
-    { name: 'Wed', count: 45 },
-    { name: 'Thu', count: 90 },
-    { name: 'Fri', count: 75 },
-    { name: 'Sat', count: 55 },
-    { name: 'Sun', count: 80 },
-  ];
+  const chartData = stats?.chartData || [];
+  const statusData = stats?.statusDistribution || [];
+
+  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -235,32 +232,73 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Real-time Feed */}
-        <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md flex flex-col h-[550px] lg:h-auto">
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-white uppercase tracking-widest flex items-center space-x-2">
-              <Activity size={18} className="text-blue-500" />
-              <span>Event Log</span>
-            </h3>
-            <p className="text-xs text-slate-500 font-medium italic">Sincronizaciones en vivo.</p>
-          </div>
-          
-          <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-            {activityLoading ? (
-               <div className="h-full flex items-center justify-center">
-                 <Clock size={24} className="animate-spin text-slate-700" />
-               </div>
-            ) : activity?.length > 0 ? (
-              activity.map(item => (
-                <ActivityItem key={item.id} title={item.title} time={item.time} type={item.type} />
-              ))
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center opacity-50 px-4">
-                <Database size={32} className="mb-2 text-slate-700" />
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">No hay actividad reciente</p>
+        {/* Real-time Feed & Status Distribution */}
+        <div className="space-y-8">
+           {/* Status Pie Chart */}
+           <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md">
+              <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2 mb-6">
+                <Zap size={16} className="text-amber-500" />
+                <span>Estado de Gestiones</span>
+              </h3>
+              <div className="h-[200px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            )}
-          </div>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                {statusData.map((item, i) => (
+                  <div key={item.name} className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase truncate">{item.name}</span>
+                    <span className="text-[10px] font-black text-white ml-auto">{item.value}</span>
+                  </div>
+                ))}
+              </div>
+           </div>
+
+           {/* Event Log */}
+           <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md flex flex-col h-[350px]">
+              <div className="mb-6">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2">
+                  <Activity size={18} className="text-blue-500" />
+                  <span>Log de Auditoría</span>
+                </h3>
+              </div>
+              
+              <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
+                {activityLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Clock size={24} className="animate-spin text-slate-700" />
+                  </div>
+                ) : activity?.length > 0 ? (
+                  activity.map(item => (
+                    <ActivityItem key={item.id} title={item.title} time={item.time} type={item.type} />
+                  ))
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-50 px-4">
+                    <Database size={32} className="mb-2 text-slate-700" />
+                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Sin registros</p>
+                  </div>
+                )}
+              </div>
+           </div>
         </div>
       </div>
     </div>

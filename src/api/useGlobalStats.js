@@ -66,6 +66,13 @@ export const useGlobalStats = (tenantId = null) => {
                 }
             });
 
+            // Populations per status
+            const statusMap = {};
+            submSnap.docs.forEach(doc => {
+                const status = doc.data().status || 'pendiente';
+                statusMap[status] = (statusMap[status] || 0) + 1;
+            });
+
             const finalChartData = Object.values(chartDataMap);
 
             return {
@@ -73,7 +80,8 @@ export const useGlobalStats = (tenantId = null) => {
                 totalTenants: totalTenants,
                 totalUsers: usersSnap.size,
                 recentSubmissionsCount: last7DaysSubmissions.length,
-                chartData: finalChartData
+                chartData: finalChartData,
+                statusDistribution: Object.entries(statusMap).map(([name, value]) => ({ name, value }))
             };
         },
         refetchInterval: 60000 // Refresh every minute

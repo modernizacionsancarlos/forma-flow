@@ -1,6 +1,11 @@
 import React, { useState } from "react";
-import { Search, Download, FileSpreadsheet, MoreVertical, X, Loader2, Trash2 } from "lucide-react";
+import { Search, Download, FileSpreadsheet, X, Loader2, Trash2 } from "lucide-react";
 import { useExports } from "../api/useExports";
+import { useForms } from "../api/useForms";
+import { db, storage } from "../lib/firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import * as XLSX from "xlsx";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 
@@ -9,9 +14,12 @@ const Exportaciones = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const [newName, setNewName] = useState("");
-  const [newFormat, setNewFormat] = useState("CSV");
+  const [newFormat, setNewFormat] = useState("XLSX");
+  const [selectedFormId, setSelectedFormId] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const { exportsList, isLoading, createExport, deleteExport } = useExports();
+  const { forms } = useForms();
 
   const filteredExports = exportsList.filter(exp => 
     exp.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -19,20 +27,70 @@ const Exportaciones = () => {
 
   const handleCreateExport = async (e) => {
     e.preventDefault();
-    if (!newName.trim()) return;
+    if (!newName.trim() || !selectedFormId) return;
 
+    setIsExporting(true);
     try {
+      // 1. Fetch Submissions for the specific form
+      const q = query(collection(db, "submissions"), where("form_id", "==", selectedFormId));
+      const snapshot = await getDocs(q);
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Transform the complex values object into flat columns for Excel
+        ...doc.data().values
+      }));
+
+      // Cleanup internal fields from export
+      const cleanedData = data.map(item => {
+        const copy = { ...item };
+        delete copy.values;
+        delete copy.metadata;
+        return copy;
+      });
+
+      let downloadUrl = "";
+      let fileName = `${newName.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}`;
+
+      if (newFormat === "JSON") {
+         const jsonContent = JSON.stringify(cleanedData, null, 2);
+         const blob = new Blob([jsonContent], { type: "application/json" });
+         downloadUrl = await uploadAndGetUrl(blob, `${fileName}.json`);
+      } else {
+         // XLSX Export logic
+         const worksheet = XLSX.utils.json_to_sheet(cleanedData);
+         const workbook = XLSX.utils.book_new();
+         XLSX.utils.book_append_sheet(workbook, worksheet, "Respuestas");
+         
+         const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+         const blob = new Blob([excelBuffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+         downloadUrl = await uploadAndGetUrl(blob, `${fileName}.xlsx`);
+      }
+
+      // 2. Save the metadata record in Firestore
       await createExport.mutateAsync({
         name: newName.trim(),
         format: newFormat,
-        size: "Generando...", // Simulated processing status
+        size: `${(cleanedData.length)} filas`,
+        downloadUrl,
+        formId: selectedFormId,
+        formName: forms.find(f => f.id === selectedFormId)?.title || "Formulario"
       });
+
       setIsModalOpen(false);
       setNewName("");
-      setNewFormat("CSV");
+      setSelectedFormId("");
     } catch (error) {
       console.error("Error creating export:", error);
+    } finally {
+      setIsExporting(false);
     }
+  };
+
+  const uploadAndGetUrl = async (blob, path) => {
+    const fileRef = ref(storage, `exports/${path}`);
+    await uploadBytes(fileRef, blob);
+    return await getDownloadURL(fileRef);
   };
 
   const handleDeleteExport = async (id) => {
@@ -137,13 +195,22 @@ const Exportaciones = () => {
                         </span>
                       </td>
                       <td className="py-4 pr-8 text-right">
-                         <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-2 text-slate-600 hover:text-orange-500 rounded-lg transition-colors">
+                        <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            {exp.downloadUrl && (
+                              <a 
+                                href={exp.downloadUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="p-2 text-slate-600 hover:text-emerald-500 rounded-lg transition-colors"
+                                title="Descargar"
+                              >
                                 <Download size={16} />
-                            </button>
+                              </a>
+                            )}
                             <button 
                               onClick={() => handleDeleteExport(exp.id)}
                               className="p-2 text-slate-600 hover:text-rose-500 rounded-lg transition-colors"
+                              title="Eliminar"
                             >
                                 <Trash2 size={16} />
                             </button>
@@ -185,15 +252,29 @@ const Exportaciones = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formato</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formulario a Exportar</label>
+                <select 
+                  required
+                  value={selectedFormId}
+                  onChange={(e) => setSelectedFormId(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-medium appearance-none"
+                >
+                  <option value="">Selecciona un formulario...</option>
+                  {forms?.map(form => (
+                    <option key={form.id} value={form.id}>{form.title}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formato de Salida</label>
                 <select 
                   value={newFormat}
                   onChange={(e) => setNewFormat(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all font-medium appearance-none"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-medium appearance-none"
                 >
-                  <option value="CSV">CSV tabular</option>
-                  <option value="XLSX">Excel XLSX</option>
-                  <option value="JSON">Raw JSON</option>
+                  <option value="XLSX">Microsoft Excel (.xlsx)</option>
+                  <option value="JSON">Raw Data (.json)</option>
                 </select>
               </div>
 
@@ -207,13 +288,13 @@ const Exportaciones = () => {
                 </button>
                 <button 
                   type="submit"
-                  disabled={createExport.isPending || !newName.trim()}
+                  disabled={isExporting || !newName.trim() || !selectedFormId}
                   className="flex-1 flex items-center justify-center space-x-2 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold py-3 rounded-xl transition-all"
                 >
-                  {createExport.isPending ? (
-                    <><Loader2 size={16} className="animate-spin" /> <span>Procesando...</span></>
+                  {isExporting ? (
+                    <><Loader2 size={16} className="animate-spin" /> <span>Extrayendo...</span></>
                   ) : (
-                    <span>Extraer Datos</span>
+                    <span>Generar Reporte</span>
                   )}
                 </button>
               </div>
