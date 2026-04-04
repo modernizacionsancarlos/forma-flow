@@ -78,13 +78,46 @@ El proyecto está construido con un stack moderno, enfocado en performance y est
 - **Lucide React**: Íconos vectoriales modernos de alta resolución.
 - **Zustand / Context API**: Manejo de estado global para la sesión y UI.
 
-### Infraestructura (Firebase)
-Usamos **Firebase** como nuestro único backend (BaaS - Backend as a Service), aprovechando:
-- **Firestore**: Base de datos NoSQL en tiempo real para almacenar formularios, respuestas, configuraciones de áreas y usuarios.
-- **Authentication**: Autenticación segura de usuarios y roles administrativos.
-- **Storage**: Almacenamiento nube para adjuntos y firmas.
-- **Hosting**: Alojamiento web ultrarrápido con CDN global.
+## 🔥 Arquitectura e Infraestructura Firebase
 
+Forma Flow es una aplicación **Serverless** que depende íntegramente del ecosistema de Firebase (BaaS) para proveer un rendimiento de alta disponibilidad, persistencia en tiempo real y una barrera de seguridad robusta sin necesidad de gestionar servidores propios.
+
+```mermaid
+graph TD
+    classDef client fill:#18181b,stroke:#3b82f6,stroke-width:2px,color:#fff;
+    classDef fbCore fill:#1e293b,stroke:#f59e0b,stroke-width:2px,color:#fff;
+    classDef fbSec fill:#312e81,stroke:#8b5cf6,stroke-width:2px,color:#fff;
+
+    Usuario((👤 Usuario /<br>Administrador)):::client
+
+    subgraph Firebase Cloud [Ecosistema Firebase - Backend as a Service]
+        Hosting[🌐 Hosting<br>CDN Global de Frontend]:::fbCore
+        Auth[🔐 Authentication<br>Motor de Identidad]:::fbCore
+        Rules[🛡️ Security Rules<br>Motor de Políticas y Accesos]:::fbSec
+        Firestore[🗄️ Firestore Database<br>BD NoSQL en Tiempo Real]:::fbCore
+        Storage[📂 Cloud Storage<br>Archivos y Adjuntos]:::fbCore
+    end
+
+    Usuario -->|1. Accede a la URL| Hosting
+    Usuario -->|2. Inicia Sesión Segura| Auth
+    Auth -->|Retorna Token (JWT)| Usuario
+
+    Usuario -->|3. Consulta / Guarda Datos| Rules
+    Usuario -->|4. Sube Fotos o Firmas| Rules
+
+    Rules -->|Valida Rol de Usuario| Firestore
+    Rules -->|Autoriza tamaño/tipo| Storage
+    
+    Firestore -.->|Sincronización Realtime| Usuario
+```
+
+### Detalle Estructural de los Servicios Utilizados
+
+- **🌐 Firebase Hosting**: Sirve nuestra aplicación compilada en React (dist) globalmente usando la CDN avanzada de Google. Proporciona tiempos de carga ultrarrápidos, caché perimetral agresivo y certificados SSL pre-configurados. Es el hogar de nuestro Frontend.
+- **🔐 Firebase Authentication**: Controla el embudo de acceso al sistema (Portal de Gestión, Mesa de Entradas, Creador). Nos proporciona los JWT (JSON Web Tokens) que el framework React mantiene en el provider de AuthContext protegido, aislando la lógica administrativa de los usuarios comunes visualmente en el cliente.
+- **🛡️ Firestore Security Rules**: Es la barrera defensiva innegociable de la infraestructura. Valida lógicamente cada petición que llega a la Base de Datos para asegurar que usuarios sin privilegios no puedan leer, borrar o alterar información municipal sensible de bases cruzadas.
+- **🗄️ Firestore Database**: Corazón de la plataforma. Base de datos no relacional que almacena los nodos paramétricos completos de cada formulario dinámico, la lista tabular de inspectores, las respuestas de los ciudadanos y los cruces de áreas. Gracias a sus WebSockets internos, las vistas de la "Mesa de Entradas" reflejan los nuevos registros *en tiempo real* según ingresan.
+- **📂 Firebase Cloud Storage**: Servicio de almacenamiento de objetos binarios masivos de Google Cloud, destinado asíncronamente a guardar cargas pesadas asociadas a formularios específicos, como firmas dactilares dibujadas en Canvas, fotografías de constancias o documentos en PDF generados.
 ---
 
 ## 💻 Desarrollo Local (Cómo probarlo en tu compu)
