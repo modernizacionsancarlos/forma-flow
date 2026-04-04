@@ -110,7 +110,8 @@ const FormBuilder = () => {
       }
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);
-    } catch (err) {
+    } catch (saveError) {
+      console.error("Error saving form:", saveError);
       setSaveStatus("error");
     }
   };

@@ -1,10 +1,7 @@
-import React from "react";
-import { GripVertical, Copy, Trash2 } from "lucide-react";
-import { FIELD_TYPES } from "./FieldPalette";
+import { FIELD_TYPES } from "../../../constants/fieldTypes";
 
 const FieldItem = ({ 
   field, 
-  index, 
   isActive, 
   onSelect, 
   onCopy, 
@@ -12,13 +9,14 @@ const FieldItem = ({
   provided, 
   snapshot 
 }) => {
+  const { innerRef, draggableProps, dragHandleProps } = provided;
   const fieldDef = FIELD_TYPES.find(t => t.id === field.type) || FIELD_TYPES[1];
   const Icon = fieldDef.icon;
 
   return (
     <div
-      ref={provided.innerRef}
-      {...provided.draggableProps}
+      ref={(node) => innerRef(node)}
+      {...draggableProps}
       onClick={onSelect}
       className={`
         rounded-3xl border relative transition-all duration-300 group overflow-hidden bg-slate-900/40 backdrop-blur-md
@@ -31,7 +29,7 @@ const FieldItem = ({
       <div className="flex min-h-[6rem]">
         {/* Drag Handle */}
         <div 
-          {...provided.dragHandleProps}
+          {...dragHandleProps}
           className={`w-12 flex items-center justify-center border-r transition-all ${isActive ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-slate-950/20 border-slate-800/40 group-hover:bg-slate-900/50'}`}
         >
           <GripVertical size={18} className={isActive ? "text-emerald-500 animate-pulse" : "text-slate-700 group-hover:text-slate-500"} />

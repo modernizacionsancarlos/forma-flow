@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { collection, query, where, getDocs, orderBy, updateDoc, doc, Timestamp, addDoc, getDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { useSubmissions } from "../api/useSubmissions";
 import { useForms } from "../api/useForms";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { exportToExcel, exportToPDF as bulkExportPDF } from "../utils/exportUtils";
 
 // Components
 import SubmissionsHeader from "../components/submissions/SubmissionsHeader";
@@ -14,7 +15,7 @@ import SubmissionList from "../components/submissions/SubmissionList";
 import AuditPanel from "../components/submissions/AuditPanel";
 
 const Submissions = () => {
-  const { claims, user } = useAuth();
+  const { claims } = useAuth();
   const { queueCount, isSyncing, syncQueue, clearQueue } = useSubmissions();
   const { forms } = useForms();
   
@@ -26,7 +27,7 @@ const Submissions = () => {
   const [selectedSchema, setSelectedSchema] = useState(null);
   
   const [loading, setLoading] = useState(true);
-  const [actionLoading, setActionLoading] = useState(false);
+
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncFeedback, setSyncFeedback] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,35 +100,6 @@ const Submissions = () => {
     fetchSchema();
   }, [selectedSubmission]);
 
-  const updateStatus = async (submissionId, newStatus) => {
-    setActionLoading(true);
-    try {
-      const docRef = doc(db, "Submissions", submissionId);
-      await updateDoc(docRef, { 
-        status: newStatus,
-        updated_at: Timestamp.now(),
-        updated_by: user.uid 
-      });
-      
-      // Log for audit
-      await addDoc(collection(db, "AuditLogs"), {
-        submission_id: submissionId,
-        action: "status_change",
-        old_status: selectedSubmission.status,
-        new_status: newStatus,
-        performer_id: user.uid,
-        performer_name: user.email,
-        timestamp: Timestamp.now(),
-        tenant_id: claims.tenantId || "global"
-      });
-
-      setSelectedSubmission(prev => ({ ...prev, status: newStatus }));
-      fetchSubmissions();
-    } catch (err) {
-      console.error(err);
-    }
-    setActionLoading(false);
-  };
 
   const getFlattenedFields = () => {
     if (!selectedSchema) return [];
@@ -234,6 +206,25 @@ const Submissions = () => {
 
   const flattenedFields = getFlattenedFields();
 
+  const [selectedIds, setSelectedIds] = useState([]);
+  
+  const toggleSelectId = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const selectAll = (ids) => {
+    setSelectedIds(prev => prev.length === ids.length ? [] : ids);
+  };
+
+  const handleStatusUpdated = (newStatus) => {
+    if (selectedSubmission) {
+      setSelectedSubmission(prev => ({ ...prev, status: newStatus }));
+      fetchSubmissions();
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-160px)] gap-6 antialiased">
       <SubmissionsHeader 
@@ -243,6 +234,15 @@ const Submissions = () => {
         isSyncing={isSyncing}
         queueCount={queueCount}
         clearQueue={clearQueue}
+        selectedCount={selectedIds.length}
+        onExport={(type) => {
+          const selectedSubmissions = submissions.filter(s => selectedIds.includes(s.id));
+          if (type === 'excel') {
+            exportToExcel(selectedSubmissions, selectedSchema?.title || 'Export');
+          } else if (type === 'pdf') {
+            bulkExportPDF(selectedSubmissions, selectedSchema?.title || 'Export');
+          }
+        }}
       />
 
       <div className="flex flex-1 gap-6 overflow-hidden">
@@ -250,7 +250,7 @@ const Submissions = () => {
           forms={forms}
           submissions={submissions}
           selectedFormId={selectedFormId}
-          onSelectForm={(id) => { setSelectedFormId(id); setSelectedSubmission(null); }}
+          onSelectForm={(id) => { setSelectedFormId(id); setSelectedSubmission(null); setSelectedIds([]); }}
         />
 
         <SubmissionList 
@@ -260,6 +260,9 @@ const Submissions = () => {
           filteredSubmissions={filteredSubmissions}
           selectedSubmission={selectedSubmission}
           onSelectSubmission={setSelectedSubmission}
+          selectedIds={selectedIds}
+          onToggleSelect={toggleSelectId}
+          onSelectAll={() => selectAll(filteredSubmissions.map(s => s.id))}
         />
 
         <AuditPanel 
@@ -267,8 +270,7 @@ const Submissions = () => {
           onClose={() => setSelectedSubmission(null)}
           selectedSchema={selectedSchema}
           flattenedFields={flattenedFields}
-          updateStatus={updateStatus}
-          actionLoading={actionLoading}
+          onStatusUpdated={handleStatusUpdated}
           generatePDF={generatePDF}
         />
       </div>
