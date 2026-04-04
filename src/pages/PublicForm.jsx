@@ -1,8 +1,178 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { useForms } from "../api/useForms";
 import { useSubmissions } from "../api/useSubmissions";
-import { CheckCircle, AlertCircle, ArrowRight, ShieldCheck, MapPin } from "lucide-react";
+import { 
+  CheckCircle, 
+  AlertCircle, 
+  ArrowRight, 
+  ShieldCheck, 
+  MapPin, 
+  UploadCloud, 
+  PenTool, 
+  Trash2,
+  Loader2,
+  Calendar,
+  Clock,
+  ListChecks,
+  CheckCircle2,
+  ToggleLeft
+} from "lucide-react";
+import SignatureCanvas from "react-signature-canvas";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage as firebaseStorage } from "../lib/firebase";
+
+// --- Sub-components for Form Fields ---
+
+const SignatureField = ({ value, onChange, label, error }) => {
+  const sigPad = useRef(null);
+
+  const clear = () => {
+    sigPad.current.clear();
+    onChange("");
+  };
+
+  const save = () => {
+    if (sigPad.current.isEmpty()) return;
+    onChange(sigPad.current.getTrimmedCanvas().toDataURL("image/png"));
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
+        <button onClick={clear} className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:opacity-70 transition-opacity">Limpiar</button>
+      </div>
+      <div className="bg-white rounded-3xl overflow-hidden border-4 border-slate-900 shadow-inner h-64 relative group/sig">
+        <SignatureCanvas 
+          ref={sigPad}
+          penColor="#0f172a"
+          canvasProps={{ className: "signature-canvas w-full h-full" }}
+          onEnd={save}
+        />
+        {!value && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20">
+             <PenTool size={48} className="text-slate-950" />
+          </div>
+        )}
+      </div>
+      {error && <p className="text-red-500 text-[10px] font-black uppercase flex items-center space-x-2"><AlertCircle size={14} /><span>{error}</span></p>}
+    </div>
+  );
+};
+
+const FileField = ({ fieldId, onChange, label, error, value }) => {
+  const [uploading, setUploading] = useState(false);
+  const [fileName, setFileName] = useState(null);
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setFileName(file.name);
+    
+    try {
+      const storageRef = ref(firebaseStorage, `submissions/${fieldId}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      onChange(url);
+    } catch (err) {
+      console.error("Upload error:", err);
+      alert("Error al subir archivo");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
+      <div className={`relative border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all ${value ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-950/50 border-slate-800 hover:border-slate-700/50'}`}>
+         {uploading ? (
+           <div className="flex flex-col items-center space-y-4">
+             <Loader2 className="text-emerald-500 animate-spin" size={32} />
+             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Subiendo {fileName}...</p>
+           </div>
+         ) : value ? (
+           <div className="flex flex-col items-center space-y-4 text-center">
+             <div className="p-4 bg-emerald-500/20 rounded-2xl text-emerald-500 shadow-lg border border-emerald-500/20">
+               <CheckCircle size={32} />
+             </div>
+             <div>
+                <p className="text-[10px] font-black text-white uppercase tracking-widest">Archivo Adjunto</p>
+                <p className="text-[9px] text-slate-500 font-bold max-w-[200px] truncate">{fileName || 'Documento cargado'}</p>
+             </div>
+             <button onClick={() => onChange("")} className="text-[10px] font-black text-rose-500 hover:text-rose-400 transition-colors uppercase tracking-widest flex items-center space-x-2">
+                <Trash2 size={12} />
+                <span>Eliminar</span>
+             </button>
+           </div>
+         ) : (
+           <label className="cursor-pointer flex flex-col items-center space-y-6 w-full group">
+             <div className="p-6 bg-slate-900 border border-slate-800 rounded-[1.5rem] text-slate-500 group-hover:text-emerald-500 group-hover:border-emerald-500/30 transition-all shadow-xl group-hover:scale-110">
+                <UploadCloud size={32} />
+             </div>
+             <div className="text-center">
+                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 group-hover:text-white transition-colors">Seleccionar Archivo</p>
+                <p className="text-[9px] text-slate-600 font-bold italic opacity-60">PDF, PNG o JPG (Máx. 5MB)</p>
+             </div>
+             <input type="file" className="hidden" onChange={handleFileChange} />
+           </label>
+         )}
+      </div>
+      {error && <p className="text-red-500 text-[10px] font-black uppercase flex items-center space-x-2"><AlertCircle size={14} /><span>{error}</span></p>}
+    </div>
+  );
+};
+
+const GPSField = ({ value, onChange, label, error }) => {
+  const [locating, setLocating] = useState(false);
+
+  const captureGPS = () => {
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        onChange(`${pos.coords.latitude}, ${pos.coords.longitude}`);
+        setLocating(false);
+      },
+      () => {
+        alert("No se pudo obtener la ubicación. Verifique permisos.");
+        setLocating(false);
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
+      <div className={`p-8 border-2 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all ${value ? 'bg-emerald-500/5 border-emerald-500/30 shadow-lg shadow-emerald-500/5' : 'bg-slate-950/50 border-slate-800'}`}>
+         <div className="flex items-center space-x-6">
+            <div className={`p-5 rounded-2xl border transition-all ${value ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-500' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
+               <MapPin size={24} className={locating ? "animate-bounce" : ""} />
+            </div>
+            <div>
+               <p className="text-[10px] font-black text-white uppercase tracking-widest">{value ? "Coordenadas Capturadas" : "Captura de Ubicación"}</p>
+               <p className="text-[11px] font-mono font-black text-emerald-500 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">
+                  {locating ? "Obteniendo datos satelitales..." : value || "No se ha capturado ubicación"}
+               </p>
+            </div>
+         </div>
+         <button 
+           type="button"
+           onClick={captureGPS}
+           disabled={locating}
+           className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl disabled:opacity-50"
+         >
+           {value ? "Recapturar" : "Capturar Ubicación"}
+         </button>
+      </div>
+      {error && <p className="text-red-500 text-[10px] font-black uppercase flex items-center space-x-2"><AlertCircle size={14} /><span>{error}</span></p>}
+    </div>
+  );
+};
+
+// --- Main Public Form Component ---
 
 const PublicFormView = () => {
   const { formId } = useParams();
@@ -21,11 +191,11 @@ const PublicFormView = () => {
         if (schema && (schema.is_public || schema.status === "active")) {
           setFormSchema(schema);
           setStatus("ready");
-          
-          // Flatten sections to initialize data
           const allFields = schema.sections?.flatMap(s => s.fields) || schema.fields || [];
-          const initialData = allFields.reduce((acc, f) => ({ ...acc, [f.id]: "" }), {});
+          const initialData = allFields.reduce((acc, f) => ({ ...acc, [f.id]: f.type === "boolean" ? false : "" }), {});
           setFormData(initialData);
+        } else {
+           setStatus("error");
         }
       } catch {
         setStatus("error");
@@ -45,19 +215,29 @@ const PublicFormView = () => {
     }
   };
 
+  const isFieldVisible = (field) => {
+    if (!field.logic || field.logic.length === 0) return true;
+    return field.logic.every(rule => {
+      const dependencyValue = formData[rule.fieldId];
+      const targetValue = rule.value;
+      switch (rule.operator) {
+        case "==": return String(dependencyValue) === String(targetValue);
+        case "!=": return String(dependencyValue) !== String(targetValue);
+        case "contains": return String(dependencyValue || "").toLowerCase().includes(String(targetValue).toLowerCase());
+        case "greater": return Number(dependencyValue) > Number(targetValue);
+        case "less": return Number(dependencyValue) < Number(targetValue);
+        default: return true;
+      }
+    });
+  };
+
   const validateForm = () => {
     const newErrors = {};
     const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
-    
     allFields.forEach(field => {
+      if (!isFieldVisible(field)) return;
       if (field.required && !formData[field.id]) {
         newErrors[field.id] = "Este campo es obligatorio";
-      }
-      if (field.validation?.pattern && formData[field.id]) {
-        const regex = new RegExp(field.validation.pattern);
-        if (!regex.test(formData[field.id])) {
-          newErrors[field.id] = field.validation.message || "Formato inválido";
-        }
       }
     });
     setErrors(newErrors);
@@ -69,27 +249,32 @@ const PublicFormView = () => {
     if (!validateForm()) return;
 
     setStatus("submitting");
-    const result = await submitForm(formData, formId);
-    
-    if (result.success) {
-      setStatus("success");
-    } else {
+    const filteredData = {};
+    const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
+    allFields.forEach(f => {
+      if (isFieldVisible(f)) filteredData[f.id] = formData[f.id];
+    });
+
+    const result = await submitForm(filteredData, formId);
+    if (result && result.success) setStatus("success");
+    else {
       setStatus("ready");
       alert("Error al enviar. Se intentará sincronizar cuando haya conexión.");
     }
   };
 
   if (status === "loading") return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center font-inter">
+      <Loader2 className="h-12 w-12 text-emerald-500 animate-spin" />
+      <p className="text-slate-500 mt-6 font-black tracking-widest uppercase text-[10px]">Cifrando Conexión SSL...</p>
     </div>
   );
 
   if (status === "error") return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
       <AlertCircle size={64} className="text-red-500 mb-6 opacity-30" />
-      <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Formulario no Encontrado</h1>
-      <p className="text-slate-500 max-w-sm">Este formulario no existe, está inactivo o no cuenta con permisos de acceso público.</p>
+      <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Acceso Denegado</h1>
+      <p className="text-slate-500 max-w-sm">No encontramos el formulario o no tienes permiso para visualizarlo públicamente.</p>
     </div>
   );
 
@@ -98,133 +283,165 @@ const PublicFormView = () => {
       <div className="w-24 h-24 bg-emerald-500/20 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-emerald-500/10 border border-emerald-500/20 animate-in zoom-in-50 duration-500">
         <CheckCircle size={56} className="text-emerald-500" />
       </div>
-      <h1 className="text-4xl font-black text-white mb-4 tracking-tighter">¡ENVÍO EXITOSO!</h1>
-      <p className="text-slate-400 max-w-sm font-medium leading-relaxed">Tus respuestas han sido procesadas correctamente y cifradas en el servidor central.</p>
-      <button 
-        onClick={() => window.location.reload()}
-        className="mt-12 px-10 py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-900/40 active:scale-95"
-      >
-        Realizar otro Registro
-      </button>
+      <h1 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase italic">¡REGISTRO COMPLETADO!</h1>
+      <p className="text-slate-500 max-w-xs font-bold leading-relaxed uppercase text-[10px] tracking-widest opacity-70">Tus datos han sido firmados y enviados de forma segura al nodo central de FormaFlow.</p>
+      <button onClick={() => window.location.reload()} className="mt-12 px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 active:scale-95">Realizar Nuevo Registro</button>
     </div>
   );
 
   const renderField = (field) => {
+    if (!isFieldVisible(field)) return null;
     const hasError = !!errors[field.id];
-    
+
+    // Field Content Wrapper
+    const renderContent = () => {
+      switch (field.type) {
+        case "text":
+        case "number":
+          return (
+            <input 
+              type={field.type}
+              placeholder={field.placeholder || "Esperando entrada..."}
+              value={formData[field.id]}
+              onChange={(e) => handleInputChange(field.id, e.target.value)}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 ${hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+            />
+          );
+        case "textarea":
+          return (
+            <textarea 
+               rows={4}
+               placeholder={field.placeholder || "Escriba aquí..."}
+               value={formData[field.id]}
+               onChange={(e) => handleInputChange(field.id, e.target.value)}
+               className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 resize-none ${hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+            />
+          );
+        case "boolean":
+          return (
+            <div className="flex items-center space-x-6 p-4">
+              <div 
+                onClick={() => handleInputChange(field.id, !formData[field.id])}
+                className={`w-16 h-8 rounded-full transition-all cursor-pointer relative shadow-inner ${formData[field.id] ? "bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.3)]" : "bg-slate-800"}`}
+              >
+                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${formData[field.id] ? "left-9" : "left-1"}`}></div>
+              </div>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${formData[field.id] ? "text-emerald-500" : "text-slate-600"}`}>
+                 {formData[field.id] ? "Habilitado / Sí" : "Deshabilitado / No"}
+              </span>
+            </div>
+          );
+        case "file": return <FileField fieldId={field.id} value={formData[field.id]} label={field.label} onChange={(v) => handleInputChange(field.id, v)} error={errors[field.id]} />;
+        case "signature": return <SignatureField value={formData[field.id]} label={field.label} onChange={(v) => handleInputChange(field.id, v)} error={errors[field.id]} />;
+        case "gps": return <GPSField value={formData[field.id]} label={field.label} onChange={(v) => handleInputChange(field.id, v)} error={errors[field.id]} />;
+        default: return <div className="text-rose-500 font-black italic uppercase text-[10px]">Tipo de campo incompleto: {field.type}</div>;
+      }
+    };
+
+    // Skip wrapping custom components that handle their own labels/errors
+    if (["file", "signature", "gps"].includes(field.type)) {
+       return <div key={field.id} className="animate-in fade-in zoom-in-95 duration-500">{renderContent()}</div>;
+    }
+
     return (
-      <div key={field.id} className={`group flex flex-col space-y-3 p-8 border-2 rounded-[2rem] transition-all ${
+      <div key={field.id} className={`group flex flex-col space-y-3 p-8 border-2 rounded-[2.5rem] transition-all duration-500 ease-out animate-in fade-in zoom-in-95 ${
         hasError ? "bg-red-500/5 border-red-500/30 shadow-lg shadow-red-900/10" : "bg-slate-900/40 border-slate-800 hover:border-slate-700/50"
       }`}>
-        <label className="text-sm font-black text-slate-300 flex items-center justify-between uppercase tracking-widest">
+        <label className="text-[10px] font-black text-slate-400 flex items-center justify-between uppercase tracking-[0.2em] mb-2 px-2">
            <div className="flex items-center space-x-2">
              <span>{field.label}</span>
              {field.required && <span className="text-red-500 text-lg font-black">*</span>}
            </div>
-           {field.type === "gps" && <MapPin size={16} className="text-emerald-500/30" />}
         </label>
-        
-        {field.type === "text" || field.type === "number" ? (
-          <input 
-            type={field.type}
-            placeholder={field.placeholder || "Esperando entrada..."}
-            value={formData[field.id]}
-            onChange={(e) => handleInputChange(field.id, e.target.value)}
-            className={`w-full bg-slate-950 border-2 rounded-[1.25rem] px-6 py-5 text-lg text-white focus:outline-none focus:ring-2 transition-all shadow-inner placeholder:text-slate-800 ${
-              hasError ? "border-red-500/50 focus:ring-red-500" : "border-slate-800 focus:ring-emerald-500"
-            }`}
-          />
-        ) : field.type === "checkbox" ? (
-          <div className="flex items-center space-x-6 p-4">
-            <div 
-              onClick={() => handleInputChange(field.id, !formData[field.id])}
-              className={`w-16 h-8 rounded-full transition-all cursor-pointer relative shadow-inner ${formData[field.id] ? "bg-emerald-600" : "bg-slate-800"}`}
-            >
-              <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${formData[field.id] ? "left-9" : "left-1"}`}></div>
-            </div>
-            <span className={`text-sm font-bold uppercase tracking-widest ${formData[field.id] ? "text-emerald-500" : "text-slate-600"}`}>
-               {formData[field.id] ? "Habilitado" : "Deshabilitado"}
-            </span>
-          </div>
-        ) : (
-          <div className="bg-slate-950/80 border-2 border-slate-800 border-dashed rounded-3xl p-10 text-center flex flex-col items-center space-y-4 opacity-50">
-             <div className="p-3 bg-slate-900 rounded-2xl ring-1 ring-slate-800">
-               <ShieldCheck size={24} />
-             </div>
-             <p className="text-xs font-bold uppercase tracking-[0.2em]">{field.type} Captura Especial</p>
-             <p className="text-xs italic">La captura de {field.type.toUpperCase()} se ejecutará en dispositivo móvil.</p>
-          </div>
-        )}
-
-        {errors[field.id] && (
-          <p className="text-red-500 text-[10px] font-black uppercase flex items-center space-x-2 pl-2">
-            <AlertCircle size={14} />
-            <span>{errors[field.id]}</span>
-          </p>
-        )}
+        {renderContent()}
+        {errors[field.id] && <p className="text-red-500 text-[10px] font-black uppercase flex items-center space-x-2 pl-2 mt-2"><AlertCircle size={14} /><span>{errors[field.id]}</span></p>}
       </div>
     );
   };
 
+  if (!formSchema) return null;
+
   return (
-    <div className="min-h-screen bg-slate-950 text-white font-inter selection:bg-emerald-500/30 overflow-x-hidden">
-      <div className="max-w-3xl mx-auto px-6 py-16 md:py-24">
-        <header className="mb-20 space-y-8 animate-in fade-in slide-in-from-top-10 duration-700">
-          <div className="inline-flex items-center space-x-3 px-4 py-1.5 bg-emerald-600/10 border border-emerald-500/20 rounded-full">
-             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-             <span className="text-[10px] text-emerald-500 font-black uppercase tracking-[0.2em]">Cifrado Activo por Empresa</span>
+    <div className="min-h-screen bg-slate-950 text-white font-inter selection:bg-emerald-500/30 overflow-x-hidden relative">
+      <div className="max-w-3xl mx-auto px-6 py-20 md:py-32 relative z-10">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-600/5 blur-[150px] rounded-full pointer-events-none -z-10" />
+        
+        <header className="mb-24 space-y-8 animate-in fade-in slide-in-from-top-10 duration-1000">
+          <div className="inline-flex items-center space-x-3 px-5 py-2 bg-slate-900/80 border border-emerald-500/20 rounded-full shadow-2xl backdrop-blur-xl">
+             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+             <span className="text-[9px] text-emerald-400 font-black uppercase tracking-[0.3em]">Cifrado Activo por Empresa</span>
           </div>
           <div>
-            <h1 className="text-5xl md:text-6xl font-black text-white mb-6 tracking-tighter leading-[0.9]">{formSchema.title || "Formulario de Captura"}</h1>
-            <p className="text-slate-500 text-xl leading-relaxed max-w-2xl font-medium">{formSchema.description || "Sistema descentralizado de recolección de datos."}</p>
+            <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-[0.8] uppercase italic">{formSchema.title || "Formulario de Captura"}</h1>
+            <p className="text-slate-500 text-xl leading-relaxed max-w-2xl font-bold italic tracking-tight opacity-70">{formSchema.description || "Sistema descentralizado de recolección de datos masiva."}</p>
           </div>
         </header>
 
-        <form onSubmit={handleSubmit} className="space-y-20">
-           {(formSchema.sections || []).map((section) => (
-             <section key={section.id} className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                <div className="flex items-center space-x-6">
-                   <h2 className="text-2xl font-black text-white whitespace-nowrap">{section.title}</h2>
-                   <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-800 to-transparent"></div>
-                </div>
-                <div className="grid grid-cols-1 gap-6">
-                  {(section.fields || []).map(renderField)}
-                </div>
-             </section>
-           ))}
-           
-           {/* Fallback for old forms without sections */}
-           {(!formSchema.sections || formSchema.sections.length === 0) && (
-              <div className="grid grid-cols-1 gap-6">
+        <form onSubmit={handleSubmit} className="space-y-28">
+           {(formSchema.sections || []).length > 0 ? (
+             formSchema.sections.map((section) => {
+                const visibleFields = (section.fields || []).filter(isFieldVisible);
+                if (visibleFields.length === 0) return null;
+                return (
+                  <section key={section.id} className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                     <div className="flex items-center space-x-10">
+                        <h2 className="text-2xl font-black text-white whitespace-nowrap uppercase tracking-[0.1em] italic">{section.title}</h2>
+                        <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-900 via-slate-800 to-transparent"></div>
+                     </div>
+                     <div className="grid grid-cols-1 gap-10">
+                       {section.fields.map(renderField)}
+                     </div>
+                  </section>
+                );
+             })
+           ) : (
+              <div className="grid grid-cols-1 gap-10">
                  {(formSchema.fields || []).map(renderField)}
               </div>
            )}
 
-           <button 
-             type="submit" 
-             disabled={status === "submitting"}
-             className="w-full group bg-emerald-600 hover:bg-emerald-500 text-white py-6 rounded-[2rem] font-black text-lg uppercase tracking-widest flex items-center justify-center space-x-4 transition-all shadow-2xl shadow-emerald-900/30 disabled:opacity-50 active:scale-95 mt-16"
-           >
-             {status === "submitting" ? (
-                <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/30 border-t-white"></div>
-             ) : (
-               <>
-                 <span>Firmar y Enviar</span>
-                 <ArrowRight size={22} className="group-hover:translate-x-2 transition-transform" />
-               </>
-             )}
-           </button>
-        </form>
-
-        <footer className="mt-32 pt-12 border-t border-slate-900 flex flex-col md:flex-row justify-between items-center gap-8 opacity-40 group hover:opacity-100 transition-all duration-500 grayscale hover:grayscale-0">
-           <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-slate-900 border border-slate-800 rounded-2xl flex items-center justify-center font-black text-emerald-500 text-xl shadow-lg">F</div>
-              <div className="flex flex-col">
-                <span className="text-sm font-black tracking-tight text-white uppercase tracking-widest">FormFlow System</span>
-                <span className="text-[10px] text-slate-500 font-bold uppercase">Enterprise Portal v2.0.4</span>
+           <div className="pt-24 relative">
+              <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+              <button 
+                type="submit" 
+                disabled={status === "submitting"}
+                className="w-full group bg-emerald-600 hover:bg-emerald-500 text-white py-10 rounded-[3.5rem] font-black text-2xl uppercase tracking-[0.3em] flex items-center justify-center space-x-6 transition-all shadow-[0_30px_70px_rgba(16,185,129,0.2)] disabled:opacity-50 active:scale-[0.98] relative overflow-hidden"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]"></div>
+                {status === "submitting" ? (
+                   <Loader2 className="h-10 w-10 text-white animate-spin" />
+                ) : (
+                  <>
+                    <span>Sincronizar y Enviar</span>
+                    <ArrowRight size={36} className="group-hover:translate-x-4 transition-transform duration-700 ease-out" />
+                  </>
+                )}
+              </button>
+              <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 opacity-40">
+                 <div className="flex items-center space-x-3">
+                    <ShieldCheck size={16} className="text-emerald-500" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Protección Bancaria</span>
+                 </div>
+                 <div className="flex items-center space-x-3">
+                    <MapPin size={16} className="text-emerald-500" />
+                    <span className="text-[9px] font-black uppercase tracking-widest">Geolocalización Auditada</span>
+                 </div>
               </div>
            </div>
-           <p className="text-xs text-slate-500 font-medium text-center md:text-right">Auditado por Sistema Central de Modernización.<br/>© 2026 Todos los derechos reservados.</p>
+        </form>
+
+        <footer className="mt-48 pt-20 border-t border-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-12 opacity-20 hover:opacity-100 transition-all duration-1000">
+           <div className="flex items-center space-x-6">
+              <div className="w-16 h-16 bg-slate-900 border-2 border-slate-800 rounded-[2rem] flex items-center justify-center font-black text-emerald-500 text-3xl shadow-2xl transition-transform hover:rotate-[-12deg]">F</div>
+              <div className="flex flex-col">
+                <span className="text-sm font-black tracking-tighter text-white uppercase tracking-[0.3em]">FormaFlow System</span>
+                <span className="text-[9px] text-slate-600 font-extrabold uppercase tracking-[0.1em]">Public Gateway v4.5.1-GOLD</span>
+              </div>
+           </div>
+           <p className="text-[10px] text-slate-600 font-black text-center md:text-right leading-relaxed uppercase tracking-[0.2em]">
+              Sincronización segura punto a punto.<br/>
+              © 2026 MUNICIPALIDAD DE SAN CARLOS - MODERNIZACIÓN.
+           </p>
         </footer>
       </div>
     </div>
