@@ -21,6 +21,7 @@ import Exportaciones from './pages/Exportaciones'
 import Auditoria from './pages/Auditoria'
 import Sincronizacion from './pages/Sincronizacion'
 import Configuracion from './pages/Configuracion'
+import CitizenPortal from './pages/CitizenPortal'
 import MainLayout from './components/ui/MainLayout'
 import JoinOrganization from './components/auth/JoinOrganization'
 
@@ -59,6 +60,7 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/view/:formId" element={<PublicForm />} />
+            <Route path="/portal" element={<CitizenPortal />} />
             
             <Route path="/" element={
               <ProtectedRoute>

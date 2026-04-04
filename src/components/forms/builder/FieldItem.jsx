@@ -75,6 +75,8 @@ const FieldItem = ({
             {field.type === 'textarea' ? 'Entrada de texto largo (multilínea)...' : 
              field.type === 'boolean' ? 'Interruptor Toggle ON/OFF' : 
              field.type === 'section' ? 'Separador de Sección (Sin campos)' :
+             field.type === 'signature' ? 'ÁREA DE FIRMA DIGITAL REQUERIDA' :
+             field.type === 'gps' ? 'CAPTURA AUTOMÁTICA DE COORDENADAS' :
              `Ingrese dato de ${fieldDef.label.toLowerCase()}...`}
           </div>
         </div>

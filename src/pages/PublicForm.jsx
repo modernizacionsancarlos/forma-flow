@@ -182,6 +182,7 @@ const PublicFormView = () => {
   const [formSchema, setFormSchema] = useState(null);
   const [formData, setFormData] = useState({});
   const [status, setStatus] = useState("loading"); // loading, ready, success, error, submitting
+  const [submissionId, setSubmissionId] = useState(null);
   const [errors, setErrors] = useState({});
 
   useEffect(() => {
@@ -256,8 +257,10 @@ const PublicFormView = () => {
     });
 
     const result = await submitForm(filteredData, formId);
-    if (result && result.success) setStatus("success");
-    else {
+    if (result && result.success) {
+      setSubmissionId(result.id);
+      setStatus("success");
+    } else {
       setStatus("ready");
       alert("Error al enviar. Se intentará sincronizar cuando haya conexión.");
     }
@@ -279,13 +282,36 @@ const PublicFormView = () => {
   );
 
   if (status === "success") return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center font-inter">
       <div className="w-24 h-24 bg-emerald-500/20 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-emerald-500/10 border border-emerald-500/20 animate-in zoom-in-50 duration-500">
         <CheckCircle size={56} className="text-emerald-500" />
       </div>
       <h1 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase italic">¡REGISTRO COMPLETADO!</h1>
-      <p className="text-slate-500 max-w-xs font-bold leading-relaxed uppercase text-[10px] tracking-widest opacity-70">Tus datos han sido firmados y enviados de forma segura al nodo central de FormaFlow.</p>
-      <button onClick={() => window.location.reload()} className="mt-12 px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 active:scale-95">Realizar Nuevo Registro</button>
+      <p className="text-slate-500 max-w-xs font-bold leading-relaxed uppercase text-[10px] tracking-widest opacity-70 mb-12">Tus datos han sido firmados y enviados de forma segura al nodo central de FormaFlow.</p>
+      
+      {submissionId && (
+        <div className="bg-slate-900/50 border border-emerald-500/20 rounded-[2.5rem] p-8 mb-12 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
+           <p className="text-[9px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-4">Código de Seguimiento Único</p>
+           <div className="flex items-center justify-between bg-slate-950 p-4 rounded-2xl border border-white/5">
+              <code className="text-lg font-black text-white tracking-wider">{submissionId}</code>
+              <button 
+                onClick={() => {
+                  navigator.clipboard.writeText(submissionId);
+                  alert("ID Copiado al portapapeles");
+                }}
+                className="p-3 bg-emerald-500/10 text-emerald-500 rounded-xl hover:bg-emerald-500 hover:text-white transition-all active:scale-90"
+              >
+                <ArrowRight size={18} />
+              </button>
+           </div>
+           <p className="mt-4 text-[9px] text-slate-600 font-bold uppercase tracking-widest italic">Guarda este código para consultar el estado de tu trámite en el portal.</p>
+        </div>
+      )}
+
+      <div className="flex flex-col sm:flex-row gap-4">
+        <button onClick={() => window.location.reload()} className="px-10 py-5 bg-slate-900 text-white border border-slate-800 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-slate-800 transition-all active:scale-95">Nuevo Registro</button>
+        <button onClick={() => window.location.href = '/portal'} className="px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 active:scale-95">Ir al Portal de Seguimiento</button>
+      </div>
     </div>
   );
 

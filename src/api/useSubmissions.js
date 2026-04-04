@@ -32,16 +32,16 @@ export const useSubmissions = () => {
 
     if (navigator.onLine) {
       try {
-        await addDoc(collection(db, "Submissions"), {
+        const docRef = await addDoc(collection(db, "Submissions"), {
           ...submission,
           created_date: Timestamp.now(),
           status: "pending_review",
         });
-        return { success: true, synced: true };
+        return { success: true, synced: true, id: docRef.id };
       } catch (error) {
         console.error("Error direct submit:", error);
         addToQueue(submission);
-        return { success: true, synced: false };
+        return { success: true, synced: false, id: submissionId };
       }
     } else {
       addToQueue(submission);
