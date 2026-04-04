@@ -6,9 +6,9 @@ Sistema SaaS integral para la gestión de formularios dinámicos, flujos de trab
 
 ## 📚 Wiki Oficial del Proyecto
 
-Hemos centralizado todos los detalles operativos (Estructura de Funciones, Interfaz de Botones, Lógica de Firebase y Layouts UI/UX) en nuestra **Wiki Interna** para mantener este documento introductorio ágil.
+Hemos centralizado todos los detalles operativos (Estructura de Funciones, Interfaz de Botones, Lógica de Firebase y Layouts UI/UX) en la **Wiki de GitHub** para mantener este documento introductorio ágil.
 
-👉 **[Explorar la Wiki Detallada de Forma Flow aquí](docs/wiki/Home.md)**
+👉 **[Explorar la Wiki Detallada de Forma Flow en GitHub](https://github.com/modernizacionsancarlos/forma-flow/wiki)**
 
 ---
 
