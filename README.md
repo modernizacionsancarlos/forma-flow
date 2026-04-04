@@ -30,7 +30,12 @@ Antes de comenzar, asegúrate de tener instalado lo siguiente en tu equipo:
   npm install -g firebase-tools
   ```
 
-### 2. Infraestructura (Cuenta de Google)
+### 2. Herramientas de Desarrollo (Vibe Coding)
+Para mantener la agilidad y el estándar de calidad del proyecto, se recomienda el uso de entornos con IA integrada:
+- **IDE**: [Cursor](https://cursor.sh/), [Trae AI](https://www.trae.ai/) o VS Code con extensiones de Agentic AI.
+- **Asistente**: [Antigravity](https://github.com/google-deepmind/antigravity) (Recomendado para pair programming avanzado y automatización de tareas complejas).
+
+### 3. Infraestructura (Cuenta de Google)
 - Un proyecto creado en la [Consola de Firebase](https://console.firebase.google.com/).
 - Servicios activos: **Hosting**, **Firestore Database**, **Authentication** y **Storage**.
 
