@@ -29,7 +29,7 @@ import { useAuth } from "../lib/AuthContext";
 import { useSubmissions } from "../api/useSubmissions";
 import { useGlobalStats, useRecentActivity } from "../api/useGlobalStats";
 import { useTenants } from "../api/useTenants";
-import { Guard } from "../components/auth/Guard";
+import Guard from "../components/auth/Guard";
 import { PERMISSIONS } from "../lib/permissions";
 
 const StatCard = ({ title, value, subtext, icon, color }) => (

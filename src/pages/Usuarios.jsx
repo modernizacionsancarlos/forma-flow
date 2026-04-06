@@ -4,7 +4,7 @@ import { useUsers } from "../api/useUsers";
 import { useTenants } from "../api/useTenants";
 import { useInvitations } from "../api/useInvitations";
 import { ROLES, PERMISSIONS } from "../lib/permissions";
-import { Guard } from "../components/auth/Guard";
+import Guard from "../components/auth/Guard";
 
 const UserModal = ({ isOpen, onClose, onSave, tenants, isSaving }) => {
   const [formData, setFormData] = useState({ email: "", role: "lector", tenantId: "" });

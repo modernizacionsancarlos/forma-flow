@@ -1,0 +1,50 @@
+﻿
+> tmp-app@0.0.0 build
+> vite build
+
+[36mvite v8.0.3 [32mbuilding client environment for production...[36m[39m
+[2K
+transforming...Ô£ô 3453 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                          0.67 kB Ôöé gzip:   0.41 kB
+dist/assets/index-DUrfQe6_.css          65.13 kB Ôöé gzip:  10.11 kB
+dist/assets/purify.es-y41lKIN9.js       21.03 kB Ôöé gzip:   8.47 kB
+dist/assets/index.es-D80-eOlj.js       151.07 kB Ôöé gzip:  48.78 kB
+dist/assets/html2canvas-KdJ9P9YR.js    199.56 kB Ôöé gzip:  46.78 kB
+dist/assets/index-aZm-O6Bj.js        2,123.41 kB Ôöé gzip: 640.48 kB
+
+node.exe : 
+[33m[33m[INEFFECTIVE_DYNAMIC_IMPORT] 
+Warning:[0m node_modules/firebase/firestore/di
+st/esm/index.esm.js is dynamically imported by 
+src/api/useInvitations.js but also statically 
+imported by src/api/useAreas.js, 
+src/api/useAuditLogs.js, 
+src/api/useExports.js, src/api/useForms.js, 
+src/api/useGlobalStats.js, ..., dynamic import 
+will not move module into another chunk.
+En línea: 1 Carácter: 1
++ & "C:\Program Files\nodejs/node.exe" 
+"C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( 
+   [33m[33m[INEF... another chunk.:String) [  
+  ], RemoteException
+    + FullyQualifiedErrorId : NativeCommandErr 
+   or
+ 
+[39m
+[33m[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after 
+minification. Consider:
+- Using dynamic import() to code-split the 
+application
+- Use 
+build.rolldownOptions.output.codeSplitting to 
+improve chunking: https://rolldown.rs/reference
+/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via 
+build.chunkSizeWarningLimit.[39m
+[32mÔ£ô built in 2.88s[39m
