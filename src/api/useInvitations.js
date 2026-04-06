@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, doc, getDocs, Timestamp, query, where, deleteDoc, addDoc } from "firebase/firestore";
+import { collection, doc, getDocs, Timestamp, query, where, deleteDoc, addDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 
@@ -116,7 +116,6 @@ export const useInvitations = () => {
                 updatedAt: Timestamp.now() 
             };
 
-            const { setDoc, updateDoc } = await import("firebase/firestore");
             await setDoc(profileRef, updates, { merge: true });
             await updateDoc(userRef, updates);
 
