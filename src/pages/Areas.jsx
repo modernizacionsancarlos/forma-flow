@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, MapPin, MoreVertical, X, Loader2, Trash2 } from "lucide-react";
+import { Search, Plus, MapPin, RefreshCw, X, Loader2, Trash2 } from "lucide-react";
 import { useAreas } from "../api/useAreas";
 import { useAuth } from "../lib/AuthContext";
 
@@ -8,7 +8,7 @@ const Areas = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newAreaName, setNewAreaName] = useState("");
   
-  const { areas, isLoading, createArea, deleteArea } = useAreas();
+  const { areas, isLoading, createArea, updateArea, deleteArea } = useAreas();
   const { claims } = useAuth();
 
   const filteredAreas = areas.filter(area => 
@@ -31,6 +31,14 @@ const Areas = () => {
     } catch (error) {
       console.error("Error creating area:", error);
     }
+  };
+
+  const handleToggleStatus = async (area) => {
+    const newStatus = area.status === "active" ? "paused" : "active";
+    await updateArea.mutateAsync({
+      id: area.id,
+      status: newStatus
+    });
   };
 
   const handleDeleteArea = async (id) => {
@@ -122,12 +130,19 @@ const Areas = () => {
                       </td>
                       <td className="py-4 pr-8 text-right">
                          <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-2 text-slate-600 hover:text-white rounded-lg transition-colors">
-                                <MoreVertical size={16} />
+                            <button 
+                              onClick={() => handleToggleStatus(area)}
+                              disabled={updateArea.isPending}
+                              className={`p-2 rounded-lg transition-colors ${area.status === 'active' ? 'text-amber-500 hover:bg-amber-500/10' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
+                              title={area.status === 'active' ? "Pausar" : "Activar"}
+                            >
+                                <RefreshCw size={16} className={updateArea.isPending ? "animate-spin" : ""} />
                             </button>
                             <button 
                               onClick={() => handleDeleteArea(area.id)}
-                              className="p-2 text-slate-600 hover:text-rose-500 rounded-lg transition-colors"
+                              disabled={deleteArea.isPending}
+                              className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                              title="Eliminar"
                             >
                                 <Trash2 size={16} />
                             </button>

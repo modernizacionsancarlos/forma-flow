@@ -11,6 +11,7 @@ const Sincronizacion = () => {
   const { 
     syncQueue, 
     clearQueue, 
+    removeFromQueue,
     isSyncing, 
     queueCount, 
     offlineQueue 
@@ -176,10 +177,24 @@ const Sincronizacion = () => {
                            {item.created_date ? formatDistanceToNow(item.created_date, { locale: es, addSuffix: true }) : 'Desconocido'}
                         </span>
                       </td>
-                      <td className="py-4 pr-8 text-right">
-                         <button className="p-2 text-slate-600 hover:text-emerald-500 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                            <MoreVertical size={16} />
-                         </button>
+                       <td className="py-4 pr-8 text-right">
+                          <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <button 
+                               onClick={() => handleManualSync()}
+                               disabled={isSyncing || !isOnline}
+                               className={`p-2 rounded-lg transition-colors text-emerald-500 hover:bg-emerald-500/10 ${isSyncing ? "opacity-50" : ""}`}
+                               title="Reintentar Sincronización"
+                             >
+                                <RefreshCw size={16} className={isSyncing ? "animate-spin" : ""} />
+                             </button>
+                             <button 
+                               onClick={() => removeFromQueue(item.id)}
+                               className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                               title="Remover de la cola"
+                             >
+                                 <Trash2 size={16} />
+                             </button>
+                          </div>
                       </td>
                     </tr>
                   ))

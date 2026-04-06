@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { 
   Search, 
@@ -28,15 +28,7 @@ const CitizenPortal = () => {
   const [formInfo, setFormInfo] = useState(null);
   const [error, setError] = useState(null);
 
-  // Auto-search if ID is in URL
-  useEffect(() => {
-    const id = searchParams.get("id");
-    if (id) {
-       handleSearch(null, id);
-    }
-  }, [searchParams]);
-
-  const handleSearch = async (e, idOverride) => {
+  const handleSearch = useCallback(async (e, idOverride) => {
     if (e) e.preventDefault();
     const idToSearch = idOverride || searchId;
     if (!idToSearch.trim()) return;
@@ -70,7 +62,15 @@ const CitizenPortal = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchId]);
+
+  // Auto-search if ID is in URL
+  useEffect(() => {
+    const id = searchParams.get("id");
+    if (id) {
+       handleSearch(null, id);
+    }
+  }, [searchParams, handleSearch]);
 
   const getStatusConfig = (status) => {
     switch (status) {

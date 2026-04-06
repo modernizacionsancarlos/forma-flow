@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Search, Plus, GitMerge, MoreVertical, X, Loader2, Trash2 } from "lucide-react";
+import { Search, Plus, GitMerge, RefreshCw, X, Loader2, Trash2 } from "lucide-react";
 import { useWorkflows } from "../api/useWorkflows";
 
 const Workflows = () => {
@@ -10,7 +10,7 @@ const Workflows = () => {
   const [newName, setNewName] = useState("");
   const [newTrigger, setNewTrigger] = useState("");
 
-  const { workflows, isLoading, createWorkflow, deleteWorkflow } = useWorkflows();
+  const { workflows, isLoading, createWorkflow, updateWorkflow, deleteWorkflow } = useWorkflows();
 
   const filteredWorkflows = workflows.filter(wf => 
     wf.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -33,6 +33,14 @@ const Workflows = () => {
     } catch (error) {
       console.error("Error creating workflow:", error);
     }
+  };
+
+  const handleToggleStatus = async (workflow) => {
+    const newStatus = workflow.status === "active" ? "inactive" : "active";
+    await updateWorkflow.mutateAsync({
+      id: workflow.id,
+      status: newStatus
+    });
   };
 
   const handleDeleteWorkflow = async (id) => {
@@ -124,12 +132,19 @@ const Workflows = () => {
                       </td>
                       <td className="py-4 pr-8 text-right">
                          <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-2 text-slate-600 hover:text-white rounded-lg transition-colors">
-                                <MoreVertical size={16} />
+                            <button 
+                              onClick={() => handleToggleStatus(wf)}
+                              disabled={updateWorkflow.isPending}
+                              className={`p-2 rounded-lg transition-colors ${wf.status === 'active' ? 'text-amber-500 hover:bg-amber-500/10' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
+                              title={wf.status === 'active' ? "Desactivar" : "Activar"}
+                            >
+                                <RefreshCw size={16} className={updateWorkflow.isPending ? "animate-spin" : ""} />
                             </button>
                             <button 
                               onClick={() => handleDeleteWorkflow(wf.id)}
-                              className="p-2 text-slate-600 hover:text-rose-500 rounded-lg transition-colors"
+                              disabled={deleteWorkflow.isPending}
+                              className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                              title="Eliminar"
                             >
                                 <Trash2 size={16} />
                             </button>

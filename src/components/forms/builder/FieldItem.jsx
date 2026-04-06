@@ -69,7 +69,7 @@ const FieldItem = ({
             </div>
           </div>
 
-          {/* Preview Mock */}
+          {/* Visual field preview */}
           <div className="bg-slate-950/60 border border-white/5 rounded-2xl px-5 py-3.5 text-xs text-slate-600 w-full font-bold italic pointer-events-none relative overflow-hidden group/input">
             <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 to-emerald-500/5 opacity-0 group-hover/input:opacity-100 transition-opacity"></div>
             {field.type === 'textarea' ? 'Entrada de texto largo (multilínea)...' : 

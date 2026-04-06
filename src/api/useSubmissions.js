@@ -53,6 +53,12 @@ export const useSubmissions = () => {
     setOfflineQueue((prev) => [...prev, submission]);
   };
 
+  const removeFromQueue = (id) => {
+    if (window.confirm("¿Estás seguro de eliminar este registro local? Se perderán los datos.")) {
+      setOfflineQueue((prev) => prev.filter(item => item.id !== id));
+    }
+  };
+
   const clearQueue = () => {
     if (window.confirm("¿Seguro que deseas limpiar la cola? Perderás los datos no sincronizados.")) {
        setOfflineQueue([]);
@@ -105,6 +111,7 @@ export const useSubmissions = () => {
     submitForm,
     syncQueue,
     clearQueue,
+    removeFromQueue,
     isSyncing,
     queueCount: offlineQueue.length,
     offlineQueue
