@@ -221,29 +221,89 @@ const PublicFormView = () => {
 
   const isFieldVisible = (field) => {
     if (!field.logic || field.logic.length === 0) return true;
-    return field.logic.every(rule => {
+    
+    const results = field.logic.map(rule => {
       const dependencyValue = formData[rule.fieldId];
       const targetValue = rule.value;
+      
+      // Handle boolean strings from the UI components
+      const depStr = String(dependencyValue).toLowerCase();
+      const tgtStr = String(targetValue).toLowerCase();
+
       switch (rule.operator) {
-        case "==": return String(dependencyValue) === String(targetValue);
-        case "!=": return String(dependencyValue) !== String(targetValue);
-        case "contains": return String(dependencyValue || "").toLowerCase().includes(String(targetValue).toLowerCase());
+        case "==": return depStr === tgtStr;
+        case "!=": return depStr !== tgtStr;
+        case "contains": return depStr.includes(tgtStr);
         case "greater": return Number(dependencyValue) > Number(targetValue);
         case "less": return Number(dependencyValue) < Number(targetValue);
         default: return true;
       }
     });
+
+    if (field.logicMatchType === "OR") {
+      return results.some(r => r === true);
+    }
+    return results.every(r => r === true);
   };
 
   const validateForm = () => {
     const newErrors = {};
     const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
+    
     allFields.forEach(field => {
       if (!isFieldVisible(field)) return;
-      if (field.required && !formData[field.id]) {
+      
+      const value = formData[field.id];
+
+      // 1. Required Check
+      if (field.required && (!value || value === "")) {
         newErrors[field.id] = "Este campo es obligatorio";
+        return;
+      }
+
+      // 2. Advanced Validation Check
+      if (field.validation && value) {
+        const { type, pattern, errorMessage } = field.validation;
+        let isValid = true;
+        let defaultMsg = "Formato no válido";
+
+        switch (type) {
+          case "email":
+            isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+            defaultMsg = "Correo electrónico inválido";
+            break;
+          case "cuit":
+            isValid = /^\d{11}$/.test(value.replace(/-/g, ""));
+            defaultMsg = "CUIT/CUIL debe tener 11 dígitos";
+            break;
+          case "dni":
+            isValid = /^\d{7,8}$/.test(value);
+            defaultMsg = "DNI debe tener 7 u 8 dígitos";
+            break;
+          case "phone":
+            isValid = /^\+?[\d\s-]{10,15}$/.test(value);
+            defaultMsg = "Número de teléfono inválido";
+            break;
+          case "regex":
+            if (pattern) {
+              try {
+                const regex = new RegExp(pattern);
+                isValid = regex.test(value);
+              } catch {
+                console.error("Invalid Regex pattern:", pattern);
+              }
+            }
+            break;
+          default:
+            break;
+        }
+
+        if (!isValid) {
+          newErrors[field.id] = errorMessage || defaultMsg;
+        }
       }
     });
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -372,7 +432,7 @@ const PublicFormView = () => {
             <input 
               type={field.type}
               placeholder={field.placeholder || "Esperando entrada..."}
-              value={formData[field.id]}
+              value={formData[field.id] || ""}
               onChange={(e) => handleInputChange(field.id, e.target.value)}
               className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 ${hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
             />
@@ -382,10 +442,72 @@ const PublicFormView = () => {
             <textarea 
                rows={4}
                placeholder={field.placeholder || "Escriba aquí..."}
-               value={formData[field.id]}
+               value={formData[field.id] || ""}
                onChange={(e) => handleInputChange(field.id, e.target.value)}
                className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 resize-none ${hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
             />
+          );
+        case "select":
+          return (
+            <select
+              value={formData[field.id] || ""}
+              onChange={(e) => handleInputChange(field.id, e.target.value)}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner appearance-none ${hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+            >
+              <option value="" disabled className="bg-slate-900">{field.placeholder || "Seleccione una opción"}</option>
+              {field.options?.map((opt) => (
+                <option key={opt.id} value={opt.value} className="bg-slate-900">{opt.label}</option>
+              ))}
+            </select>
+          );
+        case "multiselect": {
+          const selectedValues = Array.isArray(formData[field.id]) ? formData[field.id] : [];
+          return (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {field.options?.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => {
+                    const next = selectedValues.includes(opt.value)
+                      ? selectedValues.filter(v => v !== opt.value)
+                      : [...selectedValues, opt.value];
+                    handleInputChange(field.id, next);
+                  }}
+                  className={`px-6 py-4 rounded-2xl border-2 font-bold text-sm transition-all text-left flex items-center justify-between ${
+                    selectedValues.includes(opt.value)
+                      ? "bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                      : "bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700"
+                  }`}
+                >
+                  {opt.label}
+                  {selectedValues.includes(opt.value) && <CheckCircle size={16} />}
+                </button>
+              ))}
+            </div>
+          );
+        }
+        case "radio":
+          return (
+            <div className="space-y-3">
+              {field.options?.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => handleInputChange(field.id, opt.value)}
+                  className={`w-full px-6 py-5 rounded-2xl border-2 font-bold text-lg transition-all text-left flex items-center space-x-4 ${
+                    formData[field.id] === opt.value
+                      ? "bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                      : "bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700"
+                  }`}
+                >
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData[field.id] === opt.value ? "border-emerald-500" : "border-slate-800"}`}>
+                    {formData[field.id] === opt.value && <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />}
+                  </div>
+                  <span>{opt.label}</span>
+                </button>
+              ))}
+            </div>
           );
         case "boolean":
           return (
