@@ -1,2 +1,2 @@
 @echo off
-npx firebase-tools %*
+node "%~dp0node_modules\firebase-tools\lib\bin\firebase.js" %*
