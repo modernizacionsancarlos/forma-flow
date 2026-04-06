@@ -22,6 +22,13 @@ export const useGlobalStats = (tenantId = null) => {
             const submSnap = await getDocs(submQuery);
             const usersSnap = await getDocs(usersQuery);
             
+            // Get all forms to map names
+            const formsSnap = await getDocs(collection(db, "FormSchemas"));
+            const formsMap = {};
+            formsSnap.docs.forEach(d => {
+                formsMap[d.id] = d.data().title || "Untitled Form";
+            });
+
             // Tenants count only makes sense for global view, or 1 for tenant view
             let totalTenants = 0;
             if (!tenantId) {
@@ -66,11 +73,20 @@ export const useGlobalStats = (tenantId = null) => {
                 }
             });
 
-            // Populations per status
+            // Populations per status and per form
             const statusMap = {};
+            const formMapCount = {};
             submSnap.docs.forEach(doc => {
-                const status = doc.data().status || 'pendiente';
+                const data = doc.data();
+                
+                // Status distribution
+                const status = data.status || 'pendiente';
                 statusMap[status] = (statusMap[status] || 0) + 1;
+
+                // Submissions per form
+                const formId = data.schema_id;
+                const formName = formsMap[formId] || "Desconocido";
+                formMapCount[formName] = (formMapCount[formName] || 0) + 1;
             });
 
             const finalChartData = Object.values(chartDataMap);
@@ -81,7 +97,11 @@ export const useGlobalStats = (tenantId = null) => {
                 totalUsers: usersSnap.size,
                 recentSubmissionsCount: last7DaysSubmissions.length,
                 chartData: finalChartData,
-                statusDistribution: Object.entries(statusMap).map(([name, value]) => ({ name, value }))
+                statusDistribution: Object.entries(statusMap).map(([name, value]) => ({ name, value })),
+                submissionsPerForm: Object.entries(formMapCount)
+                    .map(([name, value]) => ({ name, value }))
+                    .sort((a, b) => b.value - a.value)
+                    .slice(0, 5) // Top 5
             };
         },
         refetchInterval: 60000 // Refresh every minute

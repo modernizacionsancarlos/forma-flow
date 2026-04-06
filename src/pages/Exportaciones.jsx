@@ -16,6 +16,8 @@ const Exportaciones = () => {
   const [newName, setNewName] = useState("");
   const [newFormat, setNewFormat] = useState("XLSX");
   const [selectedFormId, setSelectedFormId] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
   const { exportsList, isLoading, createExport, deleteExport } = useExports();
@@ -31,15 +33,34 @@ const Exportaciones = () => {
 
     setIsExporting(true);
     try {
-      // 1. Fetch Submissions for the specific form
-      const q = query(collection(db, "submissions"), where("form_id", "==", selectedFormId));
+      // 1. Fetch Submissions for the specific form with DATE FILTERS
+      let q = query(collection(db, "Submissions"), where("form_id", "==", selectedFormId));
+      
+      if (startDate) {
+        q = query(q, where("created_date", ">=", new Date(startDate)));
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        q = query(q, where("created_date", "<=", end));
+      }
+
       const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        // Transform the complex values object into flat columns for Excel
-        ...doc.data().values
-      }));
+      const data = snapshot.docs.map(doc => {
+        const docData = doc.data();
+        return {
+          ID: doc.id,
+          FECHA: docData.created_date?.toDate().toLocaleString() || "---",
+          // Transform the complex values object into flat columns for Excel
+          ...docData.values
+        };
+      });
+
+      if (data.length === 0) {
+        alert("No se encontraron registros para el rango de fechas seleccionado.");
+        setIsExporting(false);
+        return;
+      }
 
       // Cleanup internal fields from export
       const cleanedData = data.map(item => {
@@ -260,14 +281,35 @@ const Exportaciones = () => {
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-medium appearance-none"
                 >
                   <option value="">Selecciona un formulario...</option>
-                  {forms?.map(form => (
-                    <option key={form.id} value={form.id}>{form.title}</option>
-                  ))}
-                </select>
-              </div>
+                    {forms?.map(form => (
+                      <option key={form.id} value={form.id}>{form.title}</option>
+                    ))}
+                  </select>
+                </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formato de Salida</label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-[9px]">Desde (Fecha)</label>
+                    <input 
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-medium text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 text-[9px]">Hasta (Fecha)</label>
+                    <input 
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-medium text-xs"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Formato de Salida</label>
                 <select 
                   value={newFormat}
                   onChange={(e) => setNewFormat(e.target.value)}

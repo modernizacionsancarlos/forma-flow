@@ -234,44 +234,75 @@ const Dashboard = () => {
 
         {/* Real-time Feed & Status Distribution */}
         <div className="space-y-8">
-           {/* Status Pie Chart */}
-           <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md">
-              <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2 mb-6">
-                <Zap size={16} className="text-amber-500" />
-                <span>Estado de Gestiones</span>
-              </h3>
-              <div className="h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={80}
-                      paddingAngle={5}
-                      dataKey="value"
-                    >
-                      {statusData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip 
-                      contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {statusData.map((item, i) => (
-                  <div key={item.name} className="flex items-center space-x-2">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-                    <span className="text-[10px] font-bold text-slate-400 uppercase truncate">{item.name}</span>
-                    <span className="text-[10px] font-black text-white ml-auto">{item.value}</span>
-                  </div>
-                ))}
-              </div>
-           </div>
+            {/* Status Pie Chart */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md">
+               <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2 mb-6">
+                 <Zap size={16} className="text-amber-500" />
+                 <span>Estado de Gestiones</span>
+               </h3>
+               <div className="h-[200px] w-full">
+                 <ResponsiveContainer width="100%" height="100%">
+                   <PieChart>
+                     <Pie
+                       data={statusData}
+                       cx="50%"
+                       cy="50%"
+                       innerRadius={60}
+                       outerRadius={80}
+                       paddingAngle={5}
+                       dataKey="value"
+                     >
+                       {statusData.map((entry, index) => (
+                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                       ))}
+                     </Pie>
+                     <Tooltip 
+                       contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                     />
+                   </PieChart>
+                 </ResponsiveContainer>
+               </div>
+               <div className="grid grid-cols-2 gap-2 mt-4">
+                 {statusData.map((item, i) => (
+                   <div key={item.name} className="flex items-center space-x-2">
+                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                     <span className="text-[10px] font-bold text-slate-400 uppercase truncate">{item.name}</span>
+                     <span className="text-[10px] font-black text-white ml-auto">{item.value}</span>
+                   </div>
+                 ))}
+               </div>
+            </div>
+
+            {/* Top Forms Ranking */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md">
+               <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2 mb-6">
+                 <TrendingUp size={16} className="text-emerald-500" />
+                 <span>Formularios más Activos</span>
+               </h3>
+               <div className="space-y-5">
+                 {stats?.submissionsPerForm?.length > 0 ? (
+                   stats.submissionsPerForm.map((form) => {
+                     const percentage = Math.round((form.value / (stats.totalSubmissions || 1)) * 100);
+                     return (
+                       <div key={form.name} className="space-y-2">
+                         <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-black text-white uppercase truncate max-w-[150px]">{form.name}</span>
+                            <span className="text-[10px] font-black text-slate-500">{form.value}</span>
+                         </div>
+                         <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                            <div 
+                              className="h-full bg-emerald-500 transition-all duration-1000 ease-out" 
+                              style={{ width: `${percentage}%` }} 
+                            />
+                         </div>
+                       </div>
+                     );
+                   })
+                 ) : (
+                   <p className="text-[10px] font-bold text-slate-600 uppercase text-center py-4">No hay datos de formularios</p>
+                 )}
+               </div>
+            </div>
 
            {/* Event Log */}
            <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md flex flex-col h-[350px]">

@@ -21,6 +21,7 @@ import SyncBanner from "./SyncBanner";
 import Guard from "../auth/Guard";
 import NotificationCenter from "./NotificationCenter";
 import { PERMISSIONS } from "../../lib/permissions";
+import { useSubmissionNotifications } from "../../api/useSubmissionNotifications";
 
 const SidebarLink = ({ to, icon, children, activeColor }) => {
   const location = useLocation();
@@ -53,6 +54,9 @@ const SidebarLink = ({ to, icon, children, activeColor }) => {
 const MainLayout = ({ children }) => {
   const { logout, claims } = useAuth();
   const { tenants } = useTenants();
+
+  // Activa las notificaciones en tiempo real para el administrador
+  useSubmissionNotifications();
 
   const currentTenant = useMemo(() => {
     return tenants?.find(t => t.id === claims.tenantId) || tenants?.[0];

@@ -223,10 +223,23 @@ const Submissions = () => {
     const fields = flattenedFields;
     const tableData = Object.entries(selectedSubmission.data || {}).map(([key, val]) => {
       const field = fields.find(f => f.id === key);
-      return [
-        field?.label || key, 
-        typeof val === 'object' ? JSON.stringify(val) : String(val)
-      ];
+      const label = field?.label || key;
+      
+      let displayValue = "---";
+      
+      if (val !== undefined && val !== null && val !== "") {
+        if (Array.isArray(val)) {
+          displayValue = val.join(", ");
+        } else if (typeof val === 'boolean') {
+          displayValue = val ? "SÍ" : "NO";
+        } else if (typeof val === 'object') {
+          displayValue = JSON.stringify(val);
+        } else {
+          displayValue = String(val);
+        }
+      }
+
+      return [label.toUpperCase(), displayValue];
     });
 
     autoTable(doc, {
