@@ -24,6 +24,7 @@ import Configuracion from './pages/Configuracion'
 import CitizenPortal from './pages/CitizenPortal'
 import MainLayout from './components/ui/MainLayout'
 import JoinOrganization from './components/auth/JoinOrganization'
+import ReloadPrompt from './components/ui/ReloadPrompt'
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -56,6 +57,7 @@ function App() {
           }}
         />
         <Router>
+          <ReloadPrompt />
           <JoinOrganization />
           <Routes>
             <Route path="/login" element={<Login />} />

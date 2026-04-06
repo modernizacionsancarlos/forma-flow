@@ -1,43 +1,53 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() { return request.auth != null; }
-    function isSuperAdmin() { return exists(/databases/$(database)/documents/superAdmins/$(request.auth.uid)); }
-    function getUserProfile() { return get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data; }
-    function isTenantAdmin(tenantId) { return isSignedIn() && (isSuperAdmin() || (getUserProfile().tenantId == tenantId && getUserProfile().roleId == 'admin')); }
-    function isTenantMember(tenantId) { return isSignedIn() && (isSuperAdmin() || getUserProfile().tenantId == tenantId); }
-
-    // Super Admin root check
-    match /superAdmins/{userId} {
-      allow read: if isSignedIn() && request.auth.uid == userId;
-      allow write: if isSuperAdmin(); // Only existing superadmins can manage others
-    }
-
-    // Shared root collections
-    match /userProfiles/{userId} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-      allow write: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
-    }
-
-    match /tenants/{tenantId} {
-      allow read: if isSignedIn();
-      allow write: if isSuperAdmin();
-    }
-
-    match /Submissions/{subId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn() && (isSuperAdmin() || resource.data.tenant_id == getUserProfile().tenantId);
-      allow update: if isSignedIn() && (isSuperAdmin() || resource.data.tenant_id == getUserProfile().tenantId);
-    }
-
-    match /AuditLogs/{logId} {
-      allow create: if isSignedIn();
-      allow read: if isSuperAdmin() || (isSignedIn() && resource.data.tenant_id == getUserProfile().tenantId);
-    }
     
-    // Legacy support for subcollections if needed (optional)
-    match /tenants/{tenantId}/{allPaths=**} {
-      allow read, write: if isTenantMember(tenantId);
+    // Función para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Función para obtener el tenant_id del usuario desde su token personalizado
+    function getUserTenantId() {
+      return request.auth.token.tenant_id;
+    }
+
+    // Función para verificar si el usuario pertenece al tenant del documento
+    function isSameTenant(resourceData) {
+      return isAuthenticated() && getUserTenantId() == resourceData.tenant_id;
+    }
+
+    // Reglas para la colección de Trámites (Submissions)
+    match /submissions/{submissionId} {
+      allow read: if isSameTenant(resource.data);
+      allow create: if isAuthenticated() && request.resource.data.tenant_id == getUserTenantId();
+      allow update, delete: if isSameTenant(resource.data);
+    }
+
+    // Reglas para la colección de Formularios (Forms)
+    match /forms/{formId} {
+      // Los formularios públicos se pueden leer sin auth si están publicados
+      allow read: if resource.data.publico == true || isSameTenant(resource.data);
+      allow create: if isAuthenticated() && request.resource.data.tenant_id == getUserTenantId();
+      allow update, delete: if isSameTenant(resource.data);
+    }
+
+    // Reglas para la configuración del Tenant (Branding, etc)
+    match /tenants/{tenantId} {
+      allow read: if isAuthenticated() && (getUserTenantId() == tenantId || tenantId == 'public');
+      allow write: if isAuthenticated() && getUserTenantId() == tenantId && request.auth.token.role == 'admin';
+    }
+
+    // Reglas para Notificaciones
+    match /Notifications/{notificationId} {
+      allow read: if isSameTenant(resource.data);
+      allow create, update: if isAuthenticated(); // El sistema o workflows crean notificaciones
+      allow delete: if isSameTenant(resource.data);
+    }
+
+    // Bloqueo por defecto para cualquier otra colección
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
