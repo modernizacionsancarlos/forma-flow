@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
+import { toast } from "react-hot-toast";
 
 export const useSubmissions = () => {
   const { user, claims } = useAuth();
@@ -65,17 +66,16 @@ export const useSubmissions = () => {
     }
   };
 
-  const syncQueue = useCallback(async () => {
-    if (!navigator.onLine || offlineQueue.length === 0 || isSyncing) return;
+  const syncQueue = useCallback(async (silent = false) => {
+    if (!navigator.onLine || (offlineQueue.length === 0 && !isSyncing)) return;
+    if (isSyncing) return;
 
     setIsSyncing(true);
     const queueToSync = [...offlineQueue];
     const successes = [];
 
-    // Process one by one to ensure accurate state updates
     for (const item of queueToSync) {
       try {
-        // Remove local temporary ID before saving to Firestore
         const { id: _id, ...firebaseData } = item;
         await addDoc(collection(db, "Submissions"), {
           ...firebaseData,
@@ -85,27 +85,38 @@ export const useSubmissions = () => {
         successes.push(item);
       } catch (error) {
         console.error("Sync failed for item:", item.id, error);
-        // We keep it in the queue for next attempt
       }
     }
 
-    // Atomic update of the queue
-    setOfflineQueue((prev) => prev.filter(qItem => !successes.some(sItem => sItem.id === qItem.id)));
+    if (successes.length > 0) {
+      setOfflineQueue((prev) => prev.filter(qItem => !successes.some(sItem => sItem.id === qItem.id)));
+      if (!silent) {
+        toast.success(`Sincronizados ${successes.length} registros pendientes`, {
+          icon: '✅',
+          style: { background: '#0f172a', color: '#fff', border: '1px solid rgba(16,185,129,0.2)' }
+        });
+      }
+    }
+    
     setIsSyncing(false);
-
-    return { 
-      total: queueToSync.length, 
-      success: successes.length, 
-      failed: queueToSync.length - successes.length 
-    };
+    return { total: queueToSync.length, success: successes.length };
   }, [offlineQueue, isSyncing]);
 
-  // Automatic sync when connection is restored
+  // Automatic sync when connection is restored & periodic check
   useEffect(() => {
     const handleOnline = () => syncQueue();
     window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-  }, [syncQueue]);
+    
+    // Periodic sync attempt every 5 minutes if there are items
+    const interval = setInterval(() => {
+      if (offlineQueue.length > 0) syncQueue(true);
+    }, 5 * 60 * 1000);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      clearInterval(interval);
+    };
+  }, [syncQueue, offlineQueue.length]);
 
   return {
     submitForm,

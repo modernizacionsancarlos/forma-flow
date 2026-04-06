@@ -321,11 +321,11 @@ const PublicFormView = () => {
 
     const result = await submitForm(filteredData, formId);
     if (result && result.success) {
-      setSubmissionId(result.id);
-      setStatus("success");
+      setSubmissionId(result.id || "LOCAL_" + Math.random().toString(36).substr(2, 9).toUpperCase());
+      setStatus(result.offline || !result.synced ? "success_offline" : "success");
     } else {
       setStatus("ready");
-      alert("Error al enviar. Se intentará sincronizar cuando haya conexión.");
+      toast.error("Error al enviar. Intente más tarde.");
     }
   };
 
@@ -344,15 +344,23 @@ const PublicFormView = () => {
     </div>
   );
 
-  if (status === "success") return (
+  if (status === "success" || status === "success_offline") return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center font-inter">
-      <div className="w-24 h-24 bg-emerald-500/20 rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl shadow-emerald-500/10 border border-emerald-500/20 animate-in zoom-in-50 duration-500">
-        <CheckCircle size={56} className="text-emerald-500" />
+      <div className={`w-24 h-24 ${status === 'success_offline' ? 'bg-amber-500/20 border-amber-500/20 shadow-amber-500/10' : 'bg-emerald-500/20 border-emerald-500/20 shadow-emerald-500/10'} rounded-[2rem] flex items-center justify-center mb-8 shadow-2xl border animate-in zoom-in-50 duration-500`}>
+        {status === "success_offline" ? <Clock size={56} className="text-amber-500" /> : <CheckCircle size={56} className="text-emerald-500" />}
       </div>
-      <h1 className="text-4xl font-black text-white mb-4 tracking-tighter uppercase italic">¡REGISTRO COMPLETADO!</h1>
-      <p className="text-slate-500 max-w-xs font-bold leading-relaxed uppercase text-[10px] tracking-widest opacity-70 mb-12">Tus datos han sido firmados y enviados de forma segura al nodo central de FormaFlow.</p>
       
-      {submissionId && (
+      <h1 className={`text-4xl font-black text-white mb-4 tracking-tighter uppercase italic ${status === 'success_offline' ? 'text-amber-500' : 'text-white'}`}>
+        {status === "success_offline" ? "REGISTRO GUARDADO LOCALMENTE" : "¡REGISTRO COMPLETADO!"}
+      </h1>
+      
+      <p className="text-slate-500 max-w-xs font-bold leading-relaxed uppercase text-[10px] tracking-widest opacity-70 mb-12">
+        {status === "success_offline" 
+          ? "No detectamos conexión a internet. Los datos han sido cifrados y guardados en tu dispositivo. Se sincronizarán automáticamente al recuperar señal." 
+          : "Tus datos han sido firmados y enviados de forma segura al nodo central de FormaFlow."}
+      </p>
+      
+      {submissionId && !status.includes('offline') && (
         <div className="flex flex-col items-center w-full max-w-lg space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
           {/* Tracking Card */}
           <div className="bg-slate-900/50 border border-emerald-500/20 rounded-[3rem] p-10 w-full backdrop-blur-xl relative overflow-hidden group">
@@ -411,10 +419,20 @@ const PublicFormView = () => {
         </div>
       )}
 
+      {status === 'success_offline' && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-[2rem] p-8 mb-12 max-w-sm animate-pulse">
+           <div className="flex items-center space-x-4 text-amber-500 mb-2 justify-center">
+              <Loader2 className="animate-spin" size={20} />
+              <span className="text-[10px] font-black uppercase tracking-widest">Esperando Conexión...</span>
+           </div>
+           <p className="text-[9px] text-slate-400 font-bold uppercase tracking-tight">No cierres esta pestaña si deseas asegurar la sincronización inmediata al volver a tener internet.</p>
+        </div>
+      )}
+
 
       <div className="flex flex-col sm:flex-row gap-4">
-        <button onClick={() => window.location.reload()} className="px-10 py-5 bg-slate-900 text-white border border-slate-800 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-slate-800 transition-all active:scale-95">Nuevo Registro</button>
-        <button onClick={() => window.location.href = '/portal'} className="px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 active:scale-95">Ir al Portal de Seguimiento</button>
+        <button onClick={() => window.location.reload()} className="px-10 py-5 bg-slate-900 text-white border border-slate-800 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-slate-800 transition-all active:scale-[0.98]">Nuevo Registro</button>
+        <button onClick={() => window.location.href = '/portal'} className="px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 active:scale-[0.98]">Ir al Portal de Seguimiento</button>
       </div>
     </div>
   );
