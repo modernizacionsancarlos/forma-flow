@@ -1,4 +1,4 @@
-# Forma Flow - Modernización Municipal
+# Forma Flow - Modernizacion Municipal
 
 Sistema SaaS integral para la gestión de formularios dinámicos, flujos de trabajo e inspecciones. Creado para optimizar los procesos internos de la Municipalidad, permitiendo la recolección de datos en tiempo real, auditoría de respuestas y organización de la información de forma centralizada.
 
@@ -130,5 +130,5 @@ graph TD
 
 ---
 
-**Desarrollado para el equipo de Modernización de la Municipalidad de San Carlos.** 
+**Desarrollado para el equipo de Modernizacion de la Municipalidad de San Carlos.** 
 *Interfaces de nivel mundial para la gestión pública ágil.*

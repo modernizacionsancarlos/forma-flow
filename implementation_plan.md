@@ -22,43 +22,43 @@ El objetivo de esta iteración es que Forma Flow pase de ser un diseño estátic
 
 Se crearán los manejadores de datos para conectar la UI con Firestore mediante `@tanstack/react-query`:
 
-#### [NEW] [useAreas.js](file:///d:/Trabajo/Municipalidad/Modernización/forma-flow/src/api/useAreas.js)
+#### [NEW] [useAreas.js](file:///d:/Trabajo/Municipalidad/Modernizacion/forma-flow/src/api/useAreas.js)
 Creación del hook para leer, crear, actualizar y borrar departamentos registrándolos en la colección `Areas`.
 
-#### [NEW] [useWorkflows.js](file:///d:/Trabajo/Municipalidad/Modernización/forma-flow/src/api/useWorkflows.js)
+#### [NEW] [useWorkflows.js](file:///d:/Trabajo/Municipalidad/Modernizacion/forma-flow/src/api/useWorkflows.js)
 Creación del hook para gestionar los ciclos de vida y estados personalizados en la colección `Workflows`.
 
-#### [NEW] [useExports.js](file:///d:/Trabajo/Municipalidad/Modernización/forma-flow/src/api/useExports.js)
+#### [NEW] [useExports.js](file:///d:/Trabajo/Municipalidad/Modernizacion/forma-flow/src/api/useExports.js)
 Creación del hook para registrar historiales de descargas y exportaciones asíncronas en la colección `Exports`.
 
 ---
 
 ### Páginas / Vistas a Modernizar
 
-#### [MODIFY] [Areas.jsx](file:///d:/Trabajo/Municipalidad/Modernización/forma-flow/src/pages/Areas.jsx)
+#### [MODIFY] [Areas.jsx](file:///d:/Trabajo/Municipalidad/Modernizacion/forma-flow/src/pages/Areas.jsx)
 - Eliminar el array `mockAreas`.
 - Usar el hook `useAreas()`.
 - Agregar un formulario 100% funcional al Modal de "Nueva Área" para capturar el nombre y guardar en base de datos.
 - Habilitar botón de "Opciones (MoreVertical)" para pausar/eliminar el área.
 
-#### [MODIFY] [Workflows.jsx](file:///d:/Trabajo/Municipalidad/Modernización/forma-flow/src/pages/Workflows.jsx)
+#### [MODIFY] [Workflows.jsx](file:///d:/Trabajo/Municipalidad/Modernizacion/forma-flow/src/pages/Workflows.jsx)
 - Eliminar el array `mockWorkflows`.
 - Usar el hook `useWorkflows()`.
 - Implementar formulario interactivo en el Modal "Trazar Workflow" con campos de Nombre y Estado. 
 - Reflejar en la tabla los datos sincronizados en tiempo real.
 
-#### [MODIFY] [Exportaciones.jsx](file:///d:/Trabajo/Municipalidad/Modernización/forma-flow/src/pages/Exportaciones.jsx)
+#### [MODIFY] [Exportaciones.jsx](file:///d:/Trabajo/Municipalidad/Modernizacion/forma-flow/src/pages/Exportaciones.jsx)
 - Eliminar el array `mockExports`.
 - Usar `useExports()`.
 - Dar vida al botón Modal para solicitar un "Nuevo Reporte".
 
-#### [MODIFY] [Sincronizacion.jsx](file:///d:/Trabajo/Municipalidad/Modernización/forma-flow/src/pages/Sincronizacion.jsx)
+#### [MODIFY] [Sincronizacion.jsx](file:///d:/Trabajo/Municipalidad/Modernizacion/forma-flow/src/pages/Sincronizacion.jsx)
 - Eliminar `mockSyncQueue`.
 - Importar y usar la verdadera cola `offlineQueue` desde el hook `useSubmissions()`.
 - Hacer que el botón superior "Forzar Sincronización" dispare `syncQueue()` en lugar de no hacer nada.
 - Conectar botones "Individuales" para intentar reintentar formularios trancados.
 
-#### [MODIFY] [FormBuilder.jsx](file:///d:/Trabajo/Municipalidad/Modernización/forma-flow/src/pages/FormBuilder.jsx)
+#### [MODIFY] [FormBuilder.jsx](file:///d:/Trabajo/Municipalidad/Modernizacion/forma-flow/src/pages/FormBuilder.jsx)
 - Quitar el campo ficticio por defecto (`{ id: "mock_1"... }`) o asegurarse de que solo se inyecte visualmente si es un Canvas vacío hasta que el usuario decida guardarlo. 
 
 ## Open Questions
