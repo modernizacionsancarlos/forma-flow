@@ -25,10 +25,7 @@ Antes de comenzar, asegúrate de tener instalado lo siguiente en tu equipo:
 - **Node.js (v18.0.0 o superior)**: Entorno de ejecución para el frontend. [Descargar aquí](https://nodejs.org/)
 - **npm (v9.0.0 o superior)**: Gestor de paquetes (viene con Node.js).
 - **Git**: Para el control de versiones y clonación del proyecto. [Descargar aquí](https://git-scm.com/)
-- **Firebase CLI**: Herramienta para gestionar el despliegue y servicios de Google.
-  ```bash
-  npm install -g firebase-tools
-  ```
+- **Firebase CLI**: Gestión local incluida en el proyecto. No requiere instalación global.
 
 ### 2. Herramientas de Desarrollo (Vibe Coding)
 Para mantener la agilidad y el estándar de calidad del proyecto, se recomienda el uso de entornos con IA integrada:
@@ -78,20 +75,26 @@ La aplicación estará disponible en `http://localhost:5173`.
 
 ---
 
-## 🚀 Despliegue a Producción
+Para publicar el sistema en los servidores de Firebase Hosting de forma segura y sin pre-requisitos globales:
 
-Para publicar el sistema en los servidores de Firebase Hosting:
+1. **Vincular el proyecto**: Este paso solo es necesario la primera vez:
+   ```bash
+   npx firebase use --add
+   ```
+2. **Generar y Desplegar (Un solo paso)**: 
+   ```bash
+   npm run build-deploy
+   ```
 
-1. **Iniciar sesión en Firebase**: `firebase login`
-2. **Vincular el proyecto**: `firebase use --add` (y elige tu ID de proyecto).
-3. **Generar la estructura de producción**: 
-   ```bash
-   npm run build
-   ```
-4. **Desplegar**:
-   ```bash
-   firebase deploy --only hosting
-   ```
+### Comandos de Infraestructura Estándar:
+| Comando | Acción |
+| :--- | :--- |
+| `npm run build` | Compila el proyecto con optimización de archivos (Vite). |
+| `npm run deploy` | Sube los archivos compilados a Firebase Hosting. |
+| `npm run build-deploy` | Ejecuta el build y el deploy secuencialmente. |
+
+> [!TIP]
+> **Compatibilidad en Windows**: Si prefieres usar el comando `firebase` directamente pero no lo tienes instalado globalmente, hemos incluido puentes (`firebase.cmd` y `firebase.ps1`) en la raíz del proyecto. En PowerShell, usa `.\firebase deploy` para invocar la herramienta local.
 
 ---
 
