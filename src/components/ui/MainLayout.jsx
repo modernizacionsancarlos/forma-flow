@@ -66,13 +66,20 @@ const MainLayout = ({ children }) => {
 
   // Cerrar sidebar cuando cambia la ruta (solo en móvil)
   useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [location.pathname]);
+    if (isSidebarOpen) {
+      // Usar un microtask para desacoplar la actualización de estado del render actual
+      const timer = setTimeout(() => setIsSidebarOpen(false), 0);
+      return () => clearTimeout(timer);
+    }
+  }, [location.pathname, isSidebarOpen]);
 
   // Activa las notificaciones en tiempo real para el administrador
   useSubmissionNotifications();
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  const MotionDiv = motion.div;
+  const MotionAside = motion.aside;
 
   const sidebarVariants = {
     open: { x: 0, opacity: 1, transition: { type: "spring", stiffness: 300, damping: 30 } },
@@ -161,14 +168,14 @@ const MainLayout = ({ children }) => {
       <AnimatePresence mode="wait">
         {isSidebarOpen && (
           <>
-            <motion.div 
+            <MotionDiv 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={toggleSidebar}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
             />
-            <motion.aside
+            <MotionAside
               variants={sidebarVariants}
               initial="closed"
               animate="open"
@@ -187,7 +194,7 @@ const MainLayout = ({ children }) => {
                 </button>
               </div>
               {navLinks}
-            </motion.aside>
+            </MotionAside>
           </>
         )}
       </AnimatePresence>

@@ -7,11 +7,13 @@ const PWAInstallPrompt = () => {
   const { isInstallable, installPWA } = usePWAInstall();
   const [show, setShow] = React.useState(true);
 
+  const MotionDiv = motion.div;
+
   if (!isInstallable || !show) return null;
 
   return (
     <AnimatePresence>
-      <motion.div
+      <MotionDiv
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 50, opacity: 0 }}
@@ -60,7 +62,7 @@ const PWAInstallPrompt = () => {
             <span className="text-[10px] text-blue-400 font-medium">Native Experience</span>
           </div>
         </div>
-      </motion.div>
+      </MotionDiv>
     </AnimatePresence>
   );
 };
