@@ -4,9 +4,9 @@ import toast from 'react-hot-toast'
 
 function ReloadPrompt() {
   const {
-    offlineReady: [offlineReady, setOfflineReady],
-    needUpdate: [needUpdate, setNeedUpdate],
-    updateServiceWorker,
+    offlineReady: [offlineReady, setOfflineReady] = [false, () => {}],
+    needUpdate: [needUpdate, setNeedUpdate] = [false, () => {}],
+    updateServiceWorker = () => {},
   } = useRegisterSW({
     onRegistered(r) {
       console.log('SW Registered: ' + r)
