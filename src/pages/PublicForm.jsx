@@ -208,17 +208,6 @@ const PublicFormView = () => {
     fetchForm();
   }, [formId, getFormById]);
 
-  const handleInputChange = (fieldId, value) => {
-    setFormData(prev => ({ ...prev, [fieldId]: value }));
-    if (errors[fieldId]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldId];
-        return newErrors;
-      });
-    }
-  };
-
   const isFieldVisible = (field) => {
     if (!field.logic || field.logic.length === 0) return true;
     
@@ -245,48 +234,64 @@ const PublicFormView = () => {
     return results.every(r => r === true);
   };
 
-  // --- Calculation Engine ---
-  useEffect(() => {
-    if (!formSchema) return;
-    const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
-    const calculatedFields = allFields.filter(f => f.isCalculated && f.formula);
-    
-    if (calculatedFields.length === 0) return;
-
-    let hasChanges = false;
-    const newFormData = { ...formData };
-
-    calculatedFields.forEach(field => {
-      try {
-        let formula = field.formula;
-        // Replace dependencies {{id}} with their numeric values
-        const matches = formula.match(/{{(.*?)}}/g);
-        if (matches) {
-          matches.forEach(match => {
-            const depId = match.replace(/{{|}}/g, "");
-            const val = Number(formData[depId] || 0);
-            formula = formula.replace(match, val);
-          });
-        }
-
-        // Evaluate the mathematical expression
-        // eslint-disable-next-line no-new-func
-        const result = new Function(`return ${formula}`)();
-        const finalValue = isNaN(result) ? 0 : result;
-
-        if (newFormData[field.id] !== String(finalValue)) {
-          newFormData[field.id] = String(finalValue);
-          hasChanges = true;
-        }
-      } catch (err) {
-        console.warn(`Formula error in field ${field.id}:`, err);
-      }
+  const handleInputChange = (fieldId, value) => {
+    setFormData(prev => {
+      const nextData = { ...prev, [fieldId]: value };
+      return calculateFields(nextData, formSchema);
     });
 
-    if (hasChanges) {
-      setFormData(newFormData);
+    if (errors[fieldId]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldId];
+        return newErrors;
+      });
     }
-  }, [formData, formSchema]);
+  };
+
+  // --- Calculation Engine (Atomic) ---
+  const calculateFields = (data, schema) => {
+    if (!schema) return data;
+    const allFields = schema.sections?.flatMap(s => s.fields) || schema.fields || [];
+    const calculatedFields = allFields.filter(f => f.isCalculated && f.formula);
+    
+    if (calculatedFields.length === 0) return data;
+
+    let currentData = { ...data };
+    let hasChanges = true;
+    let iterations = 0;
+
+    // Max 3 passes to resolve chained dependencies (A -> B -> C)
+    while (hasChanges && iterations < 3) {
+      hasChanges = false;
+      calculatedFields.forEach(field => {
+        try {
+          let formula = field.formula;
+          const matches = formula.match(/{{(.*?)}}/g);
+          if (matches) {
+            matches.forEach(match => {
+              const depId = match.replace(/{{|}}/g, "");
+              const val = Number(currentData[depId] || 0);
+              formula = formula.replace(match, val);
+            });
+          }
+
+          const result = new Function(`return ${formula}`)();
+          const finalValue = isNaN(result) ? 0 : result;
+          const finalStr = String(finalValue);
+
+          if (currentData[field.id] !== finalStr) {
+            currentData[field.id] = finalStr;
+            hasChanges = true;
+          }
+        } catch {
+          // Silent fail for incomplete formulas during typing
+        }
+      });
+      iterations++;
+    }
+    return currentData;
+  };
 
   const validateForm = () => {
     const newErrors = {};

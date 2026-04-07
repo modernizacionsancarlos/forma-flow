@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Settings, Save, Shield, Database, Layout, Palette, Image as ImageIcon, Loader2 } from "lucide-react";
 import { useTenants } from "../api/useTenants";
 import { useAuth } from "../lib/AuthContext";
