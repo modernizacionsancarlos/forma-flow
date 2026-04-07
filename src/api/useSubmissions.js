@@ -18,19 +18,24 @@ export const useSubmissions = () => {
   useEffect(() => {
     localStorage.setItem("formflow_sync_queue", JSON.stringify(offlineQueue));
   }, [offlineQueue]);
-
-
-
   const submitForm = async (formData, schemaId) => {
     const submissionId = crypto.randomUUID();
+    const now = Date.now();
     const submission = {
       id: submissionId,
       tenant_id: claims.tenantId || "global",
       schema_id: schemaId,
       data: formData,
-      created_by: user.uid,
-      created_date: Timestamp.now().toMillis(),
-      status: "pending_sync",
+      created_by: user?.uid || "public_citizen",
+      created_date: now,
+      status: "pending_review",
+      history: [{
+        type: "submitted",
+        status: "pending_review",
+        timestamp: now,
+        by_user_email: user?.email || "public_citizen",
+        note: "Trámite entregado al sistema"
+      }]
     };
 
     if (navigator.onLine) {
@@ -38,7 +43,7 @@ export const useSubmissions = () => {
         const docRef = await addDoc(collection(db, "Submissions"), {
           ...submission,
           created_date: Timestamp.now(),
-          status: "pending_review",
+          history: submission.history.map(h => ({ ...h, timestamp: Timestamp.fromMillis(h.timestamp) }))
         });
         return { success: true, synced: true, id: docRef.id };
       } catch (error) {
@@ -110,6 +115,10 @@ export const useSubmissions = () => {
           data: processedData,
           created_date: Timestamp.fromMillis(item.created_date),
           status: "pending_review",
+          history: (item.history || []).map(h => ({ 
+            ...h, 
+            timestamp: typeof h.timestamp === 'number' ? Timestamp.fromMillis(h.timestamp) : h.timestamp 
+          }))
         });
         successes.push(item);
       } catch (error) {

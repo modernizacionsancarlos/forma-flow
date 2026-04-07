@@ -1,6 +1,7 @@
 import React from "react";
 import { X, ShieldCheck, Database, History, Check, Download, AlertCircle, Archive, HelpCircle, RotateCcw } from "lucide-react";
 import { useWorkflowEngine, STATUS_CONFIG, WORKFLOW_ACTIONS } from "../../api/useWorkflowEngine";
+import AuditTimeline from "./AuditTimeline";
 
 const ICON_MAP = {
   check: Check,
@@ -102,6 +103,11 @@ const AuditPanel = ({
                   })}
                </div>
             </div>
+
+             {/* Línea de Tiempo Operativa */}
+             <div className="pt-8 border-t border-slate-800">
+               <AuditTimeline history={selectedSubmission.history} />
+             </div>
 
             {/* Workflow Controls */}
             <div className="pt-8 border-t border-slate-800 space-y-5">

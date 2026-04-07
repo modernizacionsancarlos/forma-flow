@@ -26,7 +26,6 @@ import {
   Pie
 } from "recharts";
 import { useAuth } from "../lib/AuthContext";
-import { useSubmissions } from "../api/useSubmissions";
 import { useGlobalStats, useRecentActivity } from "../api/useGlobalStats";
 import { useTenants } from "../api/useTenants";
 import Guard from "../components/auth/Guard";
@@ -77,7 +76,6 @@ const Dashboard = () => {
   const isSuperAdmin = currentProfile?.role === 'super_admin';
   const effectiveTenantId = isSuperAdmin ? selectedTenant : currentProfile?.tenantId;
 
-  const { queueCount, isSyncing } = useSubmissions();
   const { data: stats } = useGlobalStats(effectiveTenantId);
   const { data: activity, isLoading: activityLoading } = useRecentActivity(effectiveTenantId);
 
@@ -139,31 +137,31 @@ const Dashboard = () => {
     {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Total Submissions" 
-          value={stats?.totalSubmissions || 0} 
-          subtext={`+${stats?.recentSubmissionsCount || 0} en los últimos 7 días`}
-          icon={BarChart3} 
+          title="Tasa de Resolución" 
+          value={`${stats?.resolutionRate || 0}%`} 
+          subtext="Efectividad de despacho"
+          icon={CheckCircle2} 
           color="emerald" 
         />
         <StatCard 
-          title="Pendings Sync" 
-          value={queueCount} 
-          subtext={isSyncing ? "Procesando cola..." : "Cache local persistido"} 
-          icon={Database} 
-          color={queueCount > 0 ? "amber" : "slate"} 
-        />
-        <StatCard 
-          title="Clients & Tenants" 
-          value={stats?.totalTenants || 0} 
-          subtext="Ecosistema Multitenant" 
-          icon={Globe} 
+          title="Tiempo Promedio" 
+          value={`${stats?.avgResolutionTime || 0}h`} 
+          subtext="Media de resolución" 
+          icon={Clock} 
           color="blue" 
         />
         <StatCard 
-          title="Real-Time Node" 
-          value="Online" 
-          subtext="Conexión estable v2" 
-          icon={Activity} 
+          title="Fuera de Término" 
+          value={stats?.overdueCount || 0} 
+          subtext="Pendientes > 48hs" 
+          icon={AlertCircle} 
+          color={stats?.overdueCount > 0 ? "red" : "slate"} 
+        />
+        <StatCard 
+          title="Total Trámites" 
+          value={stats?.totalSubmissions || 0} 
+          subtext={`+${stats?.recentSubmissionsCount || 0} esta semana`} 
+          icon={Database} 
           color="purple" 
         />
       </div>

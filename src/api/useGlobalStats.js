@@ -76,6 +76,13 @@ export const useGlobalStats = (tenantId = null) => {
             // Populations per status and per form
             const statusMap = {};
             const formMapCount = {};
+            let totalResolutionTime = 0;
+            let resolvedCount = 0;
+            let overdueCount = 0;
+
+            const nowTime = now.getTime();
+            const fortyEightHoursAgo = nowTime - (48 * 60 * 60 * 1000);
+
             submSnap.docs.forEach(doc => {
                 const data = doc.data();
                 
@@ -87,7 +94,28 @@ export const useGlobalStats = (tenantId = null) => {
                 const formId = data.schema_id;
                 const formName = formsMap[formId] || "Desconocido";
                 formMapCount[formName] = (formMapCount[formName] || 0) + 1;
+
+                // Resolution Time Calculation
+                const createdDate = data.created_date?.toDate ? data.created_date.toDate() : new Date(data.created_date || data.timestamp);
+                const isResolved = ['approved', 'rejected', 'archived', 'Aprobado', 'Rechazado', 'Archivado'].includes(status);
+                
+                if (isResolved && data.history) {
+                    const resolutionEvent = data.history.find(h => ['approved', 'rejected', 'archived'].includes(h.status));
+                    if (resolutionEvent) {
+                        const resDate = resolutionEvent.timestamp?.toDate ? resolutionEvent.timestamp.toDate() : new Date(resolutionEvent.timestamp);
+                        totalResolutionTime += (resDate - createdDate);
+                        resolvedCount++;
+                    }
+                }
+
+                // Overdue Calculation (Pending > 48h)
+                if (!isResolved && createdDate.getTime() < fortyEightHoursAgo) {
+                    overdueCount++;
+                }
             });
+
+            const avgResolutionTime = resolvedCount > 0 ? (totalResolutionTime / resolvedCount / (1000 * 60 * 60)) : 0;
+            const resolutionRate = submSnap.size > 0 ? (resolvedCount / submSnap.size) * 100 : 0;
 
             const finalChartData = Object.values(chartDataMap);
 
@@ -97,6 +125,9 @@ export const useGlobalStats = (tenantId = null) => {
                 totalUsers: usersSnap.size,
                 recentSubmissionsCount: last7DaysSubmissions.length,
                 chartData: finalChartData,
+                avgResolutionTime: avgResolutionTime.toFixed(1),
+                resolutionRate: resolutionRate.toFixed(1),
+                overdueCount: overdueCount,
                 statusDistribution: Object.entries(statusMap).map(([name, value]) => ({ name, value })),
                 submissionsPerForm: Object.entries(formMapCount)
                     .map(([name, value]) => ({ name, value }))

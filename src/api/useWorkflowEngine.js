@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { doc, updateDoc, addDoc, collection, Timestamp } from "firebase/firestore";
+import { doc, updateDoc, addDoc, collection, Timestamp, arrayUnion } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "react-hot-toast";
@@ -61,15 +61,28 @@ export const useWorkflowEngine = () => {
       const newStatus = action.status;
       const oldStatus = submission.status;
 
-      // 1. Update Submission
+      // 1. Update Submission with Status and History
+      const historyEntry = {
+        type: "status_change",
+        from: oldStatus,
+        to: newStatus,
+        action: actionKey,
+        action_label: action.label,
+        by_user_id: user.uid,
+        by_user_email: user.email || user.uid,
+        timestamp: Timestamp.now(),
+        note: `Estado cambiado de ${oldStatus} a ${newStatus}`
+      };
+
       await updateDoc(docRef, {
         status: newStatus,
         updated_at: Timestamp.now(),
         updated_by: user.uid,
-        last_action: actionKey
+        last_action: actionKey,
+        history: arrayUnion(historyEntry)
       });
 
-      // 2. Create Audit Log
+      // 2. Create Global Audit Log
       await addDoc(collection(db, "AuditLogs"), {
         submission_id: submission.id,
         action: "workflow_transition",
