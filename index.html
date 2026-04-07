@@ -1,13 +1,39 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="FormFlow Superadmin Central - Plataforma multitenant para gestión de formularios complejos, lógica offline y flujos de trabajo avanzados." />
-    <title>FormFlow Superadmin Central</title>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="/pwa-192x192.png" />
+    
+    <!-- Red - Preconnect -->
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com" />
+    <link rel="preconnect" href="https://firestore.googleapis.com" />
+    
+    <meta name="theme-color" content="#060b13" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+    <meta name="title" content="FormaFlow - Gestión Digital Municipal Avanzada" />
+    <meta name="description" content="FormaFlow: Plataforma SaaS para modernización pública. Trámites digitales, formularios inteligentes y gestión eficiente para municipios modernos." />
+    <meta name="keywords" content="municipio, gestión digital, formularios, trámites, modernización, estado" />
+    <meta name="author" content="Municipalidad / Modernización" />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://formaflow.vercel.app/" />
+    <meta property="og:title" content="FormaFlow - Digitalización de Trámites Municipales" />
+    <meta property="og:description" content="Gestiona trámites municipales de forma eficiente con formularios inteligentes y soporte offline." />
+    <meta property="og:image" content="/og-image.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:title" content="FormaFlow - Modernización Pública" />
+    <meta property="twitter:description" content="Plataforma líder en gestión de formularios y expedientes digitales municipales." />
+    
+    <title>FormaFlow - Gestión Digital Municipal</title>
   </head>
-  <body>
+  <body class="bg-[#060b13]">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

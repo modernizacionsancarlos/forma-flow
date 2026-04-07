@@ -1,147 +1,187 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
-  BarChart3, 
-  LayoutGrid, 
-  Database, 
+  LayoutDashboard, 
+  Shield, 
+  Building2, 
+  MapPin, 
+  FileText, 
+  ClipboardList, 
+  Users, 
+  GitMerge, 
+  Download, 
+  ShieldCheck,
+  RefreshCw,
   Settings, 
-  LogOut, 
-  User, 
-  Search, 
-  Bell,
-  RefreshCw
+  LogOut 
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { useSubmissions } from "../../api/useSubmissions";
+import { useBranding } from "../../lib/useBranding";
 import SyncBanner from "./SyncBanner";
+import Guard from "../auth/Guard";
+import NotificationCenter from "./NotificationCenter";
+import NotificationPrompt from "./NotificationPrompt";
+import { PERMISSIONS } from "../../lib/permissions";
+import { useSubmissionNotifications } from "../../api/useSubmissionNotifications";
 
-const SidebarLink = ({ to, icon: Icon, children }) => {
+const SidebarLink = ({ to, icon, children, activeColor }) => {
   const location = useLocation();
-  const isActive = location.pathname === to;
+  const isActive = location.pathname.startsWith(to) && (to !== '/' || location.pathname === '/');
 
   return (
     <Link
       to={to}
-      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+      className={`flex items-center space-x-3 px-6 py-3 transition-colors duration-200 ${
         isActive
-          ? "bg-emerald-600/10 text-emerald-500 font-medium border-l-4 border-emerald-600"
-          : "text-slate-400 hover:bg-slate-900 hover:text-white"
+          ? "bg-[#0b1b1b] border-l-2"
+          : "text-slate-400 hover:bg-[#0b1b1b]/50 hover:text-slate-200 border-l-2 border-transparent"
       }`}
+      style={{ 
+        color: isActive ? activeColor : undefined,
+        borderLeftColor: isActive ? activeColor : 'transparent'
+      }}
     >
-      <Icon size={20} />
-      <span>{children}</span>
+      {React.createElement(icon, { 
+        size: 18, 
+        strokeWidth: isActive ? 2.5 : 2, 
+        className: !isActive ? "text-slate-500" : "",
+        style: isActive ? { color: activeColor } : {}
+      })}
+      <span className="text-sm font-medium">{children}</span>
     </Link>
   );
 };
 
 const MainLayout = ({ children }) => {
   const { logout, claims } = useAuth();
-  const { queueCount, isSyncing, syncQueue } = useSubmissions();
-  const location = useLocation();
+  const { branding } = useBranding();
 
-  const getPageTitle = () => {
-    switch (location.pathname) {
-      case "/": return "Panel de Control";
-      case "/forms": return "Constructor de Formularios";
-      case "/submissions": return "Gestor de Respuestas";
-      case "/admin": return "Administración del Sistema";
-      default: return "FormFlow";
-    }
-  };
+  // Activa las notificaciones en tiempo real para el administrador
+  useSubmissionNotifications();
 
   return (
-    <div className="flex h-screen bg-slate-950 text-white font-inter">
+    <div className="flex h-screen bg-[#060b13] text-white font-inter">
       {/* Sidebar */}
-      <aside className="w-72 bg-slate-900 border-r border-slate-800 flex flex-col shadow-2xl">
-        <div className="p-8">
-          <div className="flex items-center space-x-3 mb-8">
-            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <span className="text-xl font-bold italic">F</span>
-            </div>
-            <span className="text-2xl font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
-              FormFlow
-            </span>
-          </div>
-
-          <nav className="space-y-1">
-            <SidebarLink to="/" icon={BarChart3}>Dashboard</SidebarLink>
-            <SidebarLink to="/forms" icon={LayoutGrid}>Form Builder</SidebarLink>
-            <SidebarLink to="/submissions" icon={Database}>Respuestas</SidebarLink>
-            <SidebarLink to="/admin" icon={Settings}>Administración</SidebarLink>
-          </nav>
-        </div>
-
-        <div className="mt-auto p-6 space-y-4">
-          <div className="bg-slate-950/50 rounded-xl p-4 border border-slate-800">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center border border-slate-700">
-                <User size={16} className="text-emerald-500" />
-              </div>
-              <div className="overflow-hidden">
-                <p className="text-sm font-medium truncate">Admin Central</p>
-                <p className="text-xs text-slate-500 truncate capitalize">{claims.role || 'Super Admin'}</p>
-              </div>
-            </div>
-            <button
-              onClick={logout}
-              className="w-full flex items-center justify-center space-x-2 py-2 text-sm text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
+      <aside className="w-64 bg-[#0a101b] border-r border-slate-800/50 flex flex-col shadow-2xl relative z-20">
+        <div className="p-6">
+          <div className="flex items-center space-x-3 pb-8 border-b border-slate-800/50">
+            <div 
+              className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500"
+              style={{ 
+                backgroundColor: branding.primary_color,
+                boxShadow: `0 4px 12px ${branding.primary_color}40`
+              }}
             >
-              <LogOut size={16} />
-              <span>Cerrar Sesión</span>
-            </button>
+              {branding.logo_url ? (
+                <img src={branding.logo_url} alt="Logo" className="w-6 h-6 object-contain" />
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+              )}
+            </div>
+            <div className="flex flex-col overflow-hidden">
+               <span className="text-base font-bold text-white tracking-tight leading-none truncate w-32">
+                 {branding.name || "FormFlow"}
+               </span>
+               <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Dashboard</span>
+            </div>
           </div>
         </div>
+
+        <nav className="flex-1 overflow-y-auto space-y-1 custom-scrollbar py-2">
+          <SidebarLink to="/" icon={LayoutDashboard} activeColor={branding.primary_color}>Dashboard</SidebarLink>
+          
+          <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+            <SidebarLink to="/admin" icon={Shield} activeColor={branding.primary_color}>Admin Panel</SidebarLink>
+            <SidebarLink to="/empresas" icon={Building2} activeColor={branding.primary_color}>Empresas</SidebarLink>
+          </Guard>
+
+          <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
+            <SidebarLink to="/areas" icon={MapPin} activeColor={branding.primary_color}>Áreas</SidebarLink>
+          </Guard>
+
+          <SidebarLink to="/forms" icon={FileText} activeColor={branding.primary_color}>Formularios</SidebarLink>
+          <SidebarLink to="/submissions" icon={ClipboardList} activeColor={branding.primary_color}>Respuestas</SidebarLink>
+          
+          <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS}>
+            <SidebarLink to="/usuarios" icon={Users} activeColor={branding.primary_color}>Usuarios</SidebarLink>
+          </Guard>
+
+          <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
+            <SidebarLink to="/workflows" icon={GitMerge} activeColor={branding.primary_color}>Workflows</SidebarLink>
+          </Guard>
+
+          <SidebarLink to="/exportaciones" icon={Download} activeColor={branding.primary_color}>Exportaciones</SidebarLink>
+          
+          <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+            <SidebarLink to="/auditoria" icon={ShieldCheck} activeColor={branding.primary_color}>Auditoría</SidebarLink>
+            <SidebarLink to="/sincronizacion" icon={RefreshCw} activeColor={branding.primary_color}>Sincronización</SidebarLink>
+          </Guard>
+          
+          <div className="pt-6 mt-6 border-t border-slate-800/50">
+             <SidebarLink to="/configuracion" icon={Settings} activeColor={branding.primary_color}>Configuración</SidebarLink>
+             <button
+               onClick={logout}
+               className="w-full flex items-center space-x-3 px-6 py-3 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-[#0b1b1b]/50 border-l-2 border-transparent transition-colors"
+             >
+               <LogOut size={18} className="text-slate-500 hover:text-red-400" />
+               <span>Cerrar sesión</span>
+             </button>
+          </div>
+        </nav>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="h-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-10">
-          <div>
-            <h2 className="text-xl font-semibold text-slate-100">{getPageTitle()}</h2>
-            <p className="text-xs text-slate-500">Gestión de recursos multitenant activos</p>
-          </div>
-
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#060b13]">
+        <NotificationPrompt />
+        {/* Header Bar */}
+        <header className="h-20 border-b border-slate-800/50 bg-[#0a101b]/80 backdrop-blur-xl flex items-center justify-between px-8 relative z-10 shadow-2xl">
           <div className="flex items-center space-x-6">
-            <div className="relative group">
-               <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-emerald-500 transition-colors" />
-               <input 
-                 type="text" 
-                 placeholder="Buscar..." 
-                 className="bg-slate-950 border border-slate-800 pr-4 pl-10 py-2 rounded-full text-sm focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all w-64"
-               />
-            </div>
+            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest transition-all hover:text-white cursor-default">
+              FormFlow <span className="text-slate-600 px-2">/</span> {location.pathname === '/' ? 'Dashboard' : location.pathname.split('/')[1]}
+            </h2>
+          </div>
+          
+          <div className="flex items-center space-x-6">
+            <NotificationCenter primaryColor={branding.primary_color} />
             
-            <div className="flex items-center space-x-3 px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-xs font-medium text-slate-400">
-               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-               <span>ID: {claims.tenantId || "Global_Central"}</span>
-            </div>
-
-            <div className="flex items-center space-x-2">
-                <button className="p-2 text-slate-400 hover:bg-slate-800 rounded-lg transition-all relative">
-                  <Bell size={20} />
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-emerald-500 rounded-full border-2 border-slate-900"></span>
-                </button>
-                <div className="h-8 w-[1px] bg-slate-800 mx-2"></div>
-                <button 
-                  onClick={syncQueue}
-                  disabled={isSyncing}
-                  className={`p-2 rounded-lg transition-all flex items-center space-x-2 ${
-                    queueCount > 0 ? "bg-emerald-600/10 text-emerald-500 border border-emerald-500/20" : "text-slate-400 hover:bg-slate-800"
-                  }`}
-                >
-                  <RefreshCw size={20} className={isSyncing ? "animate-spin" : ""} />
-                  {queueCount > 0 && <span className="text-xs font-bold leading-none">{queueCount}</span>}
-                </button>
+            <div className="h-10 w-[1px] bg-white/5"></div>
+            
+            <div className="flex items-center space-x-4">
+              <div className="flex flex-col items-end">
+                <span className="text-xs font-black text-white uppercase tracking-wider">{claims.email?.split('@')[0]}</span>
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Administrador</span>
+              </div>
+              <div 
+                className="w-10 h-10 rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center font-black text-xs text-white shadow-xl"
+                style={{ borderColor: `${branding.primary_color}30` }}
+              >
+                {claims.email?.[0].toUpperCase()}
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Page Slot */}
-        <main className="flex-1 overflow-y-auto bg-slate-950 p-10 relative">
+        <main className="flex-1 overflow-y-auto relative p-0 w-full animate-in fade-in slide-in-from-right-4 duration-700">
           {children}
           <SyncBanner />
         </main>
+      </div>
+
+      {/* Edit with Base 44 Badge */}
+      <div className="fixed bottom-6 right-6 z-50 flex items-center bg-black/80 rounded-full px-4 py-2 border border-slate-800 shadow-xl backdrop-blur">
+          <div 
+            className="w-5 h-5 rounded-full mr-2 shadow-lg"
+            style={{ 
+              backgroundColor: branding.primary_color,
+              boxShadow: `0 0 10px ${branding.primary_color}80` 
+            }}
+          ></div>
+          <span className="text-white text-xs font-semibold mr-3">Core <span className="font-bold">FormFlow</span></span>
+          <button className="text-slate-400 hover:text-white transition-colors">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
       </div>
     </div>
   );

@@ -1,9 +1,12 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { auth } from "./firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "./firebase";
+import Loader from "../components/ui/Loader";
 
 const AuthContext = createContext();
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -18,23 +21,54 @@ export const AuthProvider = ({ children }) => {
   const [claims, setClaims] = useState({});
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    let unsubscribeProfile = null;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+      // Limpiar suscripción previa si existe
+      if (unsubscribeProfile) unsubscribeProfile();
+
       if (currentUser) {
+        setUser(currentUser);
+        
+        // Carga inicial rápida de claims desde el token (si existen)
         const idTokenResult = await currentUser.getIdTokenResult();
         const isOverride = currentUser.email === "modernizacionsancarlos@gmail.com";
-        setClaims({
-          tenantId: idTokenResult.claims.tenantId || (isOverride ? "Central_System" : null),
-          role: idTokenResult.claims.role || (isOverride ? "super_admin" : null),
-        });
-        setUser(currentUser);
+        
+        const initialClaims = {
+            tenantId: idTokenResult.claims.tenantId || (isOverride ? "Central_System" : null),
+            role: idTokenResult.claims.role || (isOverride ? "super_admin" : null),
+        };
+        setClaims(initialClaims);
+
+        // Suscripción en tiempo real al perfil en Firestore
+        unsubscribeProfile = onSnapshot(
+          doc(db, "userProfiles", currentUser.email.toLowerCase()), 
+          (docSnap) => {
+            if (docSnap.exists()) {
+              const profileData = docSnap.data();
+              setClaims({
+                ...initialClaims,
+                ...profileData
+              });
+            }
+            setLoading(false);
+          },
+          (error) => {
+            console.error("Error al obtener perfil:", error);
+            setLoading(false);
+          }
+        );
       } else {
         setUser(null);
         setClaims({});
+        setLoading(false);
       }
-      setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   const login = (email, password) => {
@@ -55,7 +89,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {loading ? <Loader fullScreen text="Autenticando..." /> : children}
     </AuthContext.Provider>
   );
 };

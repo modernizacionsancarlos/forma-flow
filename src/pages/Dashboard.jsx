@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { 
   BarChart3, 
   Users, 
@@ -9,7 +9,9 @@ import {
   TrendingUp,
   Activity,
   Zap,
-  Globe
+  Globe,
+  Filter,
+  LayoutDashboard
 } from "lucide-react";
 import { 
   BarChart, 
@@ -19,13 +21,17 @@ import {
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  Cell
+  Cell,
+  PieChart,
+  Pie
 } from "recharts";
 import { useAuth } from "../lib/AuthContext";
-import { useSubmissions } from "../api/useSubmissions";
 import { useGlobalStats, useRecentActivity } from "../api/useGlobalStats";
+import { useTenants } from "../api/useTenants";
+import Guard from "../components/auth/Guard";
+import { PERMISSIONS } from "../lib/permissions";
 
-const StatCard = ({ title, value, subtext, icon: Icon, color }) => (
+const StatCard = ({ title, value, subtext, icon, color }) => (
   <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl backdrop-blur-md relative overflow-hidden group hover:border-slate-700 transition-all duration-300">
     <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-5 group-hover:opacity-10 transition-opacity bg-${color === 'amber' ? 'yellow' : color}-500 blur-3xl`} />
     <div className="flex justify-between items-start">
@@ -37,7 +43,7 @@ const StatCard = ({ title, value, subtext, icon: Icon, color }) => (
         <p className="text-[10px] text-slate-400 mt-2 font-medium italic">{subtext}</p>
       </div>
       <div className={`p-3 rounded-2xl bg-slate-950 border border-slate-800 text-${color}-500 shadow-xl group-hover:shadow-${color}-500/10 transition-all`}>
-        <Icon size={20} />
+        {React.createElement(icon, { size: 20 })}
       </div>
     </div>
   </div>
@@ -60,37 +66,61 @@ const ActivityItem = ({ title, time, type }) => (
 );
 
 const Dashboard = () => {
-  const { user, claims } = useAuth();
-  const { queueCount, isSyncing } = useSubmissions();
-  const { data: stats, isLoading: statsLoading } = useGlobalStats();
-  const { data: activity, isLoading: activityLoading } = useRecentActivity();
+  const { currentProfile } = useAuth();
+  const [selectedTenant, setSelectedTenant] = useState(null);
+  const { tenants } = useTenants();
 
-  const chartData = stats?.chartData || [
-    { name: 'Mon', count: 40 },
-    { name: 'Tue', count: 65 },
-    { name: 'Wed', count: 45 },
-    { name: 'Thu', count: 90 },
-    { name: 'Fri', count: 75 },
-    { name: 'Sat', count: 55 },
-    { name: 'Sun', count: 80 },
-  ];
+  // Determine which tenantId to use for stats
+  // If super_admin, use selectedTenant (can be null for global)
+  // Otherwise, strictly use currentProfile.tenantId
+  const isSuperAdmin = currentProfile?.role === 'super_admin';
+  const effectiveTenantId = isSuperAdmin ? selectedTenant : currentProfile?.tenantId;
+
+  const { data: stats } = useGlobalStats(effectiveTenantId);
+  const { data: activity, isLoading: activityLoading } = useRecentActivity(effectiveTenantId);
+
+  const chartData = stats?.chartData || [];
+  const statusData = stats?.statusDistribution || [];
+
+  const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
           <div className="flex items-center space-x-2 mb-2">
-            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 rounded-full text-[10px] font-black uppercase tracking-widest">Enterprise v2.1</span>
+            <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-500 border border-emerald-500/30 rounded-full text-[10px] font-black uppercase tracking-widest">Enterprise v2.2</span>
             <span className="h-1 w-1 bg-slate-700 rounded-full"></span>
-            <span className="text-xs font-bold text-slate-400 capitalize">{claims.tenantId || "Infraestructura Global"}</span>
+            <span className="text-xs font-bold text-slate-400 capitalize">
+              {effectiveTenantId || "Infraestructura Global"}
+            </span>
           </div>
           <h1 className="text-4xl font-black text-white tracking-tighter">
             System <span className="text-emerald-500">Overview</span>
           </h1>
-          <p className="text-slate-500 text-sm mt-1 font-medium italic">Rendimiento global operativo.</p>
+          <p className="text-slate-500 text-sm mt-1 font-medium italic">
+            {effectiveTenantId ? `Panel de control: ${effectiveTenantId}` : "Rendimiento global operativo."}
+          </p>
         </div>
-        
-        <div className="flex space-x-2 overflow-x-auto pb-1">
+
+        <div className="flex items-center space-x-4">
+          <Guard permission={PERMISSIONS.MANAGE_TENANTS} fallback={null}>
+            <div className="flex items-center bg-slate-900 border border-slate-800 rounded-2xl px-4 py-2 space-x-2">
+              <Filter size={14} className="text-slate-500" />
+              <select 
+                value={selectedTenant || ""}
+                onChange={(e) => setSelectedTenant(e.target.value || null)}
+                className="bg-transparent text-xs font-bold text-slate-300 focus:outline-none appearance-none cursor-pointer"
+              >
+                <option value="">Vista Global</option>
+                {tenants?.map(t => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          </Guard>
+          
+          <div className="flex space-x-2 overflow-x-auto pb-1">
           <div className="bg-slate-900/50 border border-slate-800 rounded-2xl px-4 py-2 flex items-center space-x-3 whitespace-nowrap">
              <div className="flex -space-x-1">
                <div className="w-6 h-6 rounded-full bg-slate-800 border border-slate-900" />
@@ -102,35 +132,36 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+    </div>
 
-      {/* Stats Grid */}
+    {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
-          title="Total Submissions" 
-          value={stats?.totalSubmissions || 0} 
-          subtext={`+${stats?.recentSubmissionsCount || 0} en los últimos 7 días`}
-          icon={BarChart3} 
+          title="Tasa de Resolución" 
+          value={`${stats?.resolutionRate || 0}%`} 
+          subtext="Efectividad de despacho"
+          icon={CheckCircle2} 
           color="emerald" 
         />
         <StatCard 
-          title="Pendings Sync" 
-          value={queueCount} 
-          subtext={isSyncing ? "Procesando cola..." : "Cache local persistido"} 
-          icon={Database} 
-          color={queueCount > 0 ? "amber" : "slate"} 
-        />
-        <StatCard 
-          title="Clients & Tenants" 
-          value={stats?.totalTenants || 0} 
-          subtext="Ecosistema Multitenant" 
-          icon={Globe} 
+          title="Tiempo Promedio" 
+          value={`${stats?.avgResolutionTime || 0}h`} 
+          subtext="Media de resolución" 
+          icon={Clock} 
           color="blue" 
         />
         <StatCard 
-          title="Real-Time Node" 
-          value="Online" 
-          subtext="Conexión estable v2" 
-          icon={Activity} 
+          title="Fuera de Término" 
+          value={stats?.overdueCount || 0} 
+          subtext="Pendientes > 48hs" 
+          icon={AlertCircle} 
+          color={stats?.overdueCount > 0 ? "red" : "slate"} 
+        />
+        <StatCard 
+          title="Total Trámites" 
+          value={stats?.totalSubmissions || 0} 
+          subtext={`+${stats?.recentSubmissionsCount || 0} esta semana`} 
+          icon={Database} 
           color="purple" 
         />
       </div>
@@ -199,32 +230,104 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Real-time Feed */}
-        <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md flex flex-col h-[550px] lg:h-auto">
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-white uppercase tracking-widest flex items-center space-x-2">
-              <Activity size={18} className="text-blue-500" />
-              <span>Event Log</span>
-            </h3>
-            <p className="text-xs text-slate-500 font-medium italic">Sincronizaciones en vivo.</p>
-          </div>
-          
-          <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-            {activityLoading ? (
-               <div className="h-full flex items-center justify-center">
-                 <Clock size={24} className="animate-spin text-slate-700" />
+        {/* Real-time Feed & Status Distribution */}
+        <div className="space-y-8">
+            {/* Status Pie Chart */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md">
+               <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2 mb-6">
+                 <Zap size={16} className="text-amber-500" />
+                 <span>Estado de Gestiones</span>
+               </h3>
+               <div className="h-[200px] w-full">
+                 <ResponsiveContainer width="100%" height="100%">
+                   <PieChart>
+                     <Pie
+                       data={statusData}
+                       cx="50%"
+                       cy="50%"
+                       innerRadius={60}
+                       outerRadius={80}
+                       paddingAngle={5}
+                       dataKey="value"
+                     >
+                       {statusData.map((entry, index) => (
+                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                       ))}
+                     </Pie>
+                     <Tooltip 
+                       contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                     />
+                   </PieChart>
+                 </ResponsiveContainer>
                </div>
-            ) : activity?.length > 0 ? (
-              activity.map(item => (
-                <ActivityItem key={item.id} title={item.title} time={item.time} type={item.type} />
-              ))
-            ) : (
-              <div className="h-full flex flex-col items-center justify-center text-center opacity-50 px-4">
-                <Database size={32} className="mb-2 text-slate-700" />
-                <p className="text-xs font-bold text-slate-600 uppercase tracking-widest">No hay actividad reciente</p>
+               <div className="grid grid-cols-2 gap-2 mt-4">
+                 {statusData.map((item, i) => (
+                   <div key={item.name} className="flex items-center space-x-2">
+                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                     <span className="text-[10px] font-bold text-slate-400 uppercase truncate">{item.name}</span>
+                     <span className="text-[10px] font-black text-white ml-auto">{item.value}</span>
+                   </div>
+                 ))}
+               </div>
+            </div>
+
+            {/* Top Forms Ranking */}
+            <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md">
+               <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2 mb-6">
+                 <TrendingUp size={16} className="text-emerald-500" />
+                 <span>Formularios más Activos</span>
+               </h3>
+               <div className="space-y-5">
+                 {stats?.submissionsPerForm?.length > 0 ? (
+                   stats.submissionsPerForm.map((form) => {
+                     const percentage = Math.round((form.value / (stats.totalSubmissions || 1)) * 100);
+                     return (
+                       <div key={form.name} className="space-y-2">
+                         <div className="flex justify-between items-end">
+                            <span className="text-[10px] font-black text-white uppercase truncate max-w-[150px]">{form.name}</span>
+                            <span className="text-[10px] font-black text-slate-500">{form.value}</span>
+                         </div>
+                         <div className="h-1.5 w-full bg-slate-950 rounded-full overflow-hidden border border-white/5">
+                            <div 
+                              className="h-full bg-emerald-500 transition-all duration-1000 ease-out" 
+                              style={{ width: `${percentage}%` }} 
+                            />
+                         </div>
+                       </div>
+                     );
+                   })
+                 ) : (
+                   <p className="text-[10px] font-bold text-slate-600 uppercase text-center py-4">No hay datos de formularios</p>
+                 )}
+               </div>
+            </div>
+
+           {/* Event Log */}
+           <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md flex flex-col h-[350px]">
+              <div className="mb-6">
+                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2">
+                  <Activity size={18} className="text-blue-500" />
+                  <span>Log de Auditoría</span>
+                </h3>
               </div>
-            )}
-          </div>
+              
+              <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
+                {activityLoading ? (
+                  <div className="h-full flex items-center justify-center">
+                    <Clock size={24} className="animate-spin text-slate-700" />
+                  </div>
+                ) : activity?.length > 0 ? (
+                  activity.map(item => (
+                    <ActivityItem key={item.id} title={item.title} time={item.time} type={item.type} />
+                  ))
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-center opacity-50 px-4">
+                    <Database size={32} className="mb-2 text-slate-700" />
+                    <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Sin registros</p>
+                  </div>
+                )}
+              </div>
+           </div>
         </div>
       </div>
     </div>

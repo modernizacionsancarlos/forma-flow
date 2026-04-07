@@ -3,7 +3,7 @@ import { collection, query, orderBy, limit, getDocs, where } from "firebase/fire
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 
-export const useAuditLogs = (filters = {}) => {
+export const useAuditLogs = () => {
   const { claims } = useAuth();
 
   const fetchAuditLogs = async () => {

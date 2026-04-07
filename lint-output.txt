@@ -1,0 +1,41 @@
+﻿
+> tmp-app@0.0.0 lint
+> eslint .
+
+
+D:\Trabajo\Municipalidad\Modernizaci├│n\forma-flow\src\api\useSubmissions.js
+  21:32  error    Error: Cannot access variable before it is declared
+
+`syncQueue` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  19 |   // Automatic sync when connection is restored
+  20 |   useEffect(() => {
+> 21 |     const handleOnline = () => syncQueue();
+     |                                ^^^^^^^^^ `syncQueue` accessed before it is declared
+  22 |     window.addEventListener("online", handleOnline);
+  23 |     return () => window.removeEventListener("online", handleOnline);
+  24 |   }, [offlineQueue, syncQueue]);
+
+   65 |   };
+   66 |
+>  67 |   const syncQueue = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  68 |     if (!navigator.onLine || offlineQueue.length === 0 || isSyncing) return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  69 |
+      ÔÇª
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 100 |     };
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 101 |   };
+      | ^^^^^ `syncQueue` is declared here
+  102 |
+  103 |   return {
+  104 |     submitForm,  react-hooks/immutability
+  67:9   warning  The 'syncQueue' function makes the dependencies of useEffect Hook (at line 24) change on every render. To fix this, wrap the definition of 'syncQueue' in its own useCallback() Hook                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             react-hooks/exhaustive-deps
+
+D:\Trabajo\Municipalidad\Modernizaci├│n\forma-flow\src\pages\Admin.jsx
+  22:50  error  'Icon' is defined but never used  no-unused-vars
+
+Ô£û 3 problems (2 errors, 1 warning)
+

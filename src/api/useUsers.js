@@ -1,25 +1,33 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, doc, getDocs, setDoc, deleteDoc, query, where, addDoc, Timestamp, runTransaction, getDoc } from "firebase/firestore";
+import { collection, doc, getDocs, Timestamp, runTransaction, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 
 export const useUsers = () => {
-    const { user: performer } = useAuth();
+    const { user: performer, claims } = useAuth();
     const queryClient = useQueryClient();
 
     const fetchUsers = async () => {
-        const snap = await getDocs(collection(db, "userProfiles"));
+        let q = collection(db, "userProfiles");
+        
+        // Si no es super_admin, solo ve usuarios de su tenant
+        if (claims?.role !== 'super_admin' && claims?.tenantId) {
+            q = query(collection(db, "userProfiles"), where("tenantId", "==", claims.tenantId));
+        }
+
+        const snap = await getDocs(q);
         return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     };
 
     const { data: users, isLoading, error } = useQuery({
-        queryKey: ["users-list"],
+        queryKey: ["users-list", claims?.tenantId],
         queryFn: fetchUsers,
+        enabled: !!claims?.role,
     });
 
     const createUser = useMutation({
         mutationFn: async (userData) => {
-            const tenantId = userData.tenantId || 'Central_System';
+            const tenantId = userData.tenantId || claims?.tenantId || 'Central_System';
             const userEmail = userData.email.toLowerCase();
             const userRef = doc(db, "userProfiles", userEmail); 
             const tenantRef = doc(db, "tenants", tenantId);
@@ -74,9 +82,10 @@ export const useUsers = () => {
                 // Audit Log (Add to transaction as an addDoc equivalent)
                 const auditRef = doc(collection(db, "AuditLogs"));
                 transaction.set(auditRef, {
-                    action: "link_user",
+                    action: "link_user_profile",
                     user_email: userEmail,
                     target_tenant: tenantId,
+                    assigned_role: userData.role || 'lector',
                     performer_id: performer?.uid || "system",
                     performer_name: performer?.email || "system",
                     timestamp: Timestamp.now()
@@ -88,6 +97,36 @@ export const useUsers = () => {
             queryClient.invalidateQueries(["tenants"]);
         },
     });
+
+    const updateUser = useMutation({
+        mutationFn: async ({ id, ...data }) => {
+            const userRef = doc(db, "userProfiles", id);
+            await runTransaction(db, async (transaction) => {
+                const userSnap = await transaction.get(userRef);
+                if (!userSnap.exists()) throw new Error("Usuario no encontrado");
+
+                transaction.update(userRef, {
+                    ...data,
+                    updatedAt: Timestamp.now(),
+                    performer_id: performer?.uid
+                });
+
+                // Auditoría
+                const auditRef = doc(collection(db, "AuditLogs"));
+                transaction.set(auditRef, {
+                    action: "update_user_profile",
+                    target_user: id,
+                    changes: data,
+                    performer_id: performer?.uid,
+                    timestamp: Timestamp.now()
+                });
+            });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries(["users-list"]);
+        },
+    });
+
 
     const deleteUser = useMutation({
         mutationFn: async (id) => {
@@ -128,5 +167,5 @@ export const useUsers = () => {
         },
     });
 
-    return { users, isLoading, error, createUser, deleteUser };
+    return { users, isLoading, error, createUser, updateUser, deleteUser };
 };

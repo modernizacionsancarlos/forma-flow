@@ -1,79 +1,113 @@
 import React, { useState } from "react";
 import { useAuth } from "../lib/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { LogIn, ShieldAlert, FileText, CheckCircle2 } from "lucide-react";
 
-const Login = () => {
+export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
     try {
       await login(email, password);
       navigate("/");
     } catch (err) {
-      setError("Error al iniciar sesión. Comprueba tus credenciales.");
+      setError("Credenciales no válidas para el panel de administración.");
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 p-4">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-xl p-8 shadow-2xl">
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-white mb-2">FormFlow</h1>
-          <p className="text-slate-400">Superadmin Central</p>
-        </div>
+    <div className="min-h-screen flex items-center justify-center bg-[#060b13] p-6 font-inter relative overflow-hidden">
+      {/* Dynamic Background Accents */}
+      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#10b981]/5 blur-[120px] rounded-full" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full" />
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-lg mb-6 text-sm">
-            {error}
+      <div className="max-w-md w-full relative z-10">
+        <div className="bg-[#0a101b] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl backdrop-blur-3xl shadow-emerald-500/5">
+          <div className="text-center mb-10">
+             <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 mb-6 group transition-all duration-500 hover:scale-110">
+                 <img src="/pwa-192x192.png" alt="Logo" className="w-12 h-12 grayscale-[0.5] group-hover:grayscale-0 transition-all" />
+             </div>
+             
+             <h1 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">FormFlow</h1>
+             <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 py-1 bg-white/5 rounded-full inline-flex mx-auto">
+                <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
+                <span>Portal de Gestión Municipal</span>
+             </div>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Correo Electrónico</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
-              placeholder="tu@correo.com"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-600 transition-all"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-          <button
-            type="submit"
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg transition-colors shadow-lg shadow-emerald-900/20"
-          >
-            Iniciar Sesión
-          </button>
-        </form>
+          {error && (
+            <div className="bg-rose-500/5 border border-rose-500/20 text-rose-400 p-4 rounded-2xl mb-8 text-[11px] font-bold flex items-center space-x-3 animate-in slide-in-from-top-2 duration-300">
+              <ShieldAlert size={16} className="shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        <div className="mt-8 pt-8 border-t border-slate-800 text-center">
-          <p className="text-slate-500 text-sm">
-            Acceso restringido para administradores.
-          </p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Credencial de Acceso</label>
+              <div className="relative group">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-slate-950/50 border border-white/5 focus:border-emerald-500/50 rounded-2xl px-6 py-4 text-sm text-white focus:outline-none transition-all placeholder:text-slate-700 font-medium"
+                  placeholder="admin@municipio.gob"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Contraseña Segura</label>
+               <input
+                 type="password"
+                 value={password}
+                 onChange={(e) => setPassword(e.target.value)}
+                 className="w-full bg-slate-950/50 border border-white/5 focus:border-emerald-500/50 rounded-2xl px-6 py-4 text-sm text-white focus:outline-none transition-all placeholder:text-slate-700 font-medium"
+                 placeholder="••••••••"
+                 required
+               />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full flex items-center justify-center space-x-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-emerald-900/10 active:scale-[0.98]"
+            >
+              <LogIn size={18} />
+              <span>{isLoading ? "Validando..." : "Ingresar al Panel"}</span>
+            </button>
+          </form>
+
+          <div className="mt-10 pt-8 border-t border-white/5 flex flex-col items-center space-y-4">
+             <div className="flex items-center space-x-4 opacity-30 grayscale hover:grayscale-0 transition-all hover:opacity-100">
+                <div className="flex items-center space-x-1">
+                   <FileText size={12} className="text-slate-400" />
+                   <span className="text-[10px] font-bold text-slate-400">Trámites</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                   <CheckCircle2 size={12} className="text-slate-400" />
+                   <span className="text-[10px] font-bold text-slate-400">Auditoría</span>
+                </div>
+             </div>
+             <p className="text-slate-600 font-bold text-[8px] uppercase tracking-widest text-center">
+               Desarrollado para la Dirección de Modernización <br />
+               <span className="text-slate-800">Municipalidad de San Carlos</span>
+             </p>
+          </div>
         </div>
       </div>
     </div>
   );
-};
-
-export default Login;
+}
