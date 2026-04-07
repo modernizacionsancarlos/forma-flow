@@ -3,6 +3,7 @@ import { doc, updateDoc, addDoc, collection, Timestamp, arrayUnion } from "fireb
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "react-hot-toast";
+import NotificationService from "./NotificationService";
 
 export const STATUS_CONFIG = {
   pending_review: {
@@ -96,6 +97,12 @@ export const useWorkflowEngine = () => {
         metadata: {
           action_label: action.label
         }
+      });
+
+      // 3. Dispatch Omni-channel Notifications
+      await NotificationService.notifyStatusChange(submission, {
+        label: action.label,
+        notificationText: `Tu trámite ha pasado al estado: ${action.status}`
       });
 
       toast.success(`${action.label} completado correctamente`, { id: toastId });
