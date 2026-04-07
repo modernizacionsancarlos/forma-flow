@@ -1,0 +1,50 @@
+extend type Answer {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Answer", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Answer`.`question`. It must match the value of `Question`.`id`. See `@ref` for how to customize it.
+  """
+  questionId: UUID! @fdc_generated(from: "Answer.question", purpose: IMPLICIT_REF_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Answer`.`response`. It must match the value of `Response`.`id`. See `@ref` for how to customize it.
+  """
+  responseId: UUID! @fdc_generated(from: "Answer.response", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Form {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Form", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Form`.`user`. It must match the value of `User`.`id`. See `@ref` for how to customize it.
+  """
+  userId: UUID! @fdc_generated(from: "Form.user", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Question {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Question", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Question`.`form`. It must match the value of `Form`.`id`. See `@ref` for how to customize it.
+  """
+  formId: UUID! @fdc_generated(from: "Question.form", purpose: IMPLICIT_REF_FIELD)
+}
+extend type Response {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "Response", purpose: IMPLICIT_KEY_FIELD)
+  """
+  ✨ Implicit foreign key field based on `Response`.`form`. It must match the value of `Form`.`id`. See `@ref` for how to customize it.
+  """
+  formId: UUID! @fdc_generated(from: "Response.form", purpose: IMPLICIT_REF_FIELD)
+}
+extend type User {
+  """
+  ✨ Implicit primary key field. It's a UUID column default to a generated new value. See `@table` for how to customize it.
+  """
+  id: UUID! @default(expr: "uuidV4()") @fdc_generated(from: "User", purpose: IMPLICIT_KEY_FIELD)
+}

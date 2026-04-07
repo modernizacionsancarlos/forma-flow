@@ -1,0 +1,73 @@
+mutation SeedData @transaction @auth(level: PUBLIC, insecureReason: "This is seed data for the application and can be publically inserted.") {
+  user_insertMany(data: [
+    {
+      id: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      displayName: "Alice Smith",
+      email: "alice.smith@example.com",
+      createdAt: "2023-01-01T10:00:00Z"
+    },
+    {
+      id: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+      displayName: "Bob Johnson",
+      email: "bob.johnson@example.com",
+      createdAt: "2023-01-02T11:00:00Z"
+    }
+  ])
+  form_insertMany(data: [
+    {
+      id: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+      userId: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
+      title: "Customer Feedback Survey",
+      description: "Gathering feedback from our valued customers.",
+      published: true,
+      createdAt: "2023-01-03T12:00:00Z"
+    },
+    {
+      id: "d0eebc99-9c0b-4ef8-bb6d-6bb9bd380a44",
+      userId: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a22",
+      title: "Employee Satisfaction Poll",
+      description: "Understanding employee sentiment.",
+      published: false,
+      createdAt: "2023-01-04T13:00:00Z"
+    }
+  ])
+  question_insertMany(data: [
+    {
+      id: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55",
+      formId: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+      questionText: "How satisfied are you with our product?",
+      questionType: "RATING",
+      position: 1,
+      required: true,
+      options: "1,2,3,4,5"
+    },
+    {
+      id: "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a66",
+      formId: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+      questionText: "Any additional comments?",
+      questionType: "TEXT",
+      position: 2,
+      required: false
+    }
+  ])
+  response_insertMany(data: [
+    {
+      id: "g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a77",
+      formId: "c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33",
+      submittedAt: "2023-01-05T14:00:00Z",
+      responderEmail: "customer1@example.com"
+    }
+  ])
+  answer_insertMany(data: [
+    {
+      responseId: "g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a77",
+      questionId: "e0eebc99-9c0b-4ef8-bb6d-6bb9bd380a55",
+      answerText: "5"
+    },
+    {
+      responseId: "g0eebc99-9c0b-4ef8-bb6d-6bb9bd380a77",
+      questionId: "f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a66",
+      answerText: "Great product, very happy!"
+    }
+  ])
+}

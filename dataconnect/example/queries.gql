@@ -1,0 +1,66 @@
+query ListAllForms @auth(level: USER, insecureReason: "This operation lists all forms, no sensitive data is directly exposed, but it requires a logged-in user.") {
+  forms {
+    id
+    title
+    description
+    createdAt
+    published
+    user {
+      id
+      displayName
+    }
+  }
+}
+
+query GetFormDetails($formId: UUID!) @auth(level: USER, insecureReason: "This operation retrieves details for a specific form, requiring a logged-in user to access form information.") {
+  form(id: $formId) {
+    id
+    title
+    description
+    createdAt
+    published
+    user {
+      id
+      displayName
+      email
+    }
+    questions_on_form {
+      id
+      questionText
+      questionType
+      position
+      required
+      options
+    }
+    responses_on_form {
+      id
+      submittedAt
+      responderEmail
+    }
+  }
+}
+
+mutation CreateNewForm($title: String!, $description: String, $published: Boolean!) @auth(level: USER) {
+  form_insert(data: {
+    userId_expr: "auth.uid",
+    title: $title,
+    description: $description,
+    published: $published,
+    createdAt_expr: "request.time"
+  }) {
+    id
+  }
+}
+
+mutation SubmitFormResponse($formId: UUID!, $responderEmail: String, $answers: [Answer_Data!]!) @auth(level: PUBLIC, insecureReason: "This operation allows anyone to submit a form response.") {
+  response_insert(data: {
+    formId: $formId,
+    submittedAt_expr: "request.time",
+    responderEmail: $responderEmail,
+    answers_on_response: {
+      insert: $answers
+    }
+  }) {
+    id
+  }
+}

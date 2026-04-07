@@ -1,0 +1,35 @@
+type User @table {
+  displayName: String!
+  createdAt: Timestamp!
+  email: String
+  photoUrl: String
+}
+
+type Form @table {
+  user: User!
+  title: String!
+  createdAt: Timestamp!
+  published: Boolean!
+  description: String
+}
+
+type Question @table {
+  form: Form!
+  questionText: String!
+  questionType: String!
+  position: Int!
+  required: Boolean!
+  options: String
+}
+
+type Response @table {
+  form: Form!
+  submittedAt: Timestamp!
+  responderEmail: String
+}
+
+type Answer @table {
+  response: Response!
+  question: Question!
+  answerText: String!
+}

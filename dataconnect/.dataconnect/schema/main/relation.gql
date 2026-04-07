@@ -1,0 +1,524 @@
+extend type Answer {
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Answer", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Answer` table.
+  """
+  _count: Int! @fdc_generated(from: "Answer.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Answer` table where the `answerText` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  answerText_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Answer.answerText", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Answer` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Answer.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Answer` table where the `questionId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  questionId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Answer.questionId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Answer` table where the `responseId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  responseId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Answer.responseId", purpose: QUERY_COUNT)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Answer.id", purpose: GLOBAL_ID)
+}
+extend type Form {
+  """
+  ✨ List `Question` objects in a one-to-many relationship (where `Question`.`form` is this object).
+  """
+  questions_on_form(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Question_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Question_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Question_Having
+  ): [Question!]! @fdc_generated(from: "Question.form", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  ✨ List `Response` objects in a one-to-many relationship (where `Response`.`form` is this object).
+  """
+  responses_on_form(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Response_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Response_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Response_Having
+  ): [Response!]! @fdc_generated(from: "Response.form", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Form", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Form` table.
+  """
+  _count: Int! @fdc_generated(from: "Form.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Form` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Form.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Form` table where the `description` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  description_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Form.description", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Form` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Form.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Form` table where the `published` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  published_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Form.published", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Form` table where the `title` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  title_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Form.title", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Form` table where the `userId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  userId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Form.userId", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `createdAt` field in the `Form` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "Form.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `Form` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "Form.createdAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Form.id", purpose: GLOBAL_ID)
+}
+extend type Question {
+  """
+  ✨ List `Answer` objects in a one-to-many relationship (where `Answer`.`question` is this object).
+  """
+  answers_on_question(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Answer_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Answer_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Answer_Having
+  ): [Answer!]! @fdc_generated(from: "Answer.question", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Question", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Question` table.
+  """
+  _count: Int! @fdc_generated(from: "Question.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Question` table where the `formId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  formId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Question.formId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Question` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Question.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Question` table where the `options` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  options_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Question.options", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Question` table where the `position` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  position_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Question.position", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Question` table where the `questionText` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  questionText_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Question.questionText", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Question` table where the `questionType` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  questionType_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Question.questionType", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Question` table where the `required` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  required_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Question.required", purpose: QUERY_COUNT)
+  """
+  ✨ Sum the `position` field in the `Question` table.
+  """
+  position_sum(
+    """
+    Set to true to sum the distinct values.
+    """
+    distinct: Boolean = false
+  ): Int @fdc_generated(from: "Question.position", purpose: QUERY_SUM)
+  """
+  ✨ Average the `position` field in the `Question` table.
+  """
+  position_avg(
+    """
+    Set to true to average the distinct values.
+    """
+    distinct: Boolean = false
+  ): Float @fdc_generated(from: "Question.position", purpose: QUERY_AVG)
+  """
+  ✨ Minimum of the `position` field in the `Question` table.
+  """
+  position_min: Int @fdc_generated(from: "Question.position", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `position` field in the `Question` table.
+  """
+  position_max: Int @fdc_generated(from: "Question.position", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Question.id", purpose: GLOBAL_ID)
+}
+extend type Response {
+  """
+  ✨ List `Answer` objects in a one-to-many relationship (where `Answer`.`response` is this object).
+  """
+  answers_on_response(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Answer_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Answer_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Answer_Having
+  ): [Answer!]! @fdc_generated(from: "Answer.response", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "Response", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `Response` table.
+  """
+  _count: Int! @fdc_generated(from: "Response.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Response` table where the `formId` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  formId_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Response.formId", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Response` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Response.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Response` table where the `responderEmail` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  responderEmail_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Response.responderEmail", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `Response` table where the `submittedAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  submittedAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "Response.submittedAt", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `submittedAt` field in the `Response` table.
+  """
+  submittedAt_min: Timestamp @fdc_generated(from: "Response.submittedAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `submittedAt` field in the `Response` table.
+  """
+  submittedAt_max: Timestamp @fdc_generated(from: "Response.submittedAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "Response.id", purpose: GLOBAL_ID)
+}
+extend type User {
+  """
+  ✨ List `Form` objects in a one-to-many relationship (where `Form`.`user` is this object).
+  """
+  forms_on_user(
+    """
+    Filter condition to narrow down the query results.
+    """
+    where: Form_Filter
+
+    """
+    Order the query results by specific fields.
+    """
+    orderBy: [Form_Order!]
+
+    """
+    Number of rows to skip before starting to return the results.
+    """
+    offset: Int
+
+    """
+    Maximum number of rows to return (defaults to 100 rows).
+    """
+    limit: Int = 100
+
+    """
+    Set to true to return distinct results.
+    """
+    distinct: Boolean = false
+
+    """
+    Filter condition to apply to the groups of aggregate queries.
+    """
+    having: Form_Having
+  ): [Form!]! @fdc_generated(from: "Form.user", purpose: QUERY_MULTIPLE_ONE_TO_MANY)
+  """
+  Implicit metadata field that cannot be written. It provides extra information about query results.
+  """
+  _metadata: _Metadata @fdc_generated(from: "User", purpose: METADATA_FIELD)
+  """
+  ✨ Count the number of rows in the `User` table.
+  """
+  _count: Int! @fdc_generated(from: "User.", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `createdAt` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  createdAt_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.createdAt", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `displayName` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  displayName_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.displayName", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `email` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  email_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.email", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `id` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  id_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.id", purpose: QUERY_COUNT)
+  """
+  ✨ Count the number of rows in the `User` table where the `photoUrl` field is non-null. Pass the `distinct` argument to instead count the number of distinct values.
+  """
+  photoUrl_count(
+    """
+    Set to true to count the number of distinct values.
+    """
+    distinct: Boolean = false
+  ): Int! @fdc_generated(from: "User.photoUrl", purpose: QUERY_COUNT)
+  """
+  ✨ Minimum of the `createdAt` field in the `User` table.
+  """
+  createdAt_min: Timestamp @fdc_generated(from: "User.createdAt", purpose: QUERY_MIN)
+  """
+  ✨ Maximum of the `createdAt` field in the `User` table.
+  """
+  createdAt_max: Timestamp @fdc_generated(from: "User.createdAt", purpose: QUERY_MAX)
+  """
+  A generated field that is used for caching results in SDKs.
+  """
+  _id: ID! @fdc_generated(from: "User.id", purpose: GLOBAL_ID)
+}

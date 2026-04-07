@@ -1,0 +1,562 @@
+extend type Mutation {
+  """
+  ✨ Insert a single `Answer` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  answer_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Answer_Data!
+  ): Answer_KeyOutput! @fdc_generated(from: "Answer", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Form` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  form_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Form_Data!
+  ): Form_KeyOutput! @fdc_generated(from: "Form", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Question` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  question_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Question_Data!
+  ): Question_KeyOutput! @fdc_generated(from: "Question", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `Response` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  response_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: Response_Data!
+  ): Response_KeyOutput! @fdc_generated(from: "Response", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert a single `User` into the table and return its key. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  user_insert(
+    """
+    Data object to insert into the table.
+    """
+    data: User_Data!
+  ): User_KeyOutput! @fdc_generated(from: "User", purpose: INSERT_SINGLE)
+  """
+  ✨ Insert `Answer` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  answer_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Answer_Data!]!
+  ): [Answer_KeyOutput!]! @fdc_generated(from: "Answer", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Form` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  form_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Form_Data!]!
+  ): [Form_KeyOutput!]! @fdc_generated(from: "Form", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Question` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  question_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Question_Data!]!
+  ): [Question_KeyOutput!]! @fdc_generated(from: "Question", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `Response` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  response_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [Response_Data!]!
+  ): [Response_KeyOutput!]! @fdc_generated(from: "Response", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert `User` objects into the table and return their keys. Columns not specified in `data` will receive defaults (e.g. `null`).
+  """
+  user_insertMany(
+    """
+    List of data objects to insert into the table.
+    """
+    data: [User_Data!]!
+  ): [User_KeyOutput!]! @fdc_generated(from: "User", purpose: INSERT_MULTIPLE)
+  """
+  ✨ Insert or update a single `Answer` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Answer`.
+  """
+  answer_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Answer_Data!
+  ): Answer_KeyOutput! @fdc_generated(from: "Answer", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Form` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Form`.
+  """
+  form_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Form_Data!
+  ): Form_KeyOutput! @fdc_generated(from: "Form", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Question` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Question`.
+  """
+  question_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Question_Data!
+  ): Question_KeyOutput! @fdc_generated(from: "Question", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `Response` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Response`.
+  """
+  response_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: Response_Data!
+  ): Response_KeyOutput! @fdc_generated(from: "Response", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update a single `User` into the table, based on the primary key. Returns the key of the newly inserted or existing updated `User`.
+  """
+  user_upsert(
+    """
+    Data object to insert or update if it already exists.
+    """
+    data: User_Data!
+  ): User_KeyOutput! @fdc_generated(from: "User", purpose: UPSERT_SINGLE)
+  """
+  ✨ Insert or update `Answer` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Answer`.
+  """
+  answer_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Answer_Data!]!
+  ): [Answer_KeyOutput!]! @fdc_generated(from: "Answer", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Form` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Form`.
+  """
+  form_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Form_Data!]!
+  ): [Form_KeyOutput!]! @fdc_generated(from: "Form", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Question` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Question`.
+  """
+  question_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Question_Data!]!
+  ): [Question_KeyOutput!]! @fdc_generated(from: "Question", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `Response` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `Response`.
+  """
+  response_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [Response_Data!]!
+  ): [Response_KeyOutput!]! @fdc_generated(from: "Response", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Insert or update `User` objects into the table, based on the primary key. Returns the key of the newly inserted or existing updated `User`.
+  """
+  user_upsertMany(
+    """
+    List of data objects to insert or update if it already exists.
+    """
+    data: [User_Data!]!
+  ): [User_KeyOutput!]! @fdc_generated(from: "User", purpose: UPSERT_MULTIPLE)
+  """
+  ✨ Update a single `Answer` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Answer` or `null` if not found.
+  """
+  answer_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Answer_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Answer_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Answer_Data!
+  ): Answer_KeyOutput @fdc_generated(from: "Answer", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Form` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Form` or `null` if not found.
+  """
+  form_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Form_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Form_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Form_Data!
+  ): Form_KeyOutput @fdc_generated(from: "Form", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Question` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Question` or `null` if not found.
+  """
+  question_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Question_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Question_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Question_Data!
+  ): Question_KeyOutput @fdc_generated(from: "Question", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `Response` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `Response` or `null` if not found.
+  """
+  response_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Response_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Response_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: Response_Data!
+  ): Response_KeyOutput @fdc_generated(from: "Response", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update a single `User` based on `id`, `key` or `first`, setting columns specified in `data`. Returns the key of the updated `User` or `null` if not found.
+  """
+  user_update(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+
+    """
+    Data object containing fields to be updated.
+    """
+    data: User_Data!
+  ): User_KeyOutput @fdc_generated(from: "User", purpose: UPDATE_SINGLE)
+  """
+  ✨ Update `Answer` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  answer_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Answer_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Answer_Data!
+  ): Int! @fdc_generated(from: "Answer", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Form` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  form_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Form_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Form_Data!
+  ): Int! @fdc_generated(from: "Form", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Question` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  question_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Question_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Question_Data!
+  ): Int! @fdc_generated(from: "Question", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `Response` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  response_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: Response_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: Response_Data!
+  ): Int! @fdc_generated(from: "Response", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Update `User` objects matching `where` conditions (or `all`, if true) according to `data`. Returns the number of rows updated.
+  """
+  user_updateMany(
+    """
+    Filter condition to specify which rows to update.
+    """
+    where: User_Filter
+
+    """
+    Set to true to update all rows.
+    """
+    all: Boolean = false
+
+    """
+    Data object containing fields to update.
+    """
+    data: User_Data!
+  ): Int! @fdc_generated(from: "User", purpose: UPDATE_MULTIPLE)
+  """
+  ✨ Delete a single `Answer` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  answer_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Answer_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Answer_FirstRow
+  ): Answer_KeyOutput @fdc_generated(from: "Answer", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Form` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  form_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Form_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Form_FirstRow
+  ): Form_KeyOutput @fdc_generated(from: "Form", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Question` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  question_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Question_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Question_FirstRow
+  ): Question_KeyOutput @fdc_generated(from: "Question", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `Response` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  response_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: Response_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: Response_FirstRow
+  ): Response_KeyOutput @fdc_generated(from: "Response", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete a single `User` based on `id`, `key` or `first` and return its key (or `null` if not found).
+  """
+  user_delete(
+    """
+    The unique ID of the object.
+    """
+    id: UUID
+
+    """
+    The key used to identify the object.
+    """
+    key: User_Key
+
+    """
+    Fetch the first row based on the filters and ordering.
+    """
+    first: User_FirstRow
+  ): User_KeyOutput @fdc_generated(from: "User", purpose: DELETE_SINGLE)
+  """
+  ✨ Delete `Answer` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  answer_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Answer_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Answer", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Form` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  form_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Form_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Form", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Question` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  question_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Question_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Question", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `Response` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  response_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: Response_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "Response", purpose: DELETE_MULTIPLE)
+  """
+  ✨ Delete `User` objects matching `where` conditions (or `all`, if true). Returns the number of rows deleted.
+  """
+  user_deleteMany(
+    """
+    Filter condition to specify which rows to delete.
+    """
+    where: User_Filter
+
+    """
+    Set to true to delete all rows.
+    """
+    all: Boolean = false
+  ): Int! @fdc_generated(from: "User", purpose: DELETE_MULTIPLE)
+}
