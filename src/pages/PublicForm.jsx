@@ -226,16 +226,15 @@ const PublicFormView = () => {
       const dependencyValue = formData[rule.fieldId];
       const targetValue = rule.value;
       
-      // Handle boolean strings from the UI components
-      const depStr = String(dependencyValue).toLowerCase();
-      const tgtStr = String(targetValue).toLowerCase();
+      const depStr = String(dependencyValue || "").toLowerCase();
+      const tgtStr = String(targetValue || "").toLowerCase();
 
       switch (rule.operator) {
         case "==": return depStr === tgtStr;
         case "!=": return depStr !== tgtStr;
         case "contains": return depStr.includes(tgtStr);
-        case "greater": return Number(dependencyValue) > Number(targetValue);
-        case "less": return Number(dependencyValue) < Number(targetValue);
+        case "greater": return Number(dependencyValue || 0) > Number(targetValue || 0);
+        case "less": return Number(dependencyValue || 0) < Number(targetValue || 0);
         default: return true;
       }
     });
@@ -246,6 +245,49 @@ const PublicFormView = () => {
     return results.every(r => r === true);
   };
 
+  // --- Calculation Engine ---
+  useEffect(() => {
+    if (!formSchema) return;
+    const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
+    const calculatedFields = allFields.filter(f => f.isCalculated && f.formula);
+    
+    if (calculatedFields.length === 0) return;
+
+    let hasChanges = false;
+    const newFormData = { ...formData };
+
+    calculatedFields.forEach(field => {
+      try {
+        let formula = field.formula;
+        // Replace dependencies {{id}} with their numeric values
+        const matches = formula.match(/{{(.*?)}}/g);
+        if (matches) {
+          matches.forEach(match => {
+            const depId = match.replace(/{{|}}/g, "");
+            const val = Number(formData[depId] || 0);
+            formula = formula.replace(match, val);
+          });
+        }
+
+        // Evaluate the mathematical expression
+        // eslint-disable-next-line no-new-func
+        const result = new Function(`return ${formula}`)();
+        const finalValue = isNaN(result) ? 0 : result;
+
+        if (newFormData[field.id] !== String(finalValue)) {
+          newFormData[field.id] = String(finalValue);
+          hasChanges = true;
+        }
+      } catch (err) {
+        console.warn(`Formula error in field ${field.id}:`, err);
+      }
+    });
+
+    if (hasChanges) {
+      setFormData(newFormData);
+    }
+  }, [formData, formSchema]);
+
   const validateForm = () => {
     const newErrors = {};
     const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
@@ -255,8 +297,8 @@ const PublicFormView = () => {
       
       const value = formData[field.id];
 
-      // 1. Required Check
-      if (field.required && (!value || value === "")) {
+      // 1. Required Check (Skipped for calculated fields as they are auto-filled)
+      if (field.required && !field.isCalculated && (!value || value === "")) {
         newErrors[field.id] = "Este campo es obligatorio";
         return;
       }
@@ -272,17 +314,32 @@ const PublicFormView = () => {
             isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
             defaultMsg = "Correo electrónico inválido";
             break;
-          case "cuit":
-            isValid = /^\d{11}$/.test(value.replace(/-/g, ""));
-            defaultMsg = "CUIT/CUIL debe tener 11 dígitos";
+          case "institutional_email":
+            isValid = /^[^\s@]+@(municipio\.gov\.ar|modernizacionsancarlos\.gob\.ar)$/.test(value.toLowerCase());
+            defaultMsg = "Debe usar un correo institucional (@municipio.gov.ar)";
             break;
+          case "cuit": {
+            const cleanCuit = String(value).replace(/[-_]/g, "");
+            if (cleanCuit.length !== 11) {
+              isValid = false;
+            } else {
+              const [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11] = cleanCuit.split("").map(Number);
+              const total = (v1 * 5) + (v2 * 4) + (v3 * 3) + (v4 * 2) + (v5 * 7) + (v6 * 6) + (v7 * 5) + (v8 * 4) + (v9 * 3) + (v10 * 2);
+              let res = 11 - (total % 11);
+              if (res === 11) res = 0;
+              if (res === 10) res = 9;
+              isValid = res === v11;
+            }
+            defaultMsg = "CUIT/CUIL no válido (Algoritmo Módulo 11)";
+            break;
+          }
           case "dni":
-            isValid = /^\d{7,8}$/.test(value);
-            defaultMsg = "DNI debe tener 7 u 8 dígitos";
+            isValid = /^\d{7,8}$/.test(value.replace(/\./g, ""));
+            defaultMsg = "DNI debe tener entre 7 y 8 dígitos";
             break;
           case "phone":
             isValid = /^\+?[\d\s-]{10,15}$/.test(value);
-            defaultMsg = "Número de teléfono inválido";
+            defaultMsg = "Número de teléfono inválido (10-15 dígitos)";
             break;
           case "regex":
             if (pattern) {
@@ -319,7 +376,33 @@ const PublicFormView = () => {
       if (isFieldVisible(f)) filteredData[f.id] = formData[f.id];
     });
 
+    // --- Automation Engine: Submission Rules ---
+    let finalStatus = "Pendiente";
+    if (formSchema.submissionRules && formSchema.submissionRules.length > 0) {
+      formSchema.submissionRules.forEach(rule => {
+        const val = formData[rule.fieldId];
+        const depStr = String(val || "").toLowerCase();
+        const tgtStr = String(rule.value || "").toLowerCase();
+        let match = false;
+
+        switch (rule.operator) {
+          case "==": match = depStr === tgtStr; break;
+          case "!=": match = depStr !== tgtStr; break;
+          case "greater": match = Number(val || 0) > Number(rule.value || 0); break;
+          case "less": match = Number(val || 0) < Number(rule.value || 0); break;
+          default: break;
+        }
+
+        if (match) {
+          finalStatus = rule.action.value;
+        }
+      });
+    }
+    filteredData.status = finalStatus;
+    // ------------------------------------------
+
     const result = await submitForm(filteredData, formId);
+
     if (result && result.success) {
       setSubmissionId(result.id || "LOCAL_" + Math.random().toString(36).substr(2, 9).toUpperCase());
       setStatus(result.offline || !result.synced ? "success_offline" : "success");
@@ -449,10 +532,11 @@ const PublicFormView = () => {
           return (
             <input 
               type={field.type}
-              placeholder={field.placeholder || "Esperando entrada..."}
+              placeholder={field.isCalculated ? "Valor calculado..." : (field.placeholder || "Esperando entrada...")}
               value={formData[field.id] || ""}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 ${hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+              onChange={(e) => !field.isCalculated && handleInputChange(field.id, e.target.value)}
+              readOnly={field.isCalculated}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 ${field.isCalculated ? "opacity-60 border-amber-500/30 text-amber-500 cursor-not-allowed select-none bg-amber-500/5" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
             />
           );
         case "textarea":

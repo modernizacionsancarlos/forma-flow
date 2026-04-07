@@ -1,20 +1,168 @@
 import React, { useState } from "react";
 import { Settings, ChevronDown, ShieldCheck, Eye, Zap, Trash2, PlusCircle, Layout, ShieldAlert } from "lucide-react";
 
-const PropertyPanel = ({ activeField, allFields, onClose, onUpdate }) => {
+const PropertyPanel = ({ activeField, allFields, submissionRules = [], setSubmissionRules, onClose, onUpdate }) => {
   const [activeTab, setActiveTab] = useState("general");
+  const [globalTab, setGlobalTab] = useState("settings");
+
+  const addSubmissionRule = () => {
+    const newRule = {
+      id: crypto.randomUUID(),
+      fieldId: "",
+      operator: "==",
+      value: "",
+      action: { type: "setStatus", value: "Pendiente" }
+    };
+    setSubmissionRules([...submissionRules, newRule]);
+  };
+
+  const updateSubmissionRule = (id, updates) => {
+    setSubmissionRules(submissionRules.map(r => r.id === id ? { ...r, ...updates } : r));
+  };
+
+  const removeSubmissionRule = (id) => {
+    setSubmissionRules(submissionRules.filter(r => r.id !== id));
+  };
 
   if (!activeField) {
     return (
-      <div className="w-80 border-l border-white/5 bg-slate-950 flex flex-col items-center justify-center p-12 text-center bg-slate-950/20 backdrop-blur-3xl shadow-[-20px_0_40px_rgba(0,0,0,0.5)]">
-        <div className="w-16 h-16 rounded-3xl bg-slate-900 border border-white/5 flex items-center justify-center mb-6 shadow-2xl group transition-all hover:scale-110">
-          <Settings size={28} className="text-slate-800 opacity-50 group-hover:text-slate-400" />
+      <div className="w-80 border-l border-white/5 bg-slate-950 flex flex-col shadow-[-20px_0_40px_rgba(0,0,0,0.8)] relative z-20 overflow-hidden">
+        {/* Header */}
+        <div className="px-8 py-7 border-b border-white/5 bg-slate-950/80 flex justify-between items-center backdrop-blur-md shrink-0">
+          <div className="flex items-center space-x-3">
+            <Settings size={16} className="text-slate-500" />
+            <h3 className="text-[11px] font-black text-white uppercase tracking-[0.2em]">Ajustes Globales</h3>
+          </div>
         </div>
-        <h4 className="text-sm font-black text-slate-500 uppercase tracking-widest mb-2">Panel de Edición</h4>
-        <p className="text-[10px] font-bold text-slate-700 leading-relaxed max-w-[160px]">Selecciona un elemento en el lienzo para configurar su comportamiento.</p>
+
+        {/* Global Tabs Navigation */}
+        <div className="flex border-b border-white/5 bg-slate-950/40">
+          <button 
+            onClick={() => setGlobalTab("settings")} 
+            className={`flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all relative flex items-center justify-center space-x-2 ${globalTab === "settings" ? 'text-emerald-500 bg-emerald-500/5' : 'text-slate-600 hover:text-slate-400'}`}
+          >
+            <Layout size={12} />
+            <span>Config</span>
+            {globalTab === "settings" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>}
+          </button>
+          <button 
+            onClick={() => setGlobalTab("automation")} 
+            className={`flex-1 py-4 text-[9px] font-black uppercase tracking-widest transition-all relative flex items-center justify-center space-x-2 ${globalTab === "automation" ? 'text-amber-500 bg-amber-500/5' : 'text-slate-600 hover:text-slate-400'}`}
+          >
+            <Zap size={12} />
+            <span>Automatización</span>
+            {globalTab === "automation" && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>}
+          </button>
+        </div>
+
+        <div className="p-8 flex-1 overflow-y-auto custom-scrollbar pb-32">
+          {globalTab === "settings" && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+               <div className="py-20 text-center opacity-30">
+                  <Layout size={40} className="mx-auto mb-4 text-slate-700" />
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">Ajustes del Formulario</p>
+                  <p className="text-[8px] mt-2 font-bold max-w-[150px] mx-auto leading-relaxed">Usa la barra superior del constructor para cambiar los metadatos básicos.</p>
+               </div>
+            </div>
+          )}
+
+          {globalTab === "automation" && (
+            <div className="space-y-8 animate-in fade-in duration-300">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest flex items-center space-x-2">
+                   <Zap size={14} />
+                   <span>Reglas de Envío</span>
+                </h4>
+                <p className="text-[9px] text-slate-500 font-bold opacity-70">Define estados automáticos basados en los datos del formulario.</p>
+              </div>
+
+              <div className="space-y-4">
+                {submissionRules.length > 0 ? submissionRules.map((rule) => (
+                  <div key={rule.id} className="p-5 bg-slate-900/50 border border-slate-800 rounded-[2rem] space-y-4 relative group hover:border-amber-500/20 transition-all">
+                    <button 
+                      onClick={() => removeSubmissionRule(rule.id)}
+                      className="absolute -top-2 -right-2 p-2 bg-slate-950 border border-slate-800 text-rose-500 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-500 hover:text-white"
+                    >
+                      <Trash2 size={10} />
+                    </button>
+
+                    <div className="space-y-3">
+                      <label className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">Si el campo...</label>
+                      <select 
+                        value={rule.fieldId}
+                        onChange={(e) => updateSubmissionRule(rule.id, { fieldId: e.target.value })}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none focus:border-amber-500/30"
+                      >
+                        <option value="">Seleccionar Campo</option>
+                        {allFields.map(f => (
+                          <option key={f.id} value={f.id}>{f.label || f.id}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <label className="text-[8px] font-black text-slate-600 uppercase">Es...</label>
+                        <select 
+                          value={rule.operator}
+                          onChange={(e) => updateSubmissionRule(rule.id, { operator: e.target.value })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none"
+                        >
+                          <option value="==">Igual a</option>
+                          <option value="!=">Diferente a</option>
+                          <option value="greater">Mayor que</option>
+                          <option value="less">Menor que</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[8px] font-black text-slate-600 uppercase">Valor</label>
+                        <input 
+                          type="text"
+                          value={rule.value}
+                          onChange={(e) => updateSubmissionRule(rule.id, { value: e.target.value })}
+                          className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none"
+                          placeholder="Valor..."
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-3 border-t border-white/5 space-y-3">
+                      <label className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Asignar Estado:</label>
+                      <select 
+                        value={rule.action.value}
+                        onChange={(e) => updateSubmissionRule(rule.id, { action: { ...rule.action, value: e.target.value } })}
+                        className="w-full bg-slate-950 border border-emerald-500/20 rounded-xl px-3 py-2 text-[10px] text-emerald-500 font-black focus:outline-none"
+                      >
+                        <option value="Pendiente">Pendiente</option>
+                        <option value="Urgente">Urgente</option>
+                        <option value="Prioridad Alta">Prioridad Alta</option>
+                        <option value="Revisión Técnica">Revisión Técnica</option>
+                        <option value="Auditoría">Auditoría</option>
+                      </select>
+                    </div>
+                  </div>
+                )) : (
+                  <div className="py-12 border-2 border-dashed border-slate-900 rounded-[2.5rem] flex flex-col items-center justify-center opacity-20">
+                     <Zap size={24} className="text-slate-600 mb-2" />
+                     <span className="text-[8px] font-black uppercase tracking-widest">Sin Automatizaciones</span>
+                  </div>
+                )}
+
+                <button 
+                  onClick={addSubmissionRule}
+                  className="w-full py-5 border-2 border-dashed border-slate-800 rounded-[2.5rem] text-[9px] font-black text-slate-500 uppercase tracking-widest hover:border-amber-500/30 hover:text-amber-500 transition-all flex items-center justify-center space-x-2 group hover:bg-amber-500/5"
+                >
+                  <PlusCircle size={14} className="group-hover:rotate-90 transition-transform duration-500" />
+                  <span>Añadir Regla de Workflow</span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
+
 
   const otherFields = allFields.filter(f => f.id !== activeField.id);
 
@@ -104,6 +252,51 @@ const PropertyPanel = ({ activeField, allFields, onClose, onUpdate }) => {
                 placeholder="Título del campo..."
               />
             </div>
+
+            {(activeField.type === "number" || activeField.type === "text") && (
+              <div className="pt-4 border-t border-white/5 space-y-4">
+                <div className="flex items-center justify-between group cursor-pointer" onClick={() => onUpdate({ isCalculated: !activeField.isCalculated })}>
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black text-emerald-500 uppercase tracking-tight group-hover:text-amber-500 transition-colors">Campo de Fórmula</span>
+                    <span className="text-[8px] text-slate-600 font-bold opacity-60 italic">Calculado automáticamente</span>
+                  </div>
+                  <div 
+                    className={`w-10 h-5 rounded-full relative transition-all duration-300 ${activeField.isCalculated ? 'bg-amber-600' : 'bg-slate-900 border border-white/10'}`}
+                  >
+                    <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full transition-all duration-300 ${activeField.isCalculated ? 'left-[22px]' : 'left-1'}`}></div>
+                  </div>
+                </div>
+
+                {activeField.isCalculated && (
+                  <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
+                    <label className="block text-[8px] font-black text-slate-400 uppercase tracking-widest flex justify-between">
+                      <span>Fórmula Matemática</span>
+                      <span className="text-amber-500/50 lowercase font-mono">eval(js)</span>
+                    </label>
+                    <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 shadow-inner">
+                      <textarea 
+                        value={activeField.formula || ""}
+                        onChange={(e) => onUpdate({ formula: e.target.value })}
+                        className="w-full bg-transparent border-none text-xs font-mono text-emerald-500 focus:outline-none resize-none scrollbar-hide h-20"
+                        placeholder="Ej: {{cantidad}} * {{precio}}"
+                      />
+                      <div className="mt-3 pt-3 border-t border-white/5 flex flex-wrap gap-2">
+                        {otherFields.filter(f => f.type === "number").slice(0, 4).map(f => (
+                           <button 
+                             key={f.id}
+                             onClick={() => onUpdate({ formula: (activeField.formula || "") + `{{${f.id}}}` })}
+                             className="px-2 py-1 bg-slate-900 border border-slate-800 rounded-md text-[8px] font-black text-slate-500 hover:text-white transition-colors"
+                           >
+                             + {f.label || f.id}
+                           </button>
+                        ))}
+                      </div>
+                    </div>
+                    <p className="text-[8px] text-slate-600 font-bold italic leading-relaxed">Usa doble llave para referenciar IDs de otros campos.</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {(activeField.type === "text" || activeField.type === "number" || activeField.type === "textarea") && (
               <div className="space-y-3">
@@ -325,6 +518,7 @@ const PropertyPanel = ({ activeField, allFields, onClose, onUpdate }) => {
                  >
                    <option value="">Ninguna (Libre)</option>
                    <option value="email">Correo Electrónico</option>
+                   <option value="institutional_email">Email Institucional (@municipio)</option>
                    <option value="cuit">CUIT/CUIL Argentino</option>
                    <option value="dni">DNI (8 dígitos)</option>
                    <option value="phone">Teléfono Móvil</option>

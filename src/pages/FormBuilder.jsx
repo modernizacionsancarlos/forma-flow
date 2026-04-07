@@ -22,6 +22,7 @@ const FormBuilder = () => {
   
   const [acceptsResponses, setAcceptsResponses] = useState(true);
   const [isPublic, setIsPublic] = useState(false);
+  const [submissionRules, setSubmissionRules] = useState([]);
   const [saveStatus, setSaveStatus] = useState("idle");
   const [isLoading, setIsLoading] = useState(!!formId);
 
@@ -35,11 +36,13 @@ const FormBuilder = () => {
             setFields(schema.sections?.[0]?.fields || schema.fields || []);
             setAcceptsResponses(schema.status === "active" || schema.status === "published");
             setIsPublic(!!schema.is_public);
+            setSubmissionRules(schema.submissionRules || []);
          }
          setIsLoading(false);
       };
       loadForm();
     }
+
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
 
@@ -104,9 +107,11 @@ const FormBuilder = () => {
            title,
            description,
            sections: [{ id: "default", title: "Default", fields }],
+           submissionRules,
            is_public: isPublic,
            status: acceptsResponses ? "active" : "draft"
         });
+
       }
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);
@@ -188,9 +193,12 @@ const FormBuilder = () => {
         <PropertyPanel 
            activeField={activeField}
            allFields={fields}
+           submissionRules={submissionRules}
+           setSubmissionRules={setSubmissionRules}
            onClose={() => setActiveField(null)}
            onUpdate={updateActiveField}
         />
+
       </div>
     </div>
   );
