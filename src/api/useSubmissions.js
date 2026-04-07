@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { db, storage as firebaseStorage } from "../lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "react-hot-toast";
+import { getOfflineFiles, removeOfflineFile } from "../lib/offlineFiles";
 
 export const useSubmissions = () => {
   const { user, claims } = useAuth();
@@ -74,11 +76,38 @@ export const useSubmissions = () => {
     const queueToSync = [...offlineQueue];
     const successes = [];
 
+    // Primero intentamos sincronizar archivos pendientes si existen
+    const offlineFiles = await getOfflineFiles();
+
     for (const item of queueToSync) {
       try {
         const { id: _id, ...firebaseData } = item;
+        const processedData = { ...firebaseData.data };
+
+        // Buscar campos con prefijo offline:// en los datos del formulario
+        for (const [key, value] of Object.entries(processedData)) {
+          if (typeof value === "string" && value.startsWith("offline://")) {
+            const fileId = value.replace("offline://", "");
+            const fileRecord = offlineFiles.find(f => f.id === fileId);
+
+            if (fileRecord) {
+              try {
+                const storageRef = ref(firebaseStorage, `submissions/${fileRecord.fieldId}/${Date.now()}_${fileRecord.fileName}`);
+                await uploadBytes(storageRef, fileRecord.fileBlob);
+                const url = await getDownloadURL(storageRef);
+                processedData[key] = url;
+                await removeOfflineFile(fileId);
+              } catch (uploadError) {
+                console.error("Error uploading offline file:", fileId, uploadError);
+                throw new Error("Failed to upload offline file");
+              }
+            }
+          }
+        }
+
         await addDoc(collection(db, "Submissions"), {
           ...firebaseData,
+          data: processedData,
           created_date: Timestamp.fromMillis(item.created_date),
           status: "pending_review",
         });

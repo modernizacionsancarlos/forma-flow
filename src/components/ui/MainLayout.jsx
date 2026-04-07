@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -16,10 +16,11 @@ import {
   LogOut 
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
-import { useTenants } from "../../api/useTenants";
+import { useBranding } from "../../lib/useBranding";
 import SyncBanner from "./SyncBanner";
 import Guard from "../auth/Guard";
 import NotificationCenter from "./NotificationCenter";
+import NotificationPrompt from "./NotificationPrompt";
 import { PERMISSIONS } from "../../lib/permissions";
 import { useSubmissionNotifications } from "../../api/useSubmissionNotifications";
 
@@ -53,19 +54,10 @@ const SidebarLink = ({ to, icon, children, activeColor }) => {
 
 const MainLayout = ({ children }) => {
   const { logout, claims } = useAuth();
-  const { tenants } = useTenants();
+  const { branding } = useBranding();
 
   // Activa las notificaciones en tiempo real para el administrador
   useSubmissionNotifications();
-
-  const currentTenant = useMemo(() => {
-    return tenants?.find(t => t.id === claims.tenantId) || tenants?.[0];
-  }, [tenants, claims.tenantId]);
-
-  const branding = currentTenant?.branding || {
-    primary_color: "#10b981",
-    logo_url: null
-  };
 
   return (
     <div className="flex h-screen bg-[#060b13] text-white font-inter">
@@ -90,7 +82,7 @@ const MainLayout = ({ children }) => {
             </div>
             <div className="flex flex-col overflow-hidden">
                <span className="text-base font-bold text-white tracking-tight leading-none truncate w-32">
-                 {currentTenant?.name || "FormFlow"}
+                 {branding.name || "FormFlow"}
                </span>
                <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Dashboard</span>
             </div>
@@ -142,6 +134,7 @@ const MainLayout = ({ children }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden bg-[#060b13]">
+        <NotificationPrompt />
         {/* Header Bar */}
         <header className="h-20 border-b border-slate-800/50 bg-[#0a101b]/80 backdrop-blur-xl flex items-center justify-between px-8 relative z-10 shadow-2xl">
           <div className="flex items-center space-x-6">

@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
 import toast, { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './lib/AuthContext'
+import { BrandingProvider } from './lib/BrandingProvider'
 import './index.css'
 
 // Placeholder components for pages
@@ -46,104 +47,106 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Toaster 
-          position="bottom-right" 
-          toastOptions={{
-            style: {
-              background: '#0B1726',
-              color: '#fff',
-              border: '1px solid #1A2E44'
-            }
-          }}
-        />
         <Router>
-          <ReloadPrompt />
-          <JoinOrganization />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/view/:formId" element={<PublicForm />} />
-            <Route path="/portal" element={<CitizenPortal />} />
-            
-            <Route path="/" element={
-              <ProtectedRoute>
-                <MainLayout><Dashboard /></MainLayout>
-              </ProtectedRoute>
-            } />
+          <Toaster 
+            position="bottom-right" 
+            toastOptions={{
+              style: {
+                background: '#0B1726',
+                color: '#fff',
+                border: '1px solid #1A2E44'
+              }
+            }}
+          />
+          <BrandingProvider>
+            <ReloadPrompt />
+            <JoinOrganization />
+            <Routes>
+              <Route path="/login" element={<Login />} />
+              <Route path="/view/:formId" element={<PublicForm />} />
+              <Route path="/portal" element={<CitizenPortal />} />
+              
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <MainLayout><Dashboard /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/forms" element={
-              <ProtectedRoute>
-                <MainLayout><FormsList /></MainLayout>
-              </ProtectedRoute>
-            } />
-            
-            <Route path="/forms/new" element={
-              <ProtectedRoute>
-                <MainLayout><FormBuilder /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/forms" element={
+                <ProtectedRoute>
+                  <MainLayout><FormsList /></MainLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/forms/new" element={
+                <ProtectedRoute>
+                  <MainLayout><FormBuilder /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/submissions" element={
-              <ProtectedRoute>
-                <MainLayout><Submissions /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/submissions" element={
+                <ProtectedRoute>
+                  <MainLayout><Submissions /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/admin" element={
-              <ProtectedRoute role="super_admin">
-                <MainLayout><Admin /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/admin" element={
+                <ProtectedRoute role="super_admin">
+                  <MainLayout><Admin /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/empresas" element={
-              <ProtectedRoute role="super_admin">
-                <MainLayout><Empresas /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/empresas" element={
+                <ProtectedRoute role="super_admin">
+                  <MainLayout><Empresas /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/areas" element={
-              <ProtectedRoute role="super_admin">
-                <MainLayout><Areas /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/areas" element={
+                <ProtectedRoute role="super_admin">
+                  <MainLayout><Areas /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/usuarios" element={
-              <ProtectedRoute>
-                <MainLayout><Usuarios /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/usuarios" element={
+                <ProtectedRoute>
+                  <MainLayout><Usuarios /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/workflows" element={
-              <ProtectedRoute>
-                <MainLayout><Workflows /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/workflows" element={
+                <ProtectedRoute>
+                  <MainLayout><Workflows /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/exportaciones" element={
-              <ProtectedRoute>
-                <MainLayout><Exportaciones /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/exportaciones" element={
+                <ProtectedRoute>
+                  <MainLayout><Exportaciones /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/auditoria" element={
-              <ProtectedRoute role="super_admin">
-                <MainLayout><Auditoria /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/auditoria" element={
+                <ProtectedRoute role="super_admin">
+                  <MainLayout><Auditoria /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/sincronizacion" element={
-              <ProtectedRoute>
-                <MainLayout><Sincronizacion /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/sincronizacion" element={
+                <ProtectedRoute>
+                  <MainLayout><Sincronizacion /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="/configuracion" element={
-              <ProtectedRoute>
-                <MainLayout><Configuracion /></MainLayout>
-              </ProtectedRoute>
-            } />
+              <Route path="/configuracion" element={
+                <ProtectedRoute>
+                  <MainLayout><Configuracion /></MainLayout>
+                </ProtectedRoute>
+              } />
 
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </BrandingProvider>
         </Router>
       </AuthProvider>
     </QueryClientProvider>

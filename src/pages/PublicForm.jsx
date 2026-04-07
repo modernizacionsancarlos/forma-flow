@@ -23,6 +23,9 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { storage as firebaseStorage } from "../lib/firebase";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "react-hot-toast";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "../lib/firebase";
+import { hexToRgb, hexToHsl } from "../lib/colorUtils";
 
 
 // --- Sub-components for Form Fields ---
@@ -91,15 +94,15 @@ const FileField = ({ fieldId, onChange, label, error, value }) => {
   return (
     <div className="space-y-4">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
-      <div className={`relative border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all ${value ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-slate-950/50 border-slate-800 hover:border-slate-700/50'}`}>
+      <div className={`relative border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all ${value ? 'bg-primary/5 border-primary/30' : 'bg-slate-950/50 border-slate-800 hover:border-slate-700/50'}`}>
          {uploading ? (
            <div className="flex flex-col items-center space-y-4">
-             <Loader2 className="text-emerald-500 animate-spin" size={32} />
-             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Subiendo {fileName}...</p>
+             <Loader2 className="text-primary animate-spin" size={32} />
+             <p className="text-[10px] font-black text-primary uppercase tracking-widest">Subiendo {fileName}...</p>
            </div>
          ) : value ? (
            <div className="flex flex-col items-center space-y-4 text-center">
-             <div className="p-4 bg-emerald-500/20 rounded-2xl text-emerald-500 shadow-lg border border-emerald-500/20">
+             <div className="p-4 bg-primary/20 rounded-2xl text-primary shadow-lg border border-primary/20">
                <CheckCircle size={32} />
              </div>
              <div>
@@ -149,14 +152,14 @@ const GPSField = ({ value, onChange, label, error }) => {
   return (
     <div className="space-y-4">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
-      <div className={`p-8 border-2 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all ${value ? 'bg-emerald-500/5 border-emerald-500/30 shadow-lg shadow-emerald-500/5' : 'bg-slate-950/50 border-slate-800'}`}>
+      <div className={`p-8 border-2 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all ${value ? 'bg-primary/5 border-primary/30 shadow-lg shadow-primary/5' : 'bg-slate-950/50 border-slate-800'}`}>
          <div className="flex items-center space-x-6">
-            <div className={`p-5 rounded-2xl border transition-all ${value ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-500' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
+            <div className={`p-5 rounded-2xl border transition-all ${value ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
                <MapPin size={24} className={locating ? "animate-bounce" : ""} />
             </div>
             <div>
                <p className="text-[10px] font-black text-white uppercase tracking-widest">{value ? "Coordenadas Capturadas" : "Captura de Ubicación"}</p>
-               <p className="text-[11px] font-mono font-black text-emerald-500 group-hover:text-emerald-400 transition-colors uppercase tracking-tight">
+               <p className="text-[11px] font-mono font-black text-primary group-hover:text-primary transition-colors uppercase tracking-tight">
                   {locating ? "Obteniendo datos satelitales..." : value || "No se ha capturado ubicación"}
                </p>
             </div>
@@ -187,6 +190,38 @@ const PublicFormView = () => {
   const [status, setStatus] = useState("loading"); // loading, ready, success, error, submitting
   const [submissionId, setSubmissionId] = useState(null);
   const [errors, setErrors] = useState({});
+  const [branding, setBranding] = useState({
+    primary_color: "#10b981",
+    logo_url: null,
+    name: "FormaFlow"
+  });
+
+  // Suscripción al branding del tenant una vez se carga el formulario
+  useEffect(() => {
+    if (!formSchema?.tenant_id) return;
+
+    const unsubscribe = onSnapshot(doc(db, "tenants", formSchema.tenant_id), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const newBranding = {
+          primary_color: data.branding?.primary_color || "#10b981",
+          logo_url: data.branding?.logo_url || null,
+          name: data.name || "FormaFlow"
+        };
+        setBranding(newBranding);
+        
+        // Inyectar variables CSS locales para este formulario
+        const root = document.documentElement;
+        root.style.setProperty("--primary-hex", newBranding.primary_color);
+        root.style.setProperty("--primary-rgb", hexToRgb(newBranding.primary_color));
+        root.style.setProperty("--primary", hexToHsl(newBranding.primary_color));
+      }
+    }, (error) => {
+      console.error("Error al cargar branding público:", error);
+    });
+
+    return () => unsubscribe();
+  }, [formSchema?.tenant_id]);
 
   useEffect(() => {
     const fetchForm = async () => {
@@ -604,12 +639,12 @@ const PublicFormView = () => {
                   onClick={() => handleInputChange(field.id, opt.value)}
                   className={`w-full px-6 py-5 rounded-2xl border-2 font-bold text-lg transition-all text-left flex items-center space-x-4 ${
                     formData[field.id] === opt.value
-                      ? "bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                      ? "bg-primary/10 border-primary text-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.1)]"
                       : "bg-slate-950 border-slate-800 text-slate-500 hover:border-slate-700"
                   }`}
                 >
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData[field.id] === opt.value ? "border-emerald-500" : "border-slate-800"}`}>
-                    {formData[field.id] === opt.value && <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />}
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData[field.id] === opt.value ? "border-primary" : "border-slate-800"}`}>
+                    {formData[field.id] === opt.value && <div className="w-2.5 h-2.5 bg-primary rounded-full" />}
                   </div>
                   <span>{opt.label}</span>
                 </button>
@@ -621,11 +656,11 @@ const PublicFormView = () => {
             <div className="flex items-center space-x-6 p-4">
               <div 
                 onClick={() => handleInputChange(field.id, !formData[field.id])}
-                className={`w-16 h-8 rounded-full transition-all cursor-pointer relative shadow-inner ${formData[field.id] ? "bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.3)]" : "bg-slate-800"}`}
+                className={`w-16 h-8 rounded-full transition-all cursor-pointer relative shadow-inner ${formData[field.id] ? "bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]" : "bg-slate-800"}`}
               >
                 <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${formData[field.id] ? "left-9" : "left-1"}`}></div>
               </div>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${formData[field.id] ? "text-emerald-500" : "text-slate-600"}`}>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${formData[field.id] ? "text-primary" : "text-slate-600"}`}>
                  {formData[field.id] ? "Habilitado / Sí" : "Deshabilitado / No"}
               </span>
             </div>
@@ -666,9 +701,12 @@ const PublicFormView = () => {
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-emerald-600/5 blur-[150px] rounded-full pointer-events-none -z-10" />
         
         <header className="mb-24 space-y-8 animate-in fade-in slide-in-from-top-10 duration-1000">
-          <div className="inline-flex items-center space-x-3 px-5 py-2 bg-slate-900/80 border border-emerald-500/20 rounded-full shadow-2xl backdrop-blur-xl">
-             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-             <span className="text-[9px] text-emerald-400 font-black uppercase tracking-[0.3em]">Cifrado Activo por Empresa</span>
+          <div className="inline-flex items-center space-x-3 px-5 py-2 bg-slate-900/80 border border-white/5 rounded-full shadow-2xl backdrop-blur-xl">
+             <div 
+               className="w-2 h-2 rounded-full animate-pulse"
+               style={{ backgroundColor: branding.primary_color, boxShadow: `0 0 10px ${branding.primary_color}80` }}
+             ></div>
+             <span className="text-[9px] text-slate-400 font-black uppercase tracking-[0.3em]">Cifrado Activo por <span className="text-white">{branding.name}</span></span>
           </div>
           <div>
             <h1 className="text-6xl md:text-8xl font-black text-white mb-8 tracking-tighter leading-[0.8] uppercase italic">{formSchema.title || "Formulario de Captura"}</h1>
@@ -718,11 +756,11 @@ const PublicFormView = () => {
               </button>
               <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 opacity-40">
                  <div className="flex items-center space-x-3">
-                    <ShieldCheck size={16} className="text-emerald-500" />
+                    <ShieldCheck size={16} className="text-primary" />
                     <span className="text-[9px] font-black uppercase tracking-widest">Protección Bancaria</span>
                  </div>
                  <div className="flex items-center space-x-3">
-                    <MapPin size={16} className="text-emerald-500" />
+                    <MapPin size={16} className="text-primary" />
                     <span className="text-[9px] font-black uppercase tracking-widest">Geolocalización Auditada</span>
                  </div>
               </div>
@@ -731,15 +769,24 @@ const PublicFormView = () => {
 
         <footer className="mt-48 pt-20 border-t border-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-12 opacity-20 hover:opacity-100 transition-all duration-1000">
            <div className="flex items-center space-x-6">
-              <div className="w-16 h-16 bg-slate-900 border-2 border-slate-800 rounded-[2rem] flex items-center justify-center font-black text-emerald-500 text-3xl shadow-2xl transition-transform hover:rotate-[-12deg]">F</div>
+              <div 
+                className="w-16 h-16 bg-slate-900 border-2 border-slate-800 rounded-[2rem] flex items-center justify-center font-black text-white text-3xl shadow-2xl transition-transform hover:rotate-[-12deg] overflow-hidden"
+                style={{ borderColor: `${branding.primary_color}40`, color: branding.primary_color }}
+              >
+                {branding.logo_url ? (
+                  <img src={branding.logo_url} alt="Logo" className="w-10 h-10 object-contain" />
+                ) : (
+                  branding.name[0]
+                )}
+              </div>
               <div className="flex flex-col">
-                <span className="text-sm font-black tracking-tighter text-white uppercase tracking-[0.3em]">FormaFlow System</span>
+                <span className="text-sm font-black tracking-tighter text-white uppercase tracking-[0.3em]">{branding.name} System</span>
                 <span className="text-[9px] text-slate-600 font-extrabold uppercase tracking-[0.1em]">Public Gateway v4.5.1-GOLD</span>
               </div>
            </div>
            <p className="text-[10px] text-slate-600 font-black text-center md:text-right leading-relaxed uppercase tracking-[0.2em]">
               Sincronización segura punto a punto.<br/>
-              © 2026 MUNICIPALIDAD DE SAN CARLOS - MODERNIZACIÓN.
+              © 2026 {branding.name.toUpperCase()} - MODERNIZACIÓN.
            </p>
         </footer>
       </div>
