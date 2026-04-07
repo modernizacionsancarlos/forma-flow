@@ -8,23 +8,29 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'og-image.png'],
       manifest: {
-        name: 'FormFlow - Municipalidad',
-        short_name: 'FormFlow',
-        description: 'Plataforma de gestión de trámites y formularios',
+        name: 'FormaFlow - Gestión Municipal',
+        short_name: 'FormaFlow',
+        description: 'Plataforma líder para la modernización de trámites municipales con soporte offline.',
         theme_color: '#060b13',
         background_color: '#060b13',
+        display: 'standalone',
+        orientation: 'portrait',
+        start_url: '/',
+        id: '/',
         icons: [
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'any'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ]
       }

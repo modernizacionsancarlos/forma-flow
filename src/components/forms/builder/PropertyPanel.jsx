@@ -173,7 +173,10 @@ const PropertyPanel = ({ activeField, allFields, submissionRules = [], setSubmis
       operator: "==", 
       value: "" 
     }];
-    onUpdate({ logic: newLogic });
+    onUpdate({ 
+      logic: newLogic,
+      logicAction: activeField.logicAction || "show" // Default action
+    });
   };
 
   const updateLogicRule = (ruleId, updates) => {
@@ -382,7 +385,24 @@ const PropertyPanel = ({ activeField, allFields, submissionRules = [], setSubmis
               </button>
             </div>
             
-            <p className="text-[9px] text-slate-500 font-bold opacity-70">Este campo se MOSTRARÁ solo si se cumplen las siguientes condiciones.</p>
+             <div className="space-y-4">
+              <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Ejecutar Acción:</label>
+              <select 
+                value={activeField.logicAction || "show"}
+                onChange={(e) => onUpdate({ logicAction: e.target.value })}
+                className="w-full bg-slate-900 border border-emerald-500/30 rounded-2xl px-4 py-3 text-[10px] font-black text-emerald-500 uppercase focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              >
+                <option value="show">MOSTRAR campo si...</option>
+                <option value="hide">OCULTAR campo si...</option>
+                <option value="require">REQUERIR campo si...</option>
+                <option value="disable">DESHABILITAR campo si...</option>
+              </select>
+              <p className="text-[9px] text-slate-500 font-bold opacity-70 italic leading-relaxed">
+                {activeField.logicAction === 'require' ? "El campo será opcional por defecto, pero obligatorio si se cumple la condición." : 
+                 activeField.logicAction === 'disable' ? "El campo se bloqueará (solo lectura) si se cumple la condición." :
+                 "Control de flujo dinámico basado en entradas previas."}
+              </p>
+            </div>
 
             {/* AND/OR Toggle */}
             {activeField.logic && activeField.logic.length > 1 && (
@@ -525,6 +545,55 @@ const PropertyPanel = ({ activeField, allFields, submissionRules = [], setSubmis
                    <option value="regex">Patrón Personalizado (Regex)</option>
                  </select>
               </div>
+
+               {/* Advanced Range Validations */}
+               {(activeField.type === "number" || activeField.type === "text") && (
+                 <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-4 duration-500">
+                   <div className="space-y-2">
+                     <label className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Mínimo {activeField.type === 'text' ? '(chars)' : '(valor)'}</label>
+                     <input 
+                       type="number"
+                       value={activeField.validation?.min || ""}
+                       onChange={(e) => onUpdate({ validation: { ...activeField.validation, min: e.target.value } })}
+                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none"
+                       placeholder="Ej: 0"
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <label className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Máximo {activeField.type === 'text' ? '(chars)' : '(valor)'}</label>
+                     <input 
+                       type="number"
+                       value={activeField.validation?.max || ""}
+                       onChange={(e) => onUpdate({ validation: { ...activeField.validation, max: e.target.value } })}
+                       className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none"
+                       placeholder="Ej: 100"
+                     />
+                   </div>
+                 </div>
+               )}
+
+               {activeField.type === "date" && (
+                <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-top-4 duration-500">
+                  <div className="space-y-2">
+                    <label className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Fecha Mínima</label>
+                    <input 
+                      type="date"
+                      value={activeField.validation?.min || ""}
+                      onChange={(e) => onUpdate({ validation: { ...activeField.validation, min: e.target.value } })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Fecha Máxima</label>
+                    <input 
+                      type="date"
+                      value={activeField.validation?.max || ""}
+                      onChange={(e) => onUpdate({ validation: { ...activeField.validation, max: e.target.value } })}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-[10px] text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+               )}
 
               {activeField.validation?.type === "regex" && (
                 <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">

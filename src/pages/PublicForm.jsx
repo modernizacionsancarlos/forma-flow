@@ -30,26 +30,27 @@ import { hexToRgb, hexToHsl } from "../lib/colorUtils";
 
 // --- Sub-components for Form Fields ---
 
-const SignatureField = ({ value, onChange, label, error }) => {
+const SignatureField = ({ value, onChange, label, error, disabled }) => {
   const sigPad = useRef(null);
 
   const clear = () => {
+    if (disabled) return;
     sigPad.current.clear();
     onChange("");
   };
 
   const save = () => {
-    if (sigPad.current.isEmpty()) return;
+    if (disabled || sigPad.current.isEmpty()) return;
     onChange(sigPad.current.getTrimmedCanvas().toDataURL("image/png"));
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
       <div className="flex justify-between items-center">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
-        <button onClick={clear} className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:opacity-70 transition-opacity">Limpiar</button>
+        {!disabled && <button onClick={clear} className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:opacity-70 transition-opacity">Limpiar</button>}
       </div>
-      <div className="bg-white rounded-3xl overflow-hidden border-4 border-slate-900 shadow-inner h-64 relative group/sig">
+      <div className={`bg-white rounded-3xl overflow-hidden border-4 ${disabled ? 'border-slate-800' : 'border-slate-900'} shadow-inner h-64 relative group/sig`}>
         <SignatureCanvas 
           ref={sigPad}
           penColor="#0f172a"
@@ -67,11 +68,12 @@ const SignatureField = ({ value, onChange, label, error }) => {
   );
 };
 
-const FileField = ({ fieldId, onChange, label, error, value }) => {
+const FileField = ({ fieldId, onChange, label, error, value, disabled }) => {
   const [uploading, setUploading] = useState(false);
   const [fileName, setFileName] = useState(null);
 
   const handleFileChange = async (e) => {
+    if (disabled) return;
     const file = e.target.files[0];
     if (!file) return;
 
@@ -92,9 +94,9 @@ const FileField = ({ fieldId, onChange, label, error, value }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${disabled ? 'opacity-60' : ''}`}>
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
-      <div className={`relative border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all ${value ? 'bg-primary/5 border-primary/30' : 'bg-slate-950/50 border-slate-800 hover:border-slate-700/50'}`}>
+      <div className={`relative border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center transition-all ${disabled ? 'bg-slate-900/10 border-slate-800' : value ? 'bg-primary/5 border-primary/30' : 'bg-slate-950/50 border-slate-800 hover:border-slate-700/50'}`}>
          {uploading ? (
            <div className="flex flex-col items-center space-y-4">
              <Loader2 className="text-primary animate-spin" size={32} />
@@ -109,21 +111,23 @@ const FileField = ({ fieldId, onChange, label, error, value }) => {
                 <p className="text-[10px] font-black text-white uppercase tracking-widest">Archivo Adjunto</p>
                 <p className="text-[9px] text-slate-500 font-bold max-w-[200px] truncate">{fileName || 'Documento cargado'}</p>
              </div>
-             <button onClick={() => onChange("")} className="text-[10px] font-black text-rose-500 hover:text-rose-400 transition-colors uppercase tracking-widest flex items-center space-x-2">
-                <Trash2 size={12} />
-                <span>Eliminar</span>
-             </button>
+             {!disabled && (
+               <button onClick={() => onChange("")} className="text-[10px] font-black text-rose-500 hover:text-rose-400 transition-colors uppercase tracking-widest flex items-center space-x-2">
+                  <Trash2 size={12} />
+                  <span>Eliminar</span>
+               </button>
+             )}
            </div>
          ) : (
-           <label className="cursor-pointer flex flex-col items-center space-y-6 w-full group">
-             <div className="p-6 bg-slate-900 border border-slate-800 rounded-[1.5rem] text-slate-500 group-hover:text-emerald-500 group-hover:border-emerald-500/30 transition-all shadow-xl group-hover:scale-110">
+           <label className={`flex flex-col items-center space-y-6 w-full ${disabled ? '' : 'cursor-pointer group'}`}>
+             <div className={`p-6 bg-slate-900 border border-slate-800 rounded-[1.5rem] text-slate-500 transition-all shadow-xl ${!disabled && 'group-hover:text-emerald-500 group-hover:border-emerald-500/30 group-hover:scale-110'}`}>
                 <UploadCloud size={32} />
              </div>
              <div className="text-center">
-                <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 group-hover:text-white transition-colors">Seleccionar Archivo</p>
+                <p className={`text-[11px] font-black text-slate-400 uppercase tracking-widest mb-2 transition-colors ${!disabled && 'group-hover:text-white'}`}>{disabled ? "Carga Deshabilitada" : "Seleccionar Archivo"}</p>
                 <p className="text-[9px] text-slate-600 font-bold italic opacity-60">PDF, PNG o JPG (Máx. 5MB)</p>
              </div>
-             <input type="file" className="hidden" onChange={handleFileChange} />
+             {!disabled && <input type="file" className="hidden" onChange={handleFileChange} />}
            </label>
          )}
       </div>
@@ -132,10 +136,11 @@ const FileField = ({ fieldId, onChange, label, error, value }) => {
   );
 };
 
-const GPSField = ({ value, onChange, label, error }) => {
+const GPSField = ({ value, onChange, label, error, disabled }) => {
   const [locating, setLocating] = useState(false);
 
   const captureGPS = () => {
+    if (disabled) return;
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -150,11 +155,11 @@ const GPSField = ({ value, onChange, label, error }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${disabled ? 'opacity-60' : ''}`}>
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
-      <div className={`p-8 border-2 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all ${value ? 'bg-primary/5 border-primary/30 shadow-lg shadow-primary/5' : 'bg-slate-950/50 border-slate-800'}`}>
+      <div className={`p-8 border-2 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all ${disabled ? 'bg-slate-900/10 border-slate-800' : value ? 'bg-primary/5 border-primary/30 shadow-lg shadow-primary/5' : 'bg-slate-950/50 border-slate-800'}`}>
          <div className="flex items-center space-x-6">
-            <div className={`p-5 rounded-2xl border transition-all ${value ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
+            <div className={`p-5 rounded-2xl border transition-all ${disabled ? 'bg-slate-900 border-slate-800 text-slate-700' : value ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
                <MapPin size={24} className={locating ? "animate-bounce" : ""} />
             </div>
             <div>
@@ -167,7 +172,7 @@ const GPSField = ({ value, onChange, label, error }) => {
          <button 
            type="button"
            onClick={captureGPS}
-           disabled={locating}
+           disabled={locating || disabled}
            className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl disabled:opacity-50"
          >
            {value ? "Recapturar" : "Capturar Ubicación"}
@@ -243,15 +248,15 @@ const PublicFormView = () => {
     fetchForm();
   }, [formId, getFormById]);
 
-  const isFieldVisible = (field) => {
-    if (!field.logic || field.logic.length === 0) return true;
+  const evaluateLogic = (field) => {
+    if (!field.logic || field.logic.length === 0) return null; // No logic defined
     
     const results = field.logic.map(rule => {
       const dependencyValue = formData[rule.fieldId];
       const targetValue = rule.value;
       
-      const depStr = String(dependencyValue || "").toLowerCase();
-      const tgtStr = String(targetValue || "").toLowerCase();
+      const depStr = String(dependencyValue || "").toLowerCase().trim();
+      const tgtStr = String(targetValue || "").toLowerCase().trim();
 
       switch (rule.operator) {
         case "==": return depStr === tgtStr;
@@ -267,6 +272,33 @@ const PublicFormView = () => {
       return results.some(r => r === true);
     }
     return results.every(r => r === true);
+  };
+
+  const isFieldHidden = (field) => {
+    const isConditionMet = evaluateLogic(field);
+    if (isConditionMet === null) return false;
+
+    const action = field.logicAction || "show";
+    if (action === "show") return !isConditionMet;
+    if (action === "hide") return isConditionMet;
+    return false;
+  };
+
+  const isFieldRequired = (field) => {
+    // If hidden, never required
+    if (isFieldHidden(field)) return false;
+    
+    const baseRequired = !!field.required;
+    const isConditionMet = evaluateLogic(field);
+    
+    if (field.logicAction === "require" && isConditionMet) return true;
+    return baseRequired;
+  };
+
+  const isFieldDisabled = (field) => {
+    const isConditionMet = evaluateLogic(field);
+    if (field.logicAction === "disable" && isConditionMet) return true;
+    return !!field.disabled || !!field.isCalculated;
   };
 
   const handleInputChange = (fieldId, value) => {
@@ -333,22 +365,68 @@ const PublicFormView = () => {
     const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
     
     allFields.forEach(field => {
-      if (!isFieldVisible(field)) return;
+      if (isFieldHidden(field)) return;
       
       const value = formData[field.id];
+      const isRequired = isFieldRequired(field);
 
-      // 1. Required Check (Skipped for calculated fields as they are auto-filled)
-      if (field.required && !field.isCalculated && (!value || value === "")) {
+      // 1. Required Check
+      if (isRequired && (!value || value === "")) {
         newErrors[field.id] = "Este campo es obligatorio";
         return;
       }
 
-      // 2. Advanced Validation Check
+      // 2. Advanced Validation Check (Min/Max)
       if (field.validation && value) {
-        const { type, pattern, errorMessage } = field.validation;
+        const { type, pattern, errorMessage, min, max } = field.validation;
         let isValid = true;
         let defaultMsg = "Formato no válido";
 
+        // Number/Length/Date checks
+        if (min !== undefined && min !== "" && min !== null) {
+          if (field.type === "number") {
+             if (Number(value) < Number(min)) {
+               isValid = false;
+               defaultMsg = `El valor mínimo es ${min}`;
+             }
+          } else if (field.type === "date") {
+             if (new Date(value) < new Date(min)) {
+               isValid = false;
+               defaultMsg = `Fecha mínima: ${min}`;
+             }
+          } else {
+             if (String(value).length < Number(min)) {
+               isValid = false;
+               defaultMsg = `Mínimo ${min} caracteres`;
+             }
+          }
+        }
+
+        if (isValid && max !== undefined && max !== "" && max !== null) {
+          if (field.type === "number") {
+             if (Number(value) > Number(max)) {
+               isValid = false;
+               defaultMsg = `El valor máximo es ${max}`;
+             }
+          } else if (field.type === "date") {
+             if (new Date(value) > new Date(max)) {
+               isValid = false;
+               defaultMsg = `Fecha máxima: ${max}`;
+             }
+          } else {
+             if (String(value).length > Number(max)) {
+               isValid = false;
+               defaultMsg = `Máximo ${max} caracteres`;
+             }
+          }
+        }
+
+        if (!isValid) {
+          newErrors[field.id] = errorMessage || defaultMsg;
+          return;
+        }
+
+        // Semantic checks
         switch (type) {
           case "email":
             isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
@@ -358,21 +436,6 @@ const PublicFormView = () => {
             isValid = /^[^\s@]+@(municipio\.gov\.ar|modernizacionsancarlos\.gob\.ar)$/.test(value.toLowerCase());
             defaultMsg = "Debe usar un correo institucional (@municipio.gov.ar)";
             break;
-          case "cuit": {
-            const cleanCuit = String(value).replace(/[-_]/g, "");
-            if (cleanCuit.length !== 11) {
-              isValid = false;
-            } else {
-              const [v1, v2, v3, v4, v5, v6, v7, v8, v9, v10, v11] = cleanCuit.split("").map(Number);
-              const total = (v1 * 5) + (v2 * 4) + (v3 * 3) + (v4 * 2) + (v5 * 7) + (v6 * 6) + (v7 * 5) + (v8 * 4) + (v9 * 3) + (v10 * 2);
-              let res = 11 - (total % 11);
-              if (res === 11) res = 0;
-              if (res === 10) res = 9;
-              isValid = res === v11;
-            }
-            defaultMsg = "CUIT/CUIL no válido (Algoritmo Módulo 11)";
-            break;
-          }
           case "dni":
             isValid = /^\d{7,8}$/.test(value.replace(/\./g, ""));
             defaultMsg = "DNI debe tener entre 7 y 8 dígitos";
@@ -413,7 +476,7 @@ const PublicFormView = () => {
     const filteredData = {};
     const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
     allFields.forEach(f => {
-      if (isFieldVisible(f)) filteredData[f.id] = formData[f.id];
+      if (!isFieldHidden(f)) filteredData[f.id] = formData[f.id];
     });
 
     // --- Automation Engine: Submission Rules ---
@@ -561,40 +624,45 @@ const PublicFormView = () => {
   );
 
   const renderField = (field) => {
-    if (!isFieldVisible(field)) return null;
+    if (isFieldHidden(field)) return null;
     const hasError = !!errors[field.id];
+    const isDisabled = isFieldDisabled(field);
+    const isRequired = isFieldRequired(field);
 
     // Field Content Wrapper
     const renderContent = () => {
       switch (field.type) {
         case "text":
         case "number":
+        case "date":
           return (
             <input 
               type={field.type}
-              placeholder={field.isCalculated ? "Valor calculado..." : (field.placeholder || "Esperando entrada...")}
+              placeholder={isDisabled ? "Campo bloqueado" : (field.placeholder || "Esperando entrada...")}
               value={formData[field.id] || ""}
-              onChange={(e) => !field.isCalculated && handleInputChange(field.id, e.target.value)}
-              readOnly={field.isCalculated}
-              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 ${field.isCalculated ? "opacity-60 border-amber-500/30 text-amber-500 cursor-not-allowed select-none bg-amber-500/5" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+              onChange={(e) => !isDisabled && handleInputChange(field.id, e.target.value)}
+              readOnly={isDisabled}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed select-none bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
             />
           );
         case "textarea":
           return (
             <textarea 
                rows={4}
-               placeholder={field.placeholder || "Escriba aquí..."}
+               placeholder={isDisabled ? "Campo bloqueado" : (field.placeholder || "Escriba aquí...")}
                value={formData[field.id] || ""}
-               onChange={(e) => handleInputChange(field.id, e.target.value)}
-               className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 resize-none ${hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+               onChange={(e) => !isDisabled && handleInputChange(field.id, e.target.value)}
+               readOnly={isDisabled}
+               className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 resize-none ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
             />
           );
         case "select":
           return (
             <select
+              disabled={isDisabled}
               value={formData[field.id] || ""}
-              onChange={(e) => handleInputChange(field.id, e.target.value)}
-              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner appearance-none ${hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+              onChange={(e) => !isDisabled && handleInputChange(field.id, e.target.value)}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner appearance-none ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
             >
               <option value="" disabled className="bg-slate-900">{field.placeholder || "Seleccione una opción"}</option>
               {field.options?.map((opt) => (
@@ -655,19 +723,19 @@ const PublicFormView = () => {
           return (
             <div className="flex items-center space-x-6 p-4">
               <div 
-                onClick={() => handleInputChange(field.id, !formData[field.id])}
-                className={`w-16 h-8 rounded-full transition-all cursor-pointer relative shadow-inner ${formData[field.id] ? "bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]" : "bg-slate-800"}`}
+                onClick={() => !isDisabled && handleInputChange(field.id, !formData[field.id])}
+                className={`w-16 h-8 rounded-full transition-all cursor-pointer relative shadow-inner ${isDisabled ? 'opacity-40 cursor-not-allowed bg-slate-700' : formData[field.id] ? "bg-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]" : "bg-slate-800"}`}
               >
                 <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all shadow-md ${formData[field.id] ? "left-9" : "left-1"}`}></div>
               </div>
-              <span className={`text-[10px] font-black uppercase tracking-widest ${formData[field.id] ? "text-primary" : "text-slate-600"}`}>
+              <span className={`text-[10px] font-black uppercase tracking-widest ${isDisabled ? 'text-slate-700' : formData[field.id] ? "text-primary" : "text-slate-600"}`}>
                  {formData[field.id] ? "Habilitado / Sí" : "Deshabilitado / No"}
               </span>
             </div>
           );
-        case "file": return <FileField fieldId={field.id} value={formData[field.id]} label={field.label} onChange={(v) => handleInputChange(field.id, v)} error={errors[field.id]} />;
-        case "signature": return <SignatureField value={formData[field.id]} label={field.label} onChange={(v) => handleInputChange(field.id, v)} error={errors[field.id]} />;
-        case "gps": return <GPSField value={formData[field.id]} label={field.label} onChange={(v) => handleInputChange(field.id, v)} error={errors[field.id]} />;
+        case "file": return <FileField fieldId={field.id} value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
+        case "signature": return <SignatureField value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
+        case "gps": return <GPSField value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
         default: return <div className="text-rose-500 font-black italic uppercase text-[10px]">Tipo de campo incompleto: {field.type}</div>;
       }
     };
@@ -684,7 +752,7 @@ const PublicFormView = () => {
         <label className="text-[10px] font-black text-slate-400 flex items-center justify-between uppercase tracking-[0.2em] mb-2 px-2">
            <div className="flex items-center space-x-2">
              <span>{field.label}</span>
-             {field.required && <span className="text-red-500 text-lg font-black">*</span>}
+             {isRequired && <span className="text-red-500 text-lg font-black">*</span>}
            </div>
         </label>
         {renderContent()}
@@ -717,7 +785,7 @@ const PublicFormView = () => {
         <form onSubmit={handleSubmit} className="space-y-28">
            {(formSchema.sections || []).length > 0 ? (
              formSchema.sections.map((section) => {
-                const visibleFields = (section.fields || []).filter(isFieldVisible);
+                const visibleFields = (section.fields || []).filter(f => !isFieldHidden(f));
                 if (visibleFields.length === 0) return null;
                 return (
                   <section key={section.id} className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">

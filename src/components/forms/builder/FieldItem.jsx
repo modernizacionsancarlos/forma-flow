@@ -1,3 +1,4 @@
+import { GripVertical, Copy, Trash2, Zap, ShieldAlert, Calculator } from "lucide-react";
 import { FIELD_TYPES } from "../../../constants/fieldTypes";
 
 const FieldItem = ({ 
@@ -12,6 +13,10 @@ const FieldItem = ({
   const { innerRef, draggableProps, dragHandleProps } = provided;
   const fieldDef = FIELD_TYPES.find(t => t.id === field.type) || FIELD_TYPES[1];
   const Icon = fieldDef.icon;
+
+  const hasLogic = field.logic && field.logic.length > 0;
+  const hasValidation = field.validation && (field.validation.type || field.validation.pattern);
+  const isCalculated = field.isCalculated && field.formula;
 
   return (
     <div
@@ -43,8 +48,36 @@ const FieldItem = ({
                 <Icon size={16} className={fieldDef.color} />
               </div>
               <div className="flex flex-col">
-                <label className="text-sm font-black text-white tracking-tight uppercase italic flex items-center">
+                <label className="text-sm font-black text-white tracking-tight uppercase italic flex items-center group/label">
                   {field.label} {field.required && <span className="text-red-500 ml-1.5">*</span>}
+                  
+                  {/* Indicators */}
+                  <div className="flex items-center ml-4 space-x-2 opacity-60 group-hover/label:opacity-100 transition-opacity">
+                    {hasLogic && (
+                      <div className="flex items-center space-x-1 px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md text-emerald-500 shadow-lg shadow-emerald-500/5 antialiased" title={`Lógica: ${field.logicAction || 'show'}`}>
+                        <Zap size={10} fill="currentColor" />
+                        <span className="text-[7px] font-black uppercase">
+                          {field.logicAction === 'hide' ? 'Ocultar' : 
+                           field.logicAction === 'require' ? 'Requerir' :
+                           field.logicAction === 'disable' ? 'Bloquear' : 'Mostrar'}
+                        </span>
+                      </div>
+                    )}
+                    {hasValidation && (
+                      <div className="flex items-center space-x-1 px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/20 rounded-md text-rose-500 shadow-lg shadow-rose-500/5 antialiased" title="Validación Avanzada">
+                        <ShieldAlert size={10} />
+                        {(field.validation?.min || field.validation?.max) && (
+                          <span className="text-[7px] font-black uppercase">Rango</span>
+                        )}
+                      </div>
+                    )}
+                    {isCalculated && (
+                      <div className="flex items-center space-x-1 px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-md text-amber-500 shadow-lg shadow-amber-500/5 antialiased" title="Campo Calculado">
+                        <Calculator size={10} />
+                        <span className="text-[7px] font-black uppercase">Calc</span>
+                      </div>
+                    )}
+                  </div>
                 </label>
                 <span className="text-[9px] text-slate-600 font-bold tracking-widest uppercase">ID: {field.id}</span>
               </div>
