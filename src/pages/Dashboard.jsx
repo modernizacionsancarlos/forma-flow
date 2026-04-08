@@ -32,18 +32,17 @@ import Guard from "../components/auth/Guard";
 import { PERMISSIONS } from "../lib/permissions";
 
 const StatCard = ({ title, value, subtext, icon, color }) => (
-  <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-3xl backdrop-blur-md relative overflow-hidden group hover:border-slate-700 transition-all duration-300">
-    <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-5 group-hover:opacity-10 transition-opacity bg-${color === 'amber' ? 'yellow' : color}-500 blur-3xl`} />
+  <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl relative overflow-hidden group hover:border-slate-700 transition-all duration-300">
+    <div className={`absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 rounded-full opacity-5 group-hover:opacity-10 transition-opacity bg-${color === 'amber' ? 'yellowLine' : color}-500 blur-3xl`} />
     <div className="flex justify-between items-start">
       <div>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{title}</p>
-        <h3 className="text-3xl font-black text-white group-hover:scale-105 transition-transform duration-300">
+        <p className="text-sm font-medium text-slate-400 mb-1">{title}</p>
+        <h3 className="text-3xl font-bold text-white group-hover:scale-105 transition-transform duration-300 origin-left">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </h3>
-        <p className="text-[10px] text-slate-400 mt-2 font-medium italic">{subtext}</p>
       </div>
-      <div className={`p-3 rounded-2xl bg-slate-950 border border-slate-800 text-${color}-500 shadow-xl group-hover:shadow-${color}-500/10 transition-all`}>
-        {React.createElement(icon, { size: 20 })}
+      <div className={`p-3 rounded-full bg-${color}-500/10 text-${color}-500 transition-all`}>
+        {React.createElement(icon, { size: 24 })}
       </div>
     </div>
   </div>
@@ -85,7 +84,7 @@ const Dashboard = () => {
   const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="p-8 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
           <div className="flex items-center space-x-2 mb-2">
@@ -168,7 +167,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Chart Area */}
-        <div className="lg:col-span-2 bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md flex flex-col min-h-[450px]">
+        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col min-h-[450px]">
           <div className="flex justify-between items-center mb-8">
              <div>
                <h3 className="text-lg font-bold text-white uppercase tracking-widest flex items-center space-x-2">
@@ -233,7 +232,7 @@ const Dashboard = () => {
         {/* Real-time Feed & Status Distribution */}
         <div className="space-y-8">
             {/* Status Pie Chart */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2 mb-6">
                  <Zap size={16} className="text-amber-500" />
                  <span>Estado de Gestiones</span>
@@ -272,7 +271,7 @@ const Dashboard = () => {
             </div>
 
             {/* Top Forms Ranking */}
-            <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md">
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8">
                <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2 mb-6">
                  <TrendingUp size={16} className="text-emerald-500" />
                  <span>Formularios más Activos</span>
@@ -303,7 +302,7 @@ const Dashboard = () => {
             </div>
 
            {/* Event Log */}
-           <div className="bg-slate-900/50 border border-slate-800 rounded-[2.5rem] p-8 backdrop-blur-md flex flex-col h-[350px]">
+           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-8 flex flex-col h-[350px]">
               <div className="mb-6">
                 <h3 className="text-sm font-bold text-white uppercase tracking-widest flex items-center space-x-2">
                   <Activity size={18} className="text-blue-500" />

@@ -39,18 +39,17 @@ const SidebarLink = ({ to, icon, children, activeColor, onClick }) => {
       onClick={onClick}
       className={`flex items-center space-x-3 px-6 py-3 transition-colors duration-200 ${
         isActive
-          ? "bg-[#0b1b1b] border-l-2"
-          : "text-slate-400 hover:bg-[#0b1b1b]/50 hover:text-slate-200 border-l-2 border-transparent"
+          ? "bg-slate-800 text-white border-l-2"
+          : "text-slate-400 hover:bg-slate-800 hover:text-white border-l-2 border-transparent"
       }`}
       style={{ 
-        color: isActive ? activeColor : undefined,
         borderLeftColor: isActive ? activeColor : 'transparent'
       }}
     >
       {React.createElement(icon, { 
         size: 18, 
         strokeWidth: isActive ? 2.5 : 2, 
-        className: !isActive ? "text-slate-500" : "",
+        className: isActive ? "" : "text-slate-500 group-hover:text-white transition-colors",
         style: isActive ? { color: activeColor } : {}
       })}
       <span className="text-sm font-medium">{children}</span>
@@ -131,11 +130,11 @@ const MainLayout = ({ children }) => {
   );
 
   return (
-    <div className="flex h-screen bg-[#060b13] text-white font-inter overflow-hidden">
+    <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden">
       <PWAInstallPrompt />
       
       {/* Sidebar - Desktop */}
-      <aside className="hidden lg:flex w-64 bg-[#0a101b] border-r border-slate-800/50 flex-col shadow-2xl relative z-20">
+      <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
         <div className="p-6">
           <div className="flex items-center space-x-3 pb-8 border-b border-slate-800/50">
             <div 
@@ -157,7 +156,7 @@ const MainLayout = ({ children }) => {
                <span className="text-base font-bold text-white tracking-tight leading-none truncate w-32">
                  {branding.name || "FormFlow"}
                </span>
-               <span className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider font-semibold">Dashboard</span>
+               <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">SaaS Multi-Tenant</span>
             </div>
           </div>
         </div>
@@ -180,7 +179,7 @@ const MainLayout = ({ children }) => {
               initial="closed"
               animate="open"
               exit="closed"
-              className="fixed inset-y-0 left-0 w-72 bg-[#0a101b] z-50 lg:hidden flex flex-col shadow-2xl overflow-hidden"
+              className="fixed inset-y-0 left-0 w-[280px] bg-slate-900 z-50 lg:hidden flex flex-col shadow-2xl overflow-hidden"
             >
               <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
                 <div className="flex items-center space-x-3">
@@ -200,11 +199,11 @@ const MainLayout = ({ children }) => {
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-[#060b13]">
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-950">
         <NotificationPrompt />
         
         {/* Header Bar */}
-        <header className="h-20 border-b border-slate-800/50 bg-[#0a101b]/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 relative z-10 shadow-2xl">
+        <header className="h-[80px] border-b border-slate-800 bg-slate-900/80 backdrop-blur-xl flex items-center justify-between px-4 md:px-8 relative z-10 shadow-2xl">
           <div className="flex items-center gap-4">
             <button 
               onClick={toggleSidebar}
@@ -212,20 +211,23 @@ const MainLayout = ({ children }) => {
             >
               <Menu size={24} />
             </button>
-            <h2 className="text-xs md:text-sm font-black text-slate-400 uppercase tracking-widest transition-all hover:text-white cursor-default truncate max-w-[150px] md:max-w-none">
-              FormFlow <span className="text-slate-600 px-1 md:px-2">/</span> {location.pathname === '/' ? 'Dashboard' : location.pathname.split('/')[1]}
+            <h2 className="text-lg md:text-xl font-medium text-slate-50 transition-all cursor-default truncate max-w-[200px] md:max-w-none">
+              Buenos días, <span className="font-bold">{claims.email?.split('@')[0]}</span>
             </h2>
           </div>
           
           <div className="flex items-center space-x-3 md:space-x-6">
+            <Link to="/forms/new" className="hidden md:flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+              <span>Nuevo formulario</span>
+            </Link>
             <NotificationCenter primaryColor={branding.primary_color} />
             
-            <div className="h-10 w-[1px] bg-white/5 hidden md:block"></div>
+            <div className="h-10 w-[1px] bg-slate-800 hidden md:block"></div>
             
             <div className="flex items-center space-x-2 md:space-x-4">
               <div className="flex flex-col items-end hidden sm:flex">
-                <span className="text-xs font-black text-white uppercase tracking-wider">{claims.email?.split('@')[0]}</span>
-                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Admin</span>
+                <span className="text-sm font-medium text-white">{claims.email?.split('@')[0]}</span>
+                <span className="text-xs text-slate-400">Admin</span>
               </div>
               <div 
                 className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center font-black text-xs text-white shadow-xl"
@@ -237,7 +239,7 @@ const MainLayout = ({ children }) => {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto relative p-0 w-full bg-[#060b13]">
+        <main className="flex-1 overflow-y-auto relative p-0 w-full bg-slate-950">
           <AnimatedPage key={location.pathname}>
             {children}
           </AnimatedPage>
