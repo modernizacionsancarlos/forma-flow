@@ -1,26 +1,24 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
     FileText, Users, Building2, CheckCircle, TrendingUp, 
     Plus, ArrowUpRight, Clock, AlertCircle, BarChart3, 
-    Shield, Download, GitBranch, Activity, ChevronRight 
+    Shield, GitBranch, Activity, ChevronRight 
 } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { useGlobalStats, useRecentActivity } from "@/api/useGlobalStats";
 import { useTenants } from "@/api/useTenants";
 
-const STATUS_CONFIG = {
-    draft: { label: "Borrador", bg: "bg-slate-700", text: "text-slate-300" },
-    submitted: { label: "Enviado", bg: "bg-blue-900/60", text: "text-blue-300" },
-    in_review: { label: "En revisión", bg: "bg-amber-900/60", text: "text-amber-300" },
-    approved: { label: "Aprobado", bg: "bg-emerald-900/60", text: "text-emerald-300" },
-    rejected: { label: "Rechazado", bg: "bg-red-900/60", text: "text-red-300" },
-    closed: { label: "Cerrado", bg: "bg-slate-700", text: "text-slate-400" },
-    // aliases
-    Aprobado: { label: "Aprobado", bg: "bg-emerald-900/60", text: "text-emerald-300" },
-    Rechazado: { label: "Rechazado", bg: "bg-red-900/60", text: "text-red-300" },
-    pendiente: { label: "Pendiente", bg: "bg-amber-900/60", text: "text-amber-300" }
-};
+// const STATUS_CONFIG = {
+//     draft: { label: "Borrador", bg: "bg-slate-700", text: "text-slate-300" },
+//     submitted: { label: "Enviado", bg: "bg-blue-900/60", text: "text-blue-300" },
+//     in_review: { label: "En revisión", bg: "bg-amber-900/60", text: "text-amber-300" },
+//     approved: { label: "Aprobado", bg: "bg-emerald-900/60", text: "text-emerald-300" },
+//     rejected: { label: "Rechazado", bg: "bg-red-900/60", text: "text-red-300" },
+//     closed: { label: "Cerrado", bg: "bg-slate-700", text: "text-slate-400" },
+//     Aprobado: { label: "Aprobado", bg: "bg-emerald-900/60", text: "text-emerald-300" },
+//     Rechazado: { label: "Rechazado", bg: "bg-red-900/60", text: "text-red-300" },
+//     pendiente: { label: "Pendiente", bg: "bg-amber-900/60", text: "text-amber-300" }
+// };
 
 export default function Dashboard() {
     const { user, currentProfile } = useAuth();
@@ -202,17 +200,20 @@ export default function Dashboard() {
                                     { label: "Plantillas Form", val: formsCount, icon: FileText, color: "text-blue-400" },
                                     { label: "Organizaciones", val: tenantsCount, icon: Building2, color: "text-emerald-400" },
                                     { label: "Trámites totales", val: submissionsCount, icon: CheckCircle, color: "text-violet-400" },
-                                ].map(({ label, val, icon: Icon, color }) => (
-                                    <div key={label} className="flex items-center justify-between group">
-                                        <div className="flex items-center gap-2.5">
-                                            <div className={`p-1.5 rounded-md bg-slate-800 ${color} group-hover:scale-110 transition-transform`}>
-                                                <Icon size={14} />
+                                ].map((item) => {
+                                    const Icon = item.icon;
+                                    return (
+                                        <div key={item.label} className="flex items-center justify-between group">
+                                            <div className="flex items-center gap-2.5">
+                                                <div className={`p-1.5 rounded-md bg-slate-800 ${item.color} group-hover:scale-110 transition-transform`}>
+                                                    <Icon size={14} />
+                                                </div>
+                                                <span className="text-sm text-slate-300 font-medium">{item.label}</span>
                                             </div>
-                                            <span className="text-sm text-slate-300 font-medium">{label}</span>
+                                            <span className="text-base font-bold text-white">{item.val}</span>
                                         </div>
-                                        <span className="text-base font-bold text-white">{val}</span>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -226,13 +227,16 @@ export default function Dashboard() {
                                     { label: "Usuarios", page: "usuarios", icon: Users, color: "bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border border-amber-500/10 hover:border-amber-500/30" },
                                     { label: "Auditoría", page: "auditoria", icon: Shield, color: "bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/10 hover:border-rose-500/30" },
                                     { label: "Ajustes", page: "configuracion", icon: GitBranch, color: "bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 border border-cyan-500/10 hover:border-cyan-500/30" },
-                                ].map(({ label, page, icon: Icon, color }) => (
-                                    <Link key={page} to={`/${page}`}
-                                        className={`flex flex-col items-center justify-center gap-2 p-3.5 rounded-xl transition-all text-center group shadow-sm ${color}`}>
-                                        <Icon size={20} className="group-hover:scale-110 transition-transform" />
-                                        <span className="text-xs font-bold leading-tight tracking-wide">{label}</span>
-                                    </Link>
-                                ))}
+                                ].map((item) => {
+                                    const Icon = item.icon;
+                                    return (
+                                        <Link key={item.page} to={`/${item.page}`}
+                                            className={`flex flex-col items-center justify-center gap-2 p-3.5 rounded-xl transition-all text-center group shadow-sm ${item.color}`}>
+                                            <Icon size={20} className="group-hover:scale-110 transition-transform" />
+                                            <span className="text-xs font-bold leading-tight tracking-wide">{item.label}</span>
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         </div>
                         )}
