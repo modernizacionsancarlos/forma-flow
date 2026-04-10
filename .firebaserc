@@ -2,6 +2,14 @@
   "projects": {
     "default": "formflow-central-cdbaa"
   },
-  "targets": {},
+  "targets": {
+    "formflow-central-cdbaa": {
+      "hosting": {
+        "production": [
+          "formaflow-sancarlos"
+        ]
+      }
+    }
+  },
   "etags": {}
 }

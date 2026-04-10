@@ -15,6 +15,21 @@ const PageLoader = () => (
 );
 
 // Lazy Loaded Pages
+const Login = lazy(() => import('./pages/Login'))
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const FormsList = lazy(() => import('./pages/FormsList'))
+const FormBuilder = lazy(() => import('./pages/FormBuilder'))
+const Submissions = lazy(() => import('./pages/Submissions'))
+const PublicForm = lazy(() => import('./pages/PublicForm'))
+const Admin = lazy(() => import('./pages/Admin'))
+const Empresas = lazy(() => import('./pages/Empresas'))
+const Areas = lazy(() => import('./pages/Areas'))
+const Usuarios = lazy(() => import('./pages/Usuarios'))
+const Workflows = lazy(() => import('./pages/Workflows'))
+const Exportaciones = lazy(() => import('./pages/Exportaciones'))
+const Auditoria = lazy(() => import('./pages/Auditoria'))
+const Sincronizacion = lazy(() => import('./pages/Sincronizacion'))
+const Configuracion = lazy(() => import('./pages/Configuracion'))
 const CitizenPortal = lazy(() => import('./pages/CitizenPortal'))
 const NotFound = lazy(() => import('./pages/errors/NotFound'))
 const ServerError = lazy(() => import('./pages/errors/ServerError'))
