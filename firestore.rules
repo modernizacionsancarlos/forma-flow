@@ -7,47 +7,59 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Función para obtener el tenant_id del usuario desde su token personalizado
+    // Función para verificar si es un super administrador
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'super_admin' || 
+        request.auth.token.email == 'modernizacionsancarlos@gmail.com'
+      );
+    }
+
+    // Función para obtener el tenant_id del usuario
     function getUserTenantId() {
       return request.auth.token.tenant_id;
     }
 
     // Función para verificar si el usuario pertenece al tenant del documento
     function isSameTenant(resourceData) {
-      return isAuthenticated() && getUserTenantId() == resourceData.tenant_id;
+      return isSuperAdmin() || (isAuthenticated() && getUserTenantId() == resourceData.tenant_id);
     }
 
     // Reglas para la colección de Trámites (Submissions)
-    match /submissions/{submissionId} {
+    match /Submissions/{submissionId} {
       allow read: if isSameTenant(resource.data);
-      allow create: if isAuthenticated() && request.resource.data.tenant_id == getUserTenantId();
+      allow create: if isAuthenticated(); // Usuarios públicos pueden crear si tienen el link
       allow update, delete: if isSameTenant(resource.data);
     }
 
-    // Reglas para la colección de Formularios (Forms)
-    match /forms/{formId} {
-      // Los formularios públicos se pueden leer sin auth si están publicados
-      allow read: if resource.data.publico == true || isSameTenant(resource.data);
-      allow create: if isAuthenticated() && request.resource.data.tenant_id == getUserTenantId();
+    // Reglas para la colección de Formularios (FormSchemas)
+    match /FormSchemas/{formId} {
+      allow read: if resource.data.is_public == true || isSameTenant(resource.data);
+      allow create: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() != null);
       allow update, delete: if isSameTenant(resource.data);
     }
 
-    // Reglas para la configuración del Tenant (Branding, etc)
+    // Reglas para la configuración del Tenant (tenants)
     match /tenants/{tenantId} {
-      allow read: if isAuthenticated() && (getUserTenantId() == tenantId || tenantId == 'public');
-      allow write: if isAuthenticated() && getUserTenantId() == tenantId && request.auth.token.role == 'admin';
+      allow read: if isAuthenticated() && (isSuperAdmin() || getUserTenantId() == tenantId);
+      allow write: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId && request.auth.token.role == 'admin');
     }
 
-    // Reglas para Notificaciones
-    match /Notifications/{notificationId} {
-      allow read: if isSameTenant(resource.data);
-      allow create, update: if isAuthenticated(); // El sistema o workflows crean notificaciones
-      allow delete: if isSameTenant(resource.data);
+    // Reglas para Perfiles de Usuario
+    match /userProfiles/{email} {
+      allow read, write: if isSuperAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email.lower());
     }
 
-    // Bloqueo por defecto para cualquier otra colección
+    // Reglas para Auditoría (AuditLogs)
+    match /AuditLogs/{logId} {
+      allow read: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == resource.data.tenant_id);
+      allow create: if isAuthenticated();
+      allow update, delete: if isSuperAdmin();
+    }
+
+    // Bloqueo por defecto para seguridad máxima
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if isSuperAdmin();
     }
   }
 }
