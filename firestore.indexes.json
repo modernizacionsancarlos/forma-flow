@@ -21,7 +21,15 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "tenant_id", "order": "ASCENDING" },
-        { "fieldPath": "timestamp", "order": "DESCENDING" }
+        { "fieldPath": "created_time", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "FormSchemas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenant_id", "order": "ASCENDING" },
+        { "fieldPath": "created_date", "order": "DESCENDING" }
       ]
     }
   ],

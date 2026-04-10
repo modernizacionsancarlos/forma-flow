@@ -503,18 +503,8 @@ const PublicFormView = () => {
         const depField = allFields.find(f => f.id === rule.fieldId);
         if (depField && isFieldHidden(depField)) return; // Ignorar si el disparador está oculto
 
-        const val = formData[rule.fieldId];
-        const depStr = String(val || "").toLowerCase();
-        const tgtStr = String(rule.value || "").toLowerCase();
-        let match = false;
-
-        switch (rule.operator) {
-          case "==": match = depStr === tgtStr; break;
-          case "!=": match = depStr !== tgtStr; break;
-          case "greater": match = Number(val || 0) > Number(rule.value || 0); break;
-          case "less": match = Number(val || 0) < Number(rule.value || 0); break;
-          default: break;
-        }
+        // Usamos la misma lógica de comparación que los campos para consistencia
+        const match = evaluateLogic(rule, formData);
 
         if (match) {
           finalStatus = rule.action.value;

@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, getDoc, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
+import { cleanObject } from "../lib/utils";
+
 
 export const useForms = () => {
     const { claims } = useAuth();
@@ -29,19 +31,22 @@ export const useForms = () => {
         mutationFn: async (formData) => {
             if (formData.id) {
                 const docRef = doc(db, "FormSchemas", formData.id);
-                await updateDoc(docRef, {
+                const payload = cleanObject({
                     ...formData,
                     updated_date: Timestamp.now(),
                 });
+                await updateDoc(docRef, payload);
                 return formData;
             } else {
-                const docRef = await addDoc(collection(db, "FormSchemas"), {
+                const payload = cleanObject({
                     ...formData,
                     tenant_id: claims.tenantId || "global",
                     created_date: Timestamp.now(),
                     updated_date: Timestamp.now(),
                     status: "active",
                 });
+                const docRef = await addDoc(collection(db, "FormSchemas"), payload);
+
                 return { id: docRef.id, ...formData };
             }
         },

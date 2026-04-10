@@ -23,7 +23,12 @@ export const useGlobalStats = (tenantId = null) => {
             const usersSnap = await getDocs(usersQuery);
             
             // Get all forms to map names
-            const formsSnap = await getDocs(collection(db, "FormSchemas"));
+            let formsQuery = collection(db, "FormSchemas");
+            if (tenantId) {
+                formsQuery = query(formsQuery, where("tenant_id", "==", tenantId));
+            }
+            const formsSnap = await getDocs(formsQuery);
+
             const formsMap = {};
             formsSnap.docs.forEach(d => {
                 formsMap[d.id] = d.data().title || "Untitled Form";
@@ -123,6 +128,7 @@ export const useGlobalStats = (tenantId = null) => {
                 totalSubmissions: submSnap.size,
                 totalTenants: totalTenants,
                 totalUsers: usersSnap.size,
+                totalSchemas: formsSnap.size,
                 recentSubmissionsCount: last7DaysSubmissions.length,
                 chartData: finalChartData,
                 avgResolutionTime: avgResolutionTime.toFixed(1),

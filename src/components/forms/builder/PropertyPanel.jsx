@@ -455,7 +455,12 @@ const PropertyPanel = ({ activeField, allFields, submissionRules = [], setSubmis
 
                       <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-2">
-                          <label className="text-[8px] font-black text-slate-600 uppercase">Es...</label>
+                          <label className="text-[8px] font-black text-slate-600 uppercase flex items-center justify-between">
+                            <span>Es...</span>
+                            {rule.operator === 'contains' && (
+                              <span className="text-[6px] text-emerald-500 animate-pulse">Útil para Multi-select</span>
+                            )}
+                          </label>
                           <select 
                             value={rule.operator}
                             onChange={(e) => updateLogicRule(rule.id, { operator: e.target.value })}
@@ -477,7 +482,7 @@ const PropertyPanel = ({ activeField, allFields, submissionRules = [], setSubmis
                           </select>
                         </div>
                         <div className="space-y-2">
-                          <label className="text-[8px] font-black text-slate-600 uppercase">Valor</label>
+                          <label className="text-[8px] font-black text-slate-600 uppercase">Valor de Referencia</label>
                           
                           {/* DYNAMIC VALUE INPUT */}
                           {targetField?.type === "boolean" ? (

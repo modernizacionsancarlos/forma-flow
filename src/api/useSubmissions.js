@@ -4,7 +4,9 @@ import { db, storage as firebaseStorage } from "../lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "../lib/AuthContext";
 import { toast } from "react-hot-toast";
+import { cleanObject } from "../lib/utils";
 import { getOfflineFiles, removeOfflineFile } from "../lib/offlineFiles";
+
 
 export const useSubmissions = () => {
   const { user, claims } = useAuth();
@@ -40,12 +42,14 @@ export const useSubmissions = () => {
 
     if (navigator.onLine) {
       try {
-        const docRef = await addDoc(collection(db, "Submissions"), {
+        const payload = cleanObject({
           ...submission,
           created_date: Timestamp.now(),
           history: submission.history.map(h => ({ ...h, timestamp: Timestamp.fromMillis(h.timestamp) }))
         });
+        const docRef = await addDoc(collection(db, "Submissions"), payload);
         return { success: true, synced: true, id: docRef.id };
+
       } catch (error) {
         console.error("Error direct submit:", error);
         addToQueue(submission);
@@ -110,7 +114,8 @@ export const useSubmissions = () => {
           }
         }
 
-        await addDoc(collection(db, "Submissions"), {
+
+        const payload = cleanObject({
           ...firebaseData,
           data: processedData,
           created_date: Timestamp.fromMillis(item.created_date),
@@ -120,6 +125,9 @@ export const useSubmissions = () => {
             timestamp: typeof h.timestamp === 'number' ? Timestamp.fromMillis(h.timestamp) : h.timestamp 
           }))
         });
+
+        await addDoc(collection(db, "Submissions"), payload);
+
         successes.push(item);
       } catch (error) {
         console.error("Sync failed for item:", item.id, error);

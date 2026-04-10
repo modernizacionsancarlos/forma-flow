@@ -169,15 +169,17 @@ const FormBuilder = () => {
     setSaveStatus("saving");
     try {
       if (saveForm) {
-        await saveForm.mutateAsync({
-           id: formId || undefined,
-           title,
-           description,
-           sections, // Saving sections array directly
-           submissionRules,
-           is_public: isPublic,
-           status: acceptsResponses ? "active" : "draft"
-        });
+        const payload = {
+          title,
+          description,
+          sections,
+          submissionRules,
+          is_public: isPublic,
+          status: acceptsResponses ? "active" : "draft"
+        };
+        if (formId) payload.id = formId;
+
+        await saveForm.mutateAsync(payload);
       }
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);

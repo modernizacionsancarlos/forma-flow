@@ -25,7 +25,7 @@ export default function Dashboard() {
     
     // Determine which tenantId to use for stats
     const isSuperAdmin = currentProfile?.role === 'super_admin';
-    const effectiveTenantId = currentProfile?.tenantId || null;
+    const effectiveTenantId = isSuperAdmin ? null : (currentProfile?.tenantId || null);
 
     const { data: stats, isLoading: loadingStats } = useGlobalStats(effectiveTenantId);
     const { data: activityLogs, isLoading: loadingActivity } = useRecentActivity(effectiveTenantId);
@@ -44,10 +44,11 @@ export default function Dashboard() {
 
     // Default fallbacks in case stats are null
     const usersCount = stats?.totalUsers || 0;
-    const formsCount = stats?.submissionsPerForm?.length || 0; 
+    const formsCount = stats?.totalSchemas || 0; 
     const tenantsCount = stats?.totalTenants || tenants.length;
     const submissionsCount = stats?.totalSubmissions || 0;
     const activeTenants = tenants.filter(t => t.status === "active").length;
+
     
     const logs = activityLogs || [];
 
