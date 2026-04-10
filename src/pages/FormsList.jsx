@@ -76,7 +76,9 @@ const FormsList = () => {
                     <p className="text-xs text-slate-500 font-mono mb-6 line-clamp-1 flex-1">{form.description || 'Sin descripción detallada.'}</p>
                     
                     <div className="flex justify-between items-center pt-4 border-t border-white/5">
-                       <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{form.fields?.length || 0} Campos</p>
+                       <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+                          {form.sections?.reduce((acc, s) => acc + (s.fields?.length || 0), 0) || form.fields?.length || 0} Campos
+                       </p>
                        <Link to={`/forms/new?id=${form.id}`} className="text-slate-400 hover:text-emerald-500 transition-colors">
                           <ArrowRight size={18} />
                        </Link>

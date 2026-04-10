@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { SplitSquareHorizontal } from "lucide-react";
+import { SplitSquareHorizontal, Plus } from "lucide-react";
 import { useForms } from "../api/useForms";
 
 // Modular Components
 import BuilderHeader from "../components/forms/builder/BuilderHeader";
 import FieldPalette from "../components/forms/builder/FieldPalette";
 import FieldItem from "../components/forms/builder/FieldItem";
+import SectionItem from "../components/forms/builder/SectionItem";
 import PropertyPanel from "../components/forms/builder/PropertyPanel";
 
 const FormBuilder = () => {
@@ -17,7 +18,10 @@ const FormBuilder = () => {
   
   const [title, setTitle] = useState("Nuevo Formulario");
   const [description, setDescription] = useState("");
-  const [fields, setFields] = useState([]);
+  // Change state to sections
+  const [sections, setSections] = useState([
+    { id: "sec_default", title: "Sección Principal", description: "Configura los campos de esta sección", fields: [] }
+  ]);
   const [activeField, setActiveField] = useState(null);
   
   const [acceptsResponses, setAcceptsResponses] = useState(true);
@@ -33,7 +37,14 @@ const FormBuilder = () => {
          if (schema) {
             setTitle(schema.title || "Sin título");
             setDescription(schema.description || "");
-            setFields(schema.sections?.[0]?.fields || schema.fields || []);
+            
+            // Handle legacy data or sectioned data
+            if (schema.sections && schema.sections.length > 0) {
+              setSections(schema.sections);
+            } else if (schema.fields) {
+              setSections([{ id: "sec_default", title: "Sección Principal", description: "", fields: schema.fields }]);
+            }
+
             setAcceptsResponses(schema.status === "active" || schema.status === "published");
             setIsPublic(!!schema.is_public);
             setSubmissionRules(schema.submissionRules || []);
@@ -42,41 +53,90 @@ const FormBuilder = () => {
       };
       loadForm();
     }
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formId]);
 
   const onDragEnd = (result) => {
-    if (!result.destination) return;
-    
-    if (result.source.droppableId === "fields-canvas" && result.destination.droppableId === "fields-canvas") {
-      const items = Array.from(fields);
-      const [reorderedItem] = items.splice(result.source.index, 1);
-      items.splice(result.destination.index, 0, reorderedItem);
-      setFields(items);
+    const { destination, source, draggableId, type } = result;
+    if (!destination) return;
+
+    // Movement Case 1: Reordering Sections
+    if (type === "section") {
+      const newSections = Array.from(sections);
+      const [reorderedSection] = newSections.splice(source.index, 1);
+      newSections.splice(destination.index, 0, reorderedSection);
+      setSections(newSections);
+      return;
+    }
+
+    // Movement Case 2: Reordering/Moving Fields
+    if (type === "field") {
+      const sourceSectionIndex = sections.findIndex(s => s.id === source.droppableId);
+      const destSectionIndex = sections.findIndex(s => s.id === destination.droppableId);
+      
+      if (sourceSectionIndex === -1 || destSectionIndex === -1) return;
+
+      const newSections = Array.from(sections);
+      const sourceFields = Array.from(newSections[sourceSectionIndex].fields);
+      const [movedField] = sourceFields.splice(source.index, 1);
+
+      if (sourceSectionIndex === destSectionIndex) {
+        // Same section
+        sourceFields.splice(destination.index, 0, movedField);
+        newSections[sourceSectionIndex].fields = sourceFields;
+      } else {
+        // Cross section
+        const destFields = Array.from(newSections[destSectionIndex].fields);
+        destFields.splice(destination.index, 0, movedField);
+        newSections[sourceSectionIndex].fields = sourceFields;
+        newSections[destSectionIndex].fields = destFields;
+      }
+
+      setSections(newSections);
     }
   };
 
-  const addField = (type) => {
+  const addSection = () => {
+    const newSection = {
+      id: `sec_${crypto.randomUUID().split('-')[0]}`,
+      title: "Nueva Sección",
+      description: "Descripción breve de la sección",
+      fields: []
+    };
+    setSections([...sections, newSection]);
+  };
+
+  const updateSection = (id, updates) => {
+    setSections(sections.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const removeSection = (id) => {
+    if (sections.length <= 1) return; // Keep at least one section
+    setSections(sections.filter(s => s.id !== id));
+  };
+
+  const addField = (type, targetSectionId = null) => {
     const newField = {
       id: `field_${crypto.randomUUID().split('-')[0]}`,
       type: type.id,
       label: `Nuevo campo ${type.label}`,
       required: false,
       validation: null,
-      logic: [] // Phase 2: Visibility rules
+      logic: []
     };
-    setFields([...fields, newField]);
+
+    const targetId = targetSectionId || sections[0].id;
+    setSections(sections.map(s => s.id === targetId ? { ...s, fields: [...s.fields, newField] } : s));
     setActiveField(newField);
   };
 
-  const removeField = (id, e) => {
+  const removeField = (sectionId, fieldId, e) => {
     e.stopPropagation();
-    setFields(fields.filter(f => f.id !== id));
-    if (activeField?.id === id) setActiveField(null);
+    setSections(sections.map(s => s.id === sectionId ? { ...s, fields: s.fields.filter(f => f.id !== fieldId) } : s));
+    if (activeField?.id === fieldId) setActiveField(null);
   };
 
-  const copyField = (field, e) => {
+  const copyField = (sectionId, field, e) => {
     e.stopPropagation();
     const newField = {
       ...field,
@@ -84,18 +144,25 @@ const FormBuilder = () => {
       label: `${field.label} (Copia)`,
     };
     
-    const index = fields.findIndex(f => f.id === field.id);
-    const newFields = [...fields];
-    newFields.splice(index + 1, 0, newField);
-    
-    setFields(newFields);
+    setSections(sections.map(s => {
+      if (s.id === sectionId) {
+        const index = s.fields.findIndex(f => f.id === field.id);
+        const newFields = [...s.fields];
+        newFields.splice(index + 1, 0, newField);
+        return { ...s, fields: newFields };
+      }
+      return s;
+    }));
     setActiveField(newField);
   };
 
   const updateActiveField = (updates) => {
     const updated = { ...activeField, ...updates };
     setActiveField(updated);
-    setFields(fields.map(f => f.id === updated.id ? updated : f));
+    setSections(sections.map(s => ({
+      ...s,
+      fields: s.fields.map(f => f.id === updated.id ? updated : f)
+    })));
   };
 
   const handleSave = async () => {
@@ -106,12 +173,11 @@ const FormBuilder = () => {
            id: formId || undefined,
            title,
            description,
-           sections: [{ id: "default", title: "Default", fields }],
+           sections, // Saving sections array directly
            submissionRules,
            is_public: isPublic,
            status: acceptsResponses ? "active" : "draft"
         });
-
       }
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 3000);
@@ -125,7 +191,7 @@ const FormBuilder = () => {
     return (
       <div className="flex flex-col h-full bg-slate-950 items-center justify-center font-inter text-slate-300">
         <div className="animate-spin rounded-full h-12 w-12 border-4 border-slate-900 border-t-emerald-500"></div>
-        <p className="text-slate-500 mt-6 font-black tracking-widest uppercase text-[10px]">Cargando Bóveda Central...</p>
+        <p className="text-slate-500 mt-6 font-black tracking-widest uppercase text-[10px]">Cargando Arquitectura...</p>
       </div>
     );
   }
@@ -142,63 +208,65 @@ const FormBuilder = () => {
       />
 
       <div className="flex flex-1 overflow-hidden relative">
-        <FieldPalette onAddField={addField} />
+        <FieldPalette onAddField={(type) => addField(type)} />
 
         {/* Canvas Area */}
-        <div className="flex-1 bg-slate-950/40 p-12 overflow-y-auto custom-scrollbar relative flex flex-col items-center pb-40">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-600/5 blur-[150px] rounded-full pointer-events-none" />
+        <div className="flex-1 bg-slate-950/40 p-12 overflow-y-auto custom-scrollbar relative flex flex-col items-center pb-80">
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-600/5 blur-[180px] rounded-full pointer-events-none" />
+          
+          <DragDropContext onDragEnd={onDragEnd}>
+            <Droppable droppableId="builder-sections" type="section">
+              {(provided) => (
+                <div 
+                  {...provided.droppableProps} 
+                  ref={provided.innerRef}
+                  className="w-full max-w-3xl space-y-2 mt-8"
+                >
+                  {sections.map((section, index) => (
+                    <SectionItem 
+                      key={section.id}
+                      section={section}
+                      index={index}
+                      onUpdateSection={updateSection}
+                      onRemoveSection={removeSection}
+                      onAddField={(sid) => addField({ id: "text", label: "Texto" }, sid)}
+                      onCopyField={copyField}
+                      onRemoveField={removeField}
+                      activeFieldId={activeField?.id}
+                      onSelectField={setActiveField}
+                    />
+                  ))}
+                  {provided.placeholder}
 
-          {fields.length === 0 ? (
-            <div className="w-full max-w-2xl border-2 border-dashed border-slate-800/60 rounded-[3rem] h-[400px] flex flex-col items-center justify-center bg-slate-900/30 mt-10 backdrop-blur-md relative overflow-hidden group">
-               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-               <div className="w-20 h-20 rounded-3xl bg-slate-950 border border-slate-800 flex items-center justify-center mb-8 shadow-3xl group-hover:scale-110 transition-transform duration-500">
-                 <SplitSquareHorizontal size={32} className="text-slate-500" />
-               </div>
-               <p className="text-white text-lg font-black tracking-tight mb-3 italic uppercase">Construye tu Visión</p>
-               <p className="text-slate-500 text-xs text-center max-w-xs leading-relaxed font-bold opacity-70">Selecciona componentes de la paleta izquierda para diseñar tu recolección de datos.</p>
-            </div>
-          ) : (
-            <DragDropContext onDragEnd={onDragEnd}>
-              <Droppable droppableId="fields-canvas">
-                {(provided) => (
-                  <div 
-                    {...provided.droppableProps} 
-                    ref={provided.innerRef}
-                    className="w-full max-w-2xl space-y-6 mt-8"
-                  >
-                    {fields.map((field, index) => (
-                      <Draggable key={field.id} draggableId={field.id} index={index}>
-                        {(p, s) => (
-                          <FieldItem 
-                            field={field}
-                            index={index}
-                            isActive={activeField?.id === field.id}
-                            onSelect={() => setActiveField(field)}
-                            onCopy={copyField}
-                            onRemove={removeField}
-                            provided={p}
-                            snapshot={s}
-                          />
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
+                  {/* Add Section Button */}
+                  <div className="flex justify-center pt-8">
+                     <button 
+                        onClick={addSection}
+                        className="group flex items-center space-x-4 bg-slate-900/50 hover:bg-blue-600/10 border border-white/5 hover:border-blue-500/30 px-12 py-6 rounded-[2.5rem] transition-all duration-500 hover:scale-105 active:scale-95"
+                     >
+                        <div className="p-3 rounded-2xl bg-slate-950 border border-white/10 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-xl">
+                          <Plus size={24} />
+                        </div>
+                        <div className="flex flex-col items-start translate-y-[-1px]">
+                          <span className="text-white text-sm font-black uppercase tracking-tighter italic">Insertar Nueva Sección</span>
+                          <span className="text-slate-500 text-[9px] font-bold uppercase tracking-widest">Organiza tu flujo de datos</span>
+                        </div>
+                     </button>
                   </div>
-                )}
-              </Droppable>
-            </DragDropContext>
-          )}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
         </div>
 
         <PropertyPanel 
            activeField={activeField}
-           allFields={fields}
+           allFields={sections.flatMap(s => s.fields)}
            submissionRules={submissionRules}
            setSubmissionRules={setSubmissionRules}
            onClose={() => setActiveField(null)}
            onUpdate={updateActiveField}
         />
-
       </div>
     </div>
   );
