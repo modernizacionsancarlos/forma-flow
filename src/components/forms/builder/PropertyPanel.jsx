@@ -463,9 +463,17 @@ const PropertyPanel = ({ activeField, allFields, submissionRules = [], setSubmis
                           >
                             <option value="==">Igual a</option>
                             <option value="!=">Diferente a</option>
-                            <option value="contains">Contiene</option>
-                            <option value="greater">Mayor que</option>
-                            <option value="less">Menor que</option>
+                            
+                            {(targetField?.type === "text" || targetField?.type === "textarea" || targetField?.type === "multiselect" || targetField?.type === "select") && (
+                              <option value="contains">Contiene</option>
+                            )}
+                            
+                            {(targetField?.type === "number" || targetField?.type === "currency" || targetField?.type === "calculation") && (
+                              <>
+                                <option value="greater">Mayor que</option>
+                                <option value="less">Menor que</option>
+                              </>
+                            )}
                           </select>
                         </div>
                         <div className="space-y-2">

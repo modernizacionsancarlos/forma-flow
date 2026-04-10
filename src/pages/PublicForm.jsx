@@ -248,23 +248,36 @@ const PublicFormView = () => {
     fetchForm();
   }, [formId, getFormById]);
 
-  const evaluateLogic = (field) => {
+  const evaluateLogic = (field, currentData = formData) => {
     if (!field.logic || field.logic.length === 0) return null; // No logic defined
     
     const results = field.logic.map(rule => {
-      const dependencyValue = formData[rule.fieldId];
+      const dependencyValue = currentData[rule.fieldId];
       const targetValue = rule.value;
       
-      const depStr = String(dependencyValue || "").toLowerCase().trim();
-      const tgtStr = String(targetValue || "").toLowerCase().trim();
+      // Normalización para comparaciones
+      const depNormalized = Array.isArray(dependencyValue) 
+        ? dependencyValue.map(v => String(v || "").toLowerCase().trim())
+        : String(dependencyValue || "").toLowerCase().trim();
+      
+      const tgtNormalized = String(targetValue || "").toLowerCase().trim();
 
       switch (rule.operator) {
-        case "==": return depStr === tgtStr;
-        case "!=": return depStr !== tgtStr;
-        case "contains": return depStr.includes(tgtStr);
-        case "greater": return Number(dependencyValue || 0) > Number(targetValue || 0);
-        case "less": return Number(dependencyValue || 0) < Number(targetValue || 0);
-        default: return true;
+        case "==": 
+          if (Array.isArray(dependencyValue)) return depNormalized.includes(tgtNormalized);
+          return depNormalized === tgtNormalized;
+        case "!=": 
+          if (Array.isArray(dependencyValue)) return !depNormalized.includes(tgtNormalized);
+          return depNormalized !== tgtNormalized;
+        case "contains": 
+          if (Array.isArray(dependencyValue)) return depNormalized.includes(tgtNormalized);
+          return depNormalized.includes(tgtNormalized);
+        case "greater": 
+          return Number(dependencyValue || 0) > Number(targetValue || 0);
+        case "less": 
+          return Number(dependencyValue || 0) < Number(targetValue || 0);
+        default: 
+          return true;
       }
     });
 
@@ -274,8 +287,8 @@ const PublicFormView = () => {
     return results.every(r => r === true);
   };
 
-  const isFieldHidden = (field) => {
-    const isConditionMet = evaluateLogic(field);
+  const isFieldHidden = (field, currentData = formData) => {
+    const isConditionMet = evaluateLogic(field, currentData);
     if (isConditionMet === null) return false;
 
     const action = field.logicAction || "show";
@@ -284,19 +297,19 @@ const PublicFormView = () => {
     return false;
   };
 
-  const isFieldRequired = (field) => {
+  const isFieldRequired = (field, currentData = formData) => {
     // If hidden, never required
-    if (isFieldHidden(field)) return false;
+    if (isFieldHidden(field, currentData)) return false;
     
     const baseRequired = !!field.required;
-    const isConditionMet = evaluateLogic(field);
+    const isConditionMet = evaluateLogic(field, currentData);
     
     if (field.logicAction === "require" && isConditionMet) return true;
     return baseRequired;
   };
 
-  const isFieldDisabled = (field) => {
-    const isConditionMet = evaluateLogic(field);
+  const isFieldDisabled = (field, currentData = formData) => {
+    const isConditionMet = evaluateLogic(field, currentData);
     if (field.logicAction === "disable" && isConditionMet) return true;
     return !!field.disabled || !!field.isCalculated;
   };
@@ -338,7 +351,11 @@ const PublicFormView = () => {
           if (matches) {
             matches.forEach(match => {
               const depId = match.replace(/{{|}}/g, "");
-              const val = Number(currentData[depId] || 0);
+              const depField = allFields.find(f => f.id === depId);
+              
+              // Si el campo dependiente está oculto por lógica, su valor para el cálculo es 0
+              const isHidden = depField ? isFieldHidden(depField, currentData) : false;
+              const val = isHidden ? 0 : Number(currentData[depId] || 0);
               formula = formula.replace(match, val);
             });
           }
@@ -483,6 +500,9 @@ const PublicFormView = () => {
     let finalStatus = "Pendiente";
     if (formSchema.submissionRules && formSchema.submissionRules.length > 0) {
       formSchema.submissionRules.forEach(rule => {
+        const depField = allFields.find(f => f.id === rule.fieldId);
+        if (depField && isFieldHidden(depField)) return; // Ignorar si el disparador está oculto
+
         const val = formData[rule.fieldId];
         const depStr = String(val || "").toLowerCase();
         const tgtStr = String(rule.value || "").toLowerCase();
