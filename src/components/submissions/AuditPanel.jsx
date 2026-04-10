@@ -23,7 +23,7 @@ const AuditPanel = ({
   const { executeTransition, loading } = useWorkflowEngine();
 
   if (!selectedSubmission) return (
-    <div className="w-0 border-0 opacity-0 translate-x-10 overflow-hidden bg-slate-900 transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"></div>
+    <div className="w-0 border-0 opacity-0 translate-x-10 overflow-hidden bg-slate-900 transition-all duration-500 ease-audit"></div>
   );
 
   const currentStatus = selectedSubmission.status || 'pending_review';
@@ -38,7 +38,7 @@ const AuditPanel = ({
   };
 
   return (
-    <div className="w-[480px] border border-slate-800 bg-slate-900 rounded-[2.5rem] shadow-dark-2xl flex flex-col group relative transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] opacity-100 animate-in slide-in-from-right-10">
+    <div className="w-[480px] border border-slate-800 bg-slate-900 rounded-[2.5rem] shadow-dark-2xl flex flex-col group relative transition-all duration-500 ease-audit opacity-100 animate-in slide-in-from-right-10">
       <div className="flex flex-col h-full w-full">
          <div className="p-8 bg-slate-950/60 border-b border-slate-800 flex justify-between items-start backdrop-blur-xl shrink-0">
             <div className="space-y-3">
