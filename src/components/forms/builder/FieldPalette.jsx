@@ -1,4 +1,7 @@
+import { FIELD_TYPES } from "../../../constants/fieldTypes";
+
 const FieldPalette = ({ onAddField }) => {
+
   return (
     <div className="w-80 border-r border-white/5 bg-slate-950 flex flex-col overflow-y-auto custom-scrollbar shadow-2xl relative z-10 select-none">
       <div className="p-8">

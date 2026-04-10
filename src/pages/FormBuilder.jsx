@@ -57,7 +57,7 @@ const FormBuilder = () => {
   }, [formId]);
 
   const onDragEnd = (result) => {
-    const { destination, source, draggableId, type } = result;
+    const { destination, source, type } = result;
     if (!destination) return;
 
     // Movement Case 1: Reordering Sections

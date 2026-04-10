@@ -217,9 +217,6 @@ const MainLayout = ({ children }) => {
           </div>
           
           <div className="flex items-center space-x-3 md:space-x-6">
-            <Link to="/forms/new" className="hidden md:flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-              <span>Nuevo formulario</span>
-            </Link>
             <NotificationCenter primaryColor={branding.primary_color} />
             
             <div className="h-10 w-[1px] bg-slate-800 hidden md:block"></div>
