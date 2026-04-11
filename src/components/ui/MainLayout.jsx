@@ -16,7 +16,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  Activity
 } from "lucide-react";
 import { useAuth } from "../../lib/AuthContext";
 import { useBranding } from "../../lib/useBranding";
@@ -90,6 +91,7 @@ const MainLayout = ({ children }) => {
       <SidebarLink to="/" icon={LayoutDashboard} activeColor={branding.primary_color}>Dashboard</SidebarLink>
       
       <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+        <SidebarLink to="/observatorio" icon={Activity} activeColor={branding.primary_color}>Observatorio</SidebarLink>
         <SidebarLink to="/admin" icon={Shield} activeColor={branding.primary_color}>Admin Panel</SidebarLink>
         <SidebarLink to="/empresas" icon={Building2} activeColor={branding.primary_color}>Empresas</SidebarLink>
       </Guard>

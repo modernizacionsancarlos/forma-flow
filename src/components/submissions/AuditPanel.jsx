@@ -2,6 +2,7 @@ import React from "react";
 import { X, ShieldCheck, Database, History, Check, Download, AlertCircle, Archive, HelpCircle, RotateCcw } from "lucide-react";
 import { useWorkflowEngine, STATUS_CONFIG, WORKFLOW_ACTIONS } from "../../api/useWorkflowEngine";
 import AuditTimeline from "./AuditTimeline";
+import AISubmissionAnalysis from "./AISubmissionAnalysis";
 
 const ICON_MAP = {
   check: Check,
@@ -70,6 +71,9 @@ const AuditPanel = ({
                </div>
             </div>
 
+            {/* INTELIGENCIA ARTIFICIAL (NUEVO) */}
+            <AISubmissionAnalysis submission={selectedSubmission} />
+
             {/* Meta Global */}
             <div className="grid grid-cols-2 gap-4">
                <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800/80 shadow-inner">
@@ -81,6 +85,7 @@ const AuditPanel = ({
                   <span className="text-xs text-white font-black truncate block">{selectedSubmission.created_by?.substring(0, 12) || "Public"}</span>
                </div>
             </div>
+
 
             {/* Datos Técnicos */}
             <div className="space-y-6">

@@ -31,6 +31,7 @@ const Auditoria = lazy(() => import('./pages/Auditoria'))
 const Sincronizacion = lazy(() => import('./pages/Sincronizacion'))
 const Configuracion = lazy(() => import('./pages/Configuracion'))
 const CitizenPortal = lazy(() => import('./pages/CitizenPortal'))
+const GlobalMonitor = lazy(() => import('./pages/GlobalMonitor'))
 const NotFound = lazy(() => import('./pages/errors/NotFound'))
 const ServerError = lazy(() => import('./pages/errors/ServerError'))
 
@@ -128,6 +129,12 @@ const AppRoutes = () => {
         <Route path="/auditoria" element={
           <ProtectedRoute role="super_admin">
             <MainLayout><Auditoria /></MainLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/observatorio" element={
+          <ProtectedRoute role="super_admin">
+            <MainLayout><GlobalMonitor /></MainLayout>
           </ProtectedRoute>
         } />
 

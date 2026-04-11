@@ -183,3 +183,35 @@ export const useRecentActivity = (tenantId = null) => {
         }
     });
 };
+export const useCommunicationLogs = (tenantId = null) => {
+    const [logs, setLogs] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        let q = query(
+            collection(db, "CommunicationLogs"),
+            orderBy("timestamp", "desc"),
+            limit(15)
+        );
+
+        if (tenantId) {
+            q = query(q, where("tenant_id", "==", tenantId));
+        }
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const docs = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                time: doc.data().timestamp?.toDate() ? 
+                    new Intl.DateTimeFormat('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(doc.data().timestamp.toDate()) 
+                    : "Enviando..."
+            }));
+            setLogs(docs);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, [tenantId]);
+
+    return { logs, loading };
+};
