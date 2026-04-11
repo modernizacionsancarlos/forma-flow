@@ -1,21 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Sparkles, AlertCircle, CheckCircle2, Zap, BrainCircuit, MessageSquareText } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion as Motion } from "framer-motion";
 
 export default function AISubmissionAnalysis({ submission, schema }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [analysis, setAnalysis] = useState(null);
 
-  useEffect(() => {
-    if (submission) {
-      handleAnalyze();
-    } else {
-      setAnalysis(null);
-    }
-  }, [submission]);
-
-  const handleAnalyze = () => {
-    setAnalyzing(true);
+  const handleAnalyze = useCallback(() => {
+    // Evitar renderizado en cascada moviendo el setState fuera del flujo síncrono del efecto
+    setTimeout(() => setAnalyzing(true), 0);
     // Simulación de procesamiento de IA (Gemini)
     setTimeout(() => {
       const data = submission.data || {};
@@ -38,7 +31,15 @@ export default function AISubmissionAnalysis({ submission, schema }) {
       });
       setAnalyzing(false);
     }, 1500);
-  };
+  }, [submission, schema]);
+
+  useEffect(() => {
+    if (submission) {
+      handleAnalyze();
+    } else {
+      setTimeout(() => setAnalysis(null), 0);
+    }
+  }, [submission, handleAnalyze]);
 
   if (!submission) return null;
 
@@ -60,7 +61,7 @@ export default function AISubmissionAnalysis({ submission, schema }) {
       <div className="p-4 space-y-4">
         <AnimatePresence mode="wait">
           {analyzing ? (
-            <motion.div 
+            <Motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -68,16 +69,16 @@ export default function AISubmissionAnalysis({ submission, schema }) {
             >
               <div className="relative">
                 <BrainCircuit size={40} className="text-emerald-500/40 animate-pulse" />
-                <motion.div 
+                <Motion.div 
                     animate={{ rotate: 360 }}
                     transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                     className="absolute inset-0 border-2 border-dashed border-emerald-500 rounded-full opacity-20 scale-150"
                 />
               </div>
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Analizando expediente...</p>
-            </motion.div>
+            </Motion.div>
           ) : analysis ? (
-            <motion.div 
+            <Motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="space-y-4"
@@ -128,7 +129,7 @@ export default function AISubmissionAnalysis({ submission, schema }) {
                     "{analysis.suggestion}"
                   </p>
               </div>
-            </motion.div>
+            </Motion.div>
           ) : null}
         </AnimatePresence>
       </div>
@@ -136,7 +137,8 @@ export default function AISubmissionAnalysis({ submission, schema }) {
   );
 }
 
-function MetricBox({ label, value, icon: Icon, color }) {
+function MetricBox({ label, value, icon: iconProp, color }) {
+    const IconComponent = iconProp;
     const colors = {
         emerald: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
         amber: "text-amber-400 bg-amber-500/10 border-amber-500/20",
@@ -145,7 +147,7 @@ function MetricBox({ label, value, icon: Icon, color }) {
     };
     return (
         <div className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 ${colors[color]}`}>
-            <Icon size={14} className="opacity-70" />
+            <IconComponent size={14} className="opacity-70" />
             <span className="text-lg font-black tracking-tighter">{value}</span>
             <span className="text-[9px] uppercase font-bold opacity-60 tracking-widest">{label}</span>
         </div>

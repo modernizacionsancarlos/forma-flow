@@ -9,12 +9,12 @@ import {
     XAxis, YAxis, Tooltip, 
     ResponsiveContainer
 } from "recharts";
-import { useGlobalStats, useRecentActivity, useCommunicationLogs } from "@/api/useGlobalStats";
+import { useGlobalStats, useCommunicationLogs } from "@/api/useGlobalStats";
 import { useTenants } from "@/api/useTenants";
 
 export default function GlobalMonitor() {
     const { data: stats, isLoading: loadingStats } = useGlobalStats(null); 
-    const { data: activityLogs } = useRecentActivity(null);
+    // const { data: activityLogs } = useRecentActivity(null);
     const { logs: commLogs } = useCommunicationLogs(null);
     const { tenants = [] } = useTenants();
 

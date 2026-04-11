@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { collection, getDocs, query, limit, orderBy, where } from "firebase/firestore";
+import { collection, getDocs, query, limit, orderBy, where, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 export const useGlobalStats = (tenantId = null) => {

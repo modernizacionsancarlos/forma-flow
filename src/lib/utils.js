@@ -29,6 +29,6 @@ export function cleanObject(obj) {
     return Object.fromEntries(
         Object.entries(obj)
             .map(([k, v]) => [k, cleanObject(v)])
-            .filter(([_, v]) => v !== undefined)
+            .filter(([, v]) => v !== undefined)
     );
 }
