@@ -6,13 +6,13 @@ import { getMessaging } from "firebase/messaging";
 import { getFunctions } from "firebase/functions";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyArkS3n2DgsSc6rk_cvhQW1GWE4K_wc6i0",
-  authDomain: "formflow-central-cdbaa.firebaseapp.com",
-  projectId: "formflow-central-cdbaa",
-  storageBucket: "formflow-central-cdbaa.firebasestorage.app",
-  messagingSenderId: "537198713998",
-  appId: "1:537198713998:web:3848029cd0da6395963ddf",
-  measurementId: "G-SDC74MDWMD"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Singleton pattern for Firebase initialization

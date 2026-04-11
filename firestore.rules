@@ -28,7 +28,14 @@ service cloud.firestore {
     // Reglas para la colección de Trámites (Submissions)
     match /Submissions/{submissionId} {
       allow read: if isSameTenant(resource.data);
-      allow create: if isAuthenticated(); // Usuarios públicos pueden crear si tienen el link
+      
+      // Permitir creación a usuarios autenticados, obligando a vincular su tenant_id si aplica
+      allow create: if isAuthenticated() && (
+        isSuperAdmin() || 
+        request.resource.data.tenant_id == getUserTenantId() ||
+        (getUserTenantId() == null) // Para ciudadanos sin tenant asignado aún (vía portal público)
+      );
+      
       allow update, delete: if isSameTenant(resource.data);
     }
 
@@ -47,13 +54,31 @@ service cloud.firestore {
 
     // Reglas para Perfiles de Usuario
     match /userProfiles/{email} {
-      allow read, write: if isSuperAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email.lower());
+      allow read: if isSuperAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email.lower());
+      
+      // Permitir creación inicial si es el propio usuario
+      allow create: if isAuthenticated() && request.auth.token.email.lower() == email.lower();
+      
+      // Bloquear la modificación de campos sensibles (rol, tenant) por el propio usuario
+      allow update: if isSuperAdmin() || (
+        isAuthenticated() && 
+        request.auth.token.email.lower() == email.lower() &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenant_id', 'permissions'])
+      );
+      
+      allow delete: if isSuperAdmin();
     }
 
     // Reglas para Auditoría (AuditLogs)
     match /AuditLogs/{logId} {
       allow read: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == resource.data.tenant_id);
-      allow create: if isAuthenticated();
+      
+      // Asegurar que el log pertenece al tenant del usuario que lo crea
+      allow create: if isAuthenticated() && (
+        isSuperAdmin() || 
+        request.resource.data.tenant_id == getUserTenantId()
+      );
+      
       allow update, delete: if isSuperAdmin();
     }
 

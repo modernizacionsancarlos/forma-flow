@@ -1,0 +1,45 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Función para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Función para verificar si es un super administrador
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'super_admin' || 
+        request.auth.token.email == 'modernizacionsancarlos@gmail.com'
+      );
+    }
+
+    // Aislamiento por Tenant
+    // Ruta esperada: /tenants/{tenantId}/files/{fileName}
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read: if isSuperAdmin() || (
+        isAuthenticated() && 
+        request.auth.token.tenant_id == tenantId
+      );
+      
+      allow write: if isSuperAdmin() || (
+        isAuthenticated() && 
+        request.auth.token.tenant_id == tenantId &&
+        request.resource.size < 10 * 1024 * 1024 && // Limite de 10MB
+        request.resource.contentType.matches('image/.*|application/pdf|application/msword|application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+      );
+    }
+
+    // Archivos Públicos (Logos de municipios, assets públicos)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isSuperAdmin();
+    }
+
+    // Bloqueo por defecto
+    match /{allPaths=**} {
+      allow read, write: if isSuperAdmin();
+    }
+  }
+}
