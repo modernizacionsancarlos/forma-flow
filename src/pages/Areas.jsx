@@ -24,7 +24,7 @@ const Areas = () => {
         name: newAreaName.trim(),
         users: 0,
         status: "active",
-        tenant: claims?.tenantName || "Acme Corp" // Ideally this would come from the verified tenant
+        tenant: claims?.tenantName || "Sin Asignar"
       });
       setIsModalOpen(false);
       setNewAreaName("");

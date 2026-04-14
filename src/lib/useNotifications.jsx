@@ -18,9 +18,10 @@ export const useNotifications = (user) => {
       
       if (status === "granted") {
         // Get FCM Token
-        // Note: You should replace 'YOUR_VAPID_KEY' with your actual public VAPID key from Firebase Console
+        // VAPID key se configura en Firebase Console > Cloud Messaging > Web Push certificates
+        // Luego se agrega en el .env como VITE_FIREBASE_VAPID_KEY
         const token = await getToken(messaging, { 
-          vapidKey: "BOM7_lWq4X2x7kR-eC9V_Qz4Lq7_v_q_q_q_q_o_o_o_o_o" // Placeholder, user will need to update
+          vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || ""
         });
 
         if (token && user) {
