@@ -1,6 +1,16 @@
-# Forma Flow - Modernizacion Municipal
+<![CDATA[<div align="center">
 
-Sistema SaaS integral para la gestión de formularios dinámicos, flujos de trabajo e inspecciones. Creado para optimizar los procesos internos de la Municipalidad, permitiendo la recolección de datos en tiempo real, auditoría de respuestas y organización de la información de forma centralizada.
+# ⚡ Forma Flow
+
+**Plataforma SaaS Multi-Tenant para Gestión de Formularios Dinámicos**
+
+[![Firebase](https://img.shields.io/badge/Firebase-Hosting-FFCA28?logo=firebase&logoColor=white)](https://formaflow-sancarlos.web.app)
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)](https://vitejs.dev)
+[![PWA](https://img.shields.io/badge/PWA-Offline--First-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+[![License](https://img.shields.io/badge/Licencia-Privada-red)]()
+
+</div>
 
 ---
 
@@ -8,93 +18,144 @@ Sistema SaaS integral para la gestión de formularios dinámicos, flujos de trab
 
 Forma Flow es una plataforma diseñada para digitalizar la gestión pública. Permite a los administradores municipales crear formularios inteligentes en minutos, a los inspectores realizar auditorías en campo (incluso sin internet) y a la mesa de entradas visualizar datos procesados con exportación automática a documentos oficiales.
 
-### Características Clave:
-- **FormBuilder Avanzado**: Interfaz Drag-and-Drop con inspector de propiedades.
-- **Modo Offline-First**: Funciona sin conectividad y sincroniza al recuperar señal.
-- **Mesa de Entradas Pro**: Sistema Tri-pane para auditoría masiva de registros.
-- **Exportación a PDF**: Generación inmediata de actas y reportes con sello municipal.
-- **Arquitectura True Black**: Diseño premium optimizado para reducir fatiga visual y consumo de energía.
+> **🔗 App en Producción:** [formaflow-sancarlos.web.app](https://formaflow-sancarlos.web.app)
+
+---
+
+## 📸 Capturas de Pantalla
+
+### Panel de Control (Dashboard)
+El dashboard principal muestra KPIs en tiempo real, métricas del sistema, actividad reciente y accesos rápidos de administración. Incluye saludo dinámico por franja horaria y reloj en vivo.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+### Inicio de Sesión
+Acceso seguro con Firebase Authentication, soporte multi-tenant y diseño premium True Black.
+
+![Login](docs/screenshots/login.png)
+
+### Mesa de Entradas (Submissions)
+Sistema tri-pane para revisión masiva de respuestas, con filtros por estado, auditoría detallada y línea de tiempo de cada trámite.
+
+![Submissions](docs/screenshots/submissions.png)
+
+---
+
+## ✨ Características Principales
+
+| Módulo | Descripción |
+|---|---|
+| **FormBuilder Drag & Drop** | Creación visual de formularios con secciones, campos dinámicos e inspector de propiedades |
+| **Motor Offline-First (PWA)** | Funciona sin conectividad, almacena respuestas localmente y sincroniza al recuperar señal |
+| **Mesa de Entradas Pro** | Interfaz tri-pane para auditoría masiva con estados, filtros y exportación |
+| **Workflows** | Motor de flujos de trabajo con transiciones de estado configurables |
+| **Exportación Real** | Generación de archivos XLSX y JSON desde datos reales en Firestore + upload a Storage |
+| **Multi-Tenant** | Arquitectura White Label con aislamiento por organización |
+| **Dashboard BI** | Estadísticas en tiempo real, métricas de resolución y actividad del sistema |
+| **Auditoría** | Registro completo de acciones con trazabilidad por usuario y timestamp |
+| **Notificaciones Push** | Alertas en tiempo real vía Firebase Cloud Messaging |
+| **Portal Ciudadano** | Formularios de acceso público para trámites ciudadanos |
+
+---
+
+## 🏗️ Arquitectura Técnica
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    FRONTEND (React + Vite)                    │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
+│  │Dashboard │ │FormBuilder│ │  Mesa de │ │    Portal     │  │
+│  │   BI     │ │ Drag&Drop│ │ Entradas │ │  Ciudadano    │  │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └──────┬────────┘  │
+│       └─────────────┴────────────┴──────────────┘            │
+│                         │ React Query Hooks                  │
+│  ┌──────────────────────┴──────────────────────────────────┐ │
+│  │ useAreas │ useWorkflows │ useExports │ useSubmissions   │ │
+│  │ useForms │ useTenants   │ useUsers   │ useGlobalStats   │ │
+│  └──────────────────────┬──────────────────────────────────┘ │
+└──────────────────────────┼───────────────────────────────────┘
+                           │
+┌──────────────────────────┼───────────────────────────────────┐
+│                     FIREBASE BACKEND                          │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
+│  │Firestore │ │   Auth   │ │ Storage  │ │   Hosting     │  │
+│  │ Database │ │ + Roles  │ │  (Files) │ │   (PWA)       │  │
+│  └──────────┘ └──────────┘ └──────────┘ └───────────────┘  │
+└──────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 🛠️ Requisitos del Sistema
 
-Antes de comenzar, asegúrate de tener instalado lo siguiente en tu equipo:
+### Software Requerido
+- **Node.js** v18.0.0+ — [Descargar](https://nodejs.org/)
+- **npm** v9.0.0+ (incluido con Node.js)
+- **Git** — [Descargar](https://git-scm.com/)
+- **Firebase CLI** — incluido localmente en el proyecto, no requiere instalación global
 
-### 1. Requisitos de Software
-- **Node.js (v18.0.0 o superior)**: Entorno de ejecución para el frontend. [Descargar aquí](https://nodejs.org/)
-- **npm (v9.0.0 o superior)**: Gestor de paquetes (viene con Node.js).
-- **Git**: Para el control de versiones y clonación del proyecto. [Descargar aquí](https://git-scm.com/)
-- **Firebase CLI**: Gestión local incluida en el proyecto. No requiere instalación global.
+### Herramientas de Desarrollo Recomendadas
+- **IDE:** [Cursor](https://cursor.sh/), [Trae AI](https://www.trae.ai/) o VS Code con extensiones Agentic AI
+- **Asistente:** [Antigravity](https://github.com/google-deepmind/antigravity) (pair programming avanzado)
 
-### 2. Herramientas de Desarrollo (Vibe Coding)
-Para mantener la agilidad y el estándar de calidad del proyecto, se recomienda el uso de entornos con IA integrada:
-- **IDE**: [Cursor](https://cursor.sh/), [Trae AI](https://www.trae.ai/) o VS Code con extensiones de Agentic AI.
-- **Asistente**: [Antigravity](https://github.com/google-deepmind/antigravity) (Recomendado para pair programming avanzado y automatización de tareas complejas).
-
-### 3. Infraestructura (Cuenta de Google)
-- Un proyecto creado en la [Consola de Firebase](https://console.firebase.google.com/).
-- Servicios activos: **Hosting**, **Firestore Database**, **Authentication** y **Storage**.
+### Infraestructura
+- Proyecto en [Firebase Console](https://console.firebase.google.com/) con los servicios: **Hosting**, **Firestore**, **Authentication** y **Storage**
 
 ---
 
-## 💻 Instalación y Configuración
+## 💻 Instalación
 
-Sigue estos pasos detallados para poner en marcha el sistema:
-
-### Paso 1: Clonar el Repositorio
-Abre tu terminal y ejecuta:
+### 1. Clonar el Repositorio
 ```bash
 git clone https://github.com/modernizacionsancarlos/forma-flow.git
 cd forma-flow
 ```
 
-### Paso 2: Instalar Dependencias
-Instala todas las librerías necesarias del frontend:
+### 2. Instalar Dependencias
 ```bash
 npm install
 ```
 
-### Paso 3: Variables de Entorno
-Crea un archivo llamado `.env` en la raíz del proyecto y pega tus credenciales de Firebase. Puedes encontrarlas en la configuración de tu proyecto en la consola de Firebase:
-```env
-VITE_FIREBASE_API_KEY=tu_api_key
-VITE_FIREBASE_AUTH_DOMAIN=tu_proyecto.firebaseapp.com
-VITE_FIREBASE_PROJECT_ID=tu_proyecto
-VITE_FIREBASE_STORAGE_BUCKET=tu_proyecto.appspot.com
-VITE_FIREBASE_MESSAGING_SENDER_ID=tu_id
-VITE_FIREBASE_APP_ID=tu_app_id
+### 3. Configurar Variables de Entorno
+Copia el archivo de ejemplo y completa los valores:
+```bash
+cp .env.example .env
 ```
 
-### Paso 4: Levantar el Entorno de Desarrollo
-Inicia el servidor local de Vite:
+Las credenciales se encuentran en la [Consola de Firebase](https://console.firebase.google.com/) → Configuración del proyecto → General.
+
+La clave VAPID para notificaciones push se obtiene en Firebase Console → Cloud Messaging → Web Push certificates.
+
+### 4. Levantar el Entorno de Desarrollo
 ```bash
 npm run dev
 ```
-La aplicación estará disponible en `http://localhost:5173`.
+La aplicación estará disponible en `http://localhost:5173`
 
 ---
 
-Para publicar el sistema en los servidores de Firebase Hosting de forma segura y sin pre-requisitos globales:
+## 🚀 Deploy a Producción
 
-1. **Vincular el proyecto**: Este paso solo es necesario la primera vez:
-   ```bash
-   npx firebase use --add
-   ```
-2. **Generar y Desplegar (Un solo paso)**: 
-   ```bash
-   npm run build-deploy
-   ```
+### Primera vez — vincular el proyecto:
+```bash
+npx firebase use --add
+```
 
-### Comandos de Infraestructura Estándar:
+### Build + Deploy (un solo comando):
+```bash
+npm run build-deploy
+```
+
+### Comandos disponibles:
 | Comando | Acción |
-| :--- | :--- |
-| `npm run build` | Compila el proyecto con optimización de archivos (Vite). |
-| `npm run deploy` | Sube los archivos compilados a Firebase Hosting. |
-| `npm run build-deploy` | Ejecuta el build y el deploy secuencialmente. |
+|---|---|
+| `npm run dev` | Servidor de desarrollo local con HMR |
+| `npm run build` | Compilación optimizada para producción |
+| `npm run deploy` | Sube archivos compilados a Firebase Hosting |
+| `npm run build-deploy` | Build + Deploy secuencial |
 
 > [!TIP]
-> **Compatibilidad en Windows**: Si prefieres usar el comando `firebase` directamente pero no lo tienes instalado globalmente, hemos incluido puentes (`firebase.cmd` y `firebase.ps1`) en la raíz del proyecto. En PowerShell, usa `.\firebase deploy` para invocar la herramienta local.
+> **Windows:** Si prefieres usar `firebase` directamente sin instalación global, hemos incluido puentes (`firebase.cmd` y `firebase.ps1`) en la raíz del proyecto. En PowerShell: `.\\firebase deploy`
 
 ---
 
@@ -120,15 +181,73 @@ graph TD
     E --> C
 ```
 
+### Flujo de Autenticación Multi-Tenant
+```mermaid
+graph LR
+    A[Login] --> B{Firebase Auth}
+    B --> C[Custom Claims]
+    C --> D{Rol}
+    D -- super_admin --> E[Dashboard Global]
+    D -- admin --> F[Dashboard Tenant]
+    D -- user --> G[Formularios Asignados]
+```
+
+---
+
+## 📁 Estructura del Proyecto
+
+```
+forma-flow/
+├── public/               # Assets estáticos y manifest PWA
+├── src/
+│   ├── api/              # Hooks de datos (React Query + Firestore)
+│   ├── components/       # Componentes reutilizables
+│   ├── lib/              # Firebase config, AuthContext, utilidades
+│   ├── pages/            # Vistas principales de la aplicación
+│   └── main.jsx          # Entry point
+├── docs/
+│   └── screenshots/      # Capturas para documentación
+├── firebase.json         # Configuración de servicios Firebase
+├── firestore.rules       # Reglas de seguridad Firestore
+├── storage.rules         # Reglas de seguridad Storage
+├── .env.example          # Plantilla de variables de entorno
+└── vite.config.js        # Configuración de Vite + PWA
+```
+
 ---
 
 ## 📚 Wiki y Documentación Detallada
 
-¿Necesitas entender cómo funciona el código, los botones o la base de datos por dentro? Hemos preparado una documentación exhaustiva para desarrolladores y administradores.
+¿Necesitas entender cómo funciona el código, los componentes o la base de datos por dentro?
 
 👉 **[ACCEDER A LA WIKI OFICIAL EN GITHUB](https://github.com/modernizacionsancarlos/forma-flow/wiki)**
 
 ---
 
-**Desarrollado para el equipo de Modernizacion de la Municipalidad de San Carlos.** 
+## 🔐 Seguridad
+
+- **Autenticación:** Firebase Auth con Custom Claims por rol (super_admin, admin, user)
+- **Firestore Rules:** Aislamiento por tenant con validación de claims
+- **Storage Rules:** Acceso restringido por organización
+- **Variables de entorno:** Credenciales excluidas del repositorio vía `.gitignore`
+
+---
+
+## 🛡️ Roles del Sistema
+
+| Rol | Permisos |
+|---|---|
+| `super_admin` | Acceso total: gestión de empresas, usuarios, configuración global |
+| `admin` | Administración dentro de su organización (tenant) |
+| `user` | Acceso a formularios asignados y envío de respuestas |
+
+---
+
+<div align="center">
+
+**Desarrollado para el equipo de Modernización de la Municipalidad de San Carlos.**
+
 *Interfaces de nivel mundial para la gestión pública ágil.*
+
+</div>
+]]>
