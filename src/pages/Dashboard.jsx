@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { 
     FileText, Users, Building2, CheckCircle, TrendingUp, 
@@ -20,8 +21,28 @@ import { useTenants } from "@/api/useTenants";
 //     pendiente: { label: "Pendiente", bg: "bg-amber-900/60", text: "text-amber-300" }
 // };
 
+function useArgentinaClock() {
+    const getBA = () => new Date(new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
+    const [now, setNow] = useState(getBA());
+    useEffect(() => {
+        const id = setInterval(() => setNow(getBA()), 1000);
+        return () => clearInterval(id);
+    }, []);
+    return now;
+}
+
+function getGreeting(hour) {
+    if (hour >= 7 && hour < 12) return "Buenos días";
+    if (hour >= 12 && hour < 18) return "Buenas tardes";
+    if (hour >= 18 && hour < 24) return "Buenas noches";
+    return "Buen turno nocturno";
+}
+
 export default function Dashboard() {
     const { user, currentProfile } = useAuth();
+    const clock = useArgentinaClock();
+    const greeting = getGreeting(clock.getHours());
+    const timeStr = clock.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
     
     // Determine which tenantId to use for stats
     const isSuperAdmin = currentProfile?.role === 'super_admin';
@@ -52,9 +73,6 @@ export default function Dashboard() {
     
     const logs = activityLogs || [];
 
-    const now = new Date();
-    const greeting = now.getHours() < 12 ? "Buenos días" : now.getHours() < 18 ? "Buenas tardes" : "Buenas noches";
-
     return (
         <div className="min-h-screen bg-slate-950 text-white w-full">
             {/* Top Header Bar */}
@@ -63,6 +81,11 @@ export default function Dashboard() {
                     <div>
                         <p className="text-slate-400 text-xs font-semibold uppercase tracking-wider">{greeting},</p>
                         <h1 className="text-xl md:text-2xl font-bold text-white leading-tight mt-1">{user?.displayName || currentProfile?.full_name || user?.email}</h1>
+                    </div>
+                    <div className="hidden sm:flex items-center gap-2 bg-slate-950/60 border border-slate-800 rounded-xl px-4 py-2">
+                        <Clock size={14} className="text-emerald-400" />
+                        <span className="font-mono text-sm text-white tracking-widest tabular-nums">{timeStr}</span>
+                        <span className="text-[10px] text-slate-500 font-semibold">BUE</span>
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Link
