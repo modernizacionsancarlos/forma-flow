@@ -145,9 +145,9 @@ const MainLayout = ({ children }) => {
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
         <div className="px-2 pt-2 pb-1">
-          <div className="flex items-center pb-2 border-b border-slate-800/50 min-h-[88px]">
+          <div className="flex items-center pb-1 border-b border-slate-800/50 min-h-[92px]">
             {isUsingLocalMunicipalLogo ? (
-              <div className="w-full px-1">
+              <div className="w-full px-4">
                 <img
                   src={brandLogoSrc}
                   alt="Logo Municipalidad de San Carlos"
