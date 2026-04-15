@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import {
     ShieldAlert, LayoutDashboard, Building2, Users, Activity,
-    Server, ClipboardList, Clock, FileText, PieChart,
+    Server, ClipboardList, Clock, PieChart,
     ChevronRight, AlertTriangle, Download, Shield, GitBranch,
     MapPin, Settings, RefreshCw
 } from "lucide-react";
@@ -551,6 +551,7 @@ export default function Admin() {
 
 /* ── Sub-components ───────────────────────────────────────────────── */
 
+// eslint-disable-next-line no-unused-vars
 function AdminKpi({ title, value, subtitle, icon: Icon, color, to }) {
     const colors = {
         emerald: { border: "border-emerald-800", text: "text-emerald-400", bg: "bg-emerald-500/10" },
@@ -565,6 +566,7 @@ function AdminKpi({ title, value, subtitle, icon: Icon, color, to }) {
                 <Icon size={18} className={c.text} />
                 <ChevronRight size={14} className="text-slate-600 group-hover:text-white transition-colors" />
             </div>
+            <p className="text-xs text-slate-500 uppercase mb-1">{title}</p>
             <p className={`text-3xl font-bold ${c.text}`}>{value}</p>
             <p className="text-xs text-slate-500 mt-1">{subtitle}</p>
         </Link>
