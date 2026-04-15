@@ -63,7 +63,8 @@ const MainLayout = ({ children }) => {
   const { branding } = useBranding();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const municipalLogoPath = import.meta.env.VITE_MUNICIPAL_LOGO_PATH?.trim();
+  const municipalLogoPath =
+    import.meta.env.VITE_MUNICIPAL_LOGO_PATH?.trim() || "/local-assets/municipal-logo.png";
   const municipalLogoFilter =
     import.meta.env.VITE_MUNICIPAL_LOGO_FILTER?.trim() ||
     "brightness(0) invert(1) opacity(0.92)";
@@ -136,6 +137,7 @@ const MainLayout = ({ children }) => {
   );
 
   const brandLogoSrc = branding.logo_url || municipalLogoPath || null;
+  const isUsingLocalMunicipalLogo = Boolean(brandLogoSrc) && !branding.logo_url;
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden">
@@ -144,33 +146,39 @@ const MainLayout = ({ children }) => {
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
         <div className="p-6">
-          <div className="flex items-center space-x-3 pb-8 border-b border-slate-800/50">
-            <div 
-              className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500"
-              style={{ 
-                backgroundColor: branding.primary_color,
-                boxShadow: `0 4px 12px ${branding.primary_color}40`
-              }}
-            >
-              {brandLogoSrc ? (
-                <img
-                  src={brandLogoSrc}
-                  alt="Logo institucional"
-                  className="w-6 h-6 object-contain"
-                  style={!branding.logo_url ? { filter: municipalLogoFilter } : undefined}
-                />
-              ) : (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white">
-                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
-                </svg>
-              )}
-            </div>
-            <div className="flex flex-col overflow-hidden">
-               <span className="text-base font-bold text-white tracking-tight leading-none truncate w-32">
-                 {branding.name || "FormFlow"}
-               </span>
-               <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">SaaS Multi-Tenant</span>
-            </div>
+          <div className="flex items-center space-x-3 pb-8 border-b border-slate-800/50 min-h-[68px]">
+            {isUsingLocalMunicipalLogo ? (
+              <img
+                src={brandLogoSrc}
+                alt="Logo Municipalidad de San Carlos"
+                className="h-14 w-full max-w-[220px] object-contain object-left"
+                style={{ filter: municipalLogoFilter }}
+              />
+            ) : (
+              <>
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center shadow-lg transition-all duration-500"
+                  style={{
+                    backgroundColor: branding.primary_color,
+                    boxShadow: `0 4px 12px ${branding.primary_color}40`,
+                  }}
+                >
+                  {brandLogoSrc ? (
+                    <img src={brandLogoSrc} alt="Logo institucional" className="w-6 h-6 object-contain" />
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white">
+                      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                    </svg>
+                  )}
+                </div>
+                <div className="flex flex-col overflow-hidden">
+                  <span className="text-base font-bold text-white tracking-tight leading-none truncate w-32">
+                    {branding.name || "FormFlow"}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-1 uppercase tracking-wider font-semibold">SaaS Multi-Tenant</span>
+                </div>
+              </>
+            )}
           </div>
         </div>
         {navLinks}
