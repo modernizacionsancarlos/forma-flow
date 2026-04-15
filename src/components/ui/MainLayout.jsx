@@ -58,6 +58,13 @@ const SidebarLink = ({ to, icon, children, activeColor, onClick }) => {
   );
 };
 
+const getGreetingByHour = (hour) => {
+  if (hour >= 7 && hour < 12) return { text: "Buenos días", emoji: "☀️" };
+  if (hour >= 12 && hour < 18) return { text: "Buenas tardes", emoji: "🌤️" };
+  if (hour >= 18 && hour < 24) return { text: "Buenas noches", emoji: "🌙" };
+  return { text: "Buen turno nocturno", emoji: "🌙" };
+};
+
 const MainLayout = ({ children }) => {
   const { logout, claims } = useAuth();
   const { branding } = useBranding();
@@ -74,6 +81,7 @@ const MainLayout = ({ children }) => {
       return "";
     }
   });
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   // Cerrar sidebar cuando cambia la ruta (solo en móvil)
   useEffect(() => {
@@ -86,6 +94,12 @@ const MainLayout = ({ children }) => {
 
   // Activa las notificaciones en tiempo real para el administrador
   useSubmissionNotifications();
+
+  // Actualiza el saludo dinámico según la hora local
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
@@ -146,6 +160,8 @@ const MainLayout = ({ children }) => {
   const isUsingLocalMunicipalLogo =
     Boolean(brandLogoSrc) &&
     (Boolean(localLogoOverride) || (!branding.logo_url && Boolean(municipalLogoPath)));
+  const { text: greetingText, emoji: greetingEmoji } = getGreetingByHour(currentTime.getHours());
+  const displayName = claims.email?.split("@")[0] || "Usuario";
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden">
@@ -263,9 +279,12 @@ const MainLayout = ({ children }) => {
             >
               <Menu size={24} />
             </button>
-            <h2 className="text-lg md:text-xl font-medium text-slate-50 transition-all cursor-default truncate max-w-[200px] md:max-w-none">
-              Buenos días, <span className="font-bold">{claims.email?.split('@')[0]}</span>
-            </h2>
+            <div className="flex flex-col">
+              <h2 className="text-lg md:text-xl font-medium text-slate-50 transition-all cursor-default truncate max-w-[260px] md:max-w-none">
+                {greetingText} {greetingEmoji} <span className="font-bold">{displayName}</span>
+              </h2>
+              <span className="text-xs text-slate-400 hidden md:block">Panel de control · FormFlow SaaS</span>
+            </div>
           </div>
           
           <div className="flex items-center space-x-3 md:space-x-6">
@@ -275,14 +294,14 @@ const MainLayout = ({ children }) => {
             
             <div className="flex items-center space-x-2 md:space-x-4">
               <div className="flex flex-col items-end hidden sm:flex">
-                <span className="text-sm font-medium text-white">{claims.email?.split('@')[0]}</span>
+                <span className="text-sm font-medium text-white">{displayName}</span>
                 <span className="text-xs text-slate-400">Admin</span>
               </div>
               <div 
                 className="w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-slate-800 border border-white/5 flex items-center justify-center font-black text-xs text-white shadow-xl"
                 style={{ borderColor: `${branding.primary_color}30` }}
               >
-                {claims.email?.[0].toUpperCase()}
+                {displayName?.[0]?.toUpperCase() || "U"}
               </div>
             </div>
           </div>

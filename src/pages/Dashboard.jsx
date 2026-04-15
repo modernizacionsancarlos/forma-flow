@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import {
@@ -11,24 +11,6 @@ import { useTenants } from "@/api/useTenants";
 import { useForms } from "@/api/useForms";
 import { useUsers } from "@/api/useUsers";
 import { useDashboardSubmissions } from "@/api/useDashboardSubmissions";
-
-/* ── Clock (Argentina timezone, internal — no label shown) ────────── */
-function useArgentinaClock() {
-    const getBA = () => new Date(new Date().toLocaleString("en-US", { timeZone: "America/Argentina/Buenos_Aires" }));
-    const [now, setNow] = useState(getBA());
-    useEffect(() => {
-        const id = setInterval(() => setNow(getBA()), 1000);
-        return () => clearInterval(id);
-    }, []);
-    return now;
-}
-
-function getGreeting(hour) {
-    if (hour >= 7 && hour < 12) return { text: "Buenos días", emoji: "☀️" };
-    if (hour >= 12 && hour < 18) return { text: "Buenas tardes", emoji: "🌤️" };
-    if (hour >= 18 && hour < 24) return { text: "Buenas noches", emoji: "🌙" };
-    return { text: "Buen turno nocturno", emoji: "🌙" };
-}
 
 /* ── Status badge config ──────────────────────────────────────────── */
 const STATUS = {
@@ -51,9 +33,6 @@ const PLAN_COLORS = {
 /* ══════════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
     const { user, currentProfile } = useAuth();
-    const clock = useArgentinaClock();
-    const { text: greetText, emoji: greetEmoji } = getGreeting(clock.getHours());
-    const timeStr = clock.toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
     const isSuperAdmin = currentProfile?.role === "super_admin";
     const effectiveTenantId = isSuperAdmin ? null : (currentProfile?.tenantId || null);
@@ -98,35 +77,9 @@ export default function Dashboard() {
     ).length;
     const trialTenants = tenants.filter(t => t.subscription_status === "trial").length;
 
-    const displayName = user?.displayName || currentProfile?.full_name || user?.email || "Usuario";
-
     return (
         <div className="min-h-screen bg-slate-950 text-white">
-
-            {/* ─── 1. HEADER TOP ──────────────────────────────────────── */}
-            <div className="bg-slate-900 border-b border-slate-800 px-6 py-5">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-lg text-white font-medium">
-                            {greetText} {greetEmoji} <span className="font-bold">{displayName}</span>
-                        </h1>
-                        <p className="text-slate-500 text-sm">Panel de control · FormFlow SaaS</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="font-mono text-sm text-slate-400 hidden sm:inline mr-2">{timeStr}</span>
-                        <Link to="/forms"
-                            className="flex items-center gap-1.5 bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-sm transition-colors">
-                            <FileText size={14} /> Formularios
-                        </Link>
-                        <Link to="/forms/new"
-                            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors">
-                            <Plus size={14} /> Nuevo formulario
-                        </Link>
-                    </div>
-                </div>
-            </div>
-
-            {/* ─── 2. GRID DE 4 KPI CARDS ─────────────────────────────── */}
+            {/* ─── 1. GRID DE 4 KPI CARDS ─────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-6 py-4">
                 <KpiCard
                     title="Empresas activas"
