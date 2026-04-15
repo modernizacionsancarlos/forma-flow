@@ -63,6 +63,10 @@ const MainLayout = ({ children }) => {
   const { branding } = useBranding();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const municipalLogoPath = import.meta.env.VITE_MUNICIPAL_LOGO_PATH?.trim();
+  const municipalLogoFilter =
+    import.meta.env.VITE_MUNICIPAL_LOGO_FILTER?.trim() ||
+    "brightness(0) invert(1) opacity(0.92)";
 
   // Cerrar sidebar cuando cambia la ruta (solo en móvil)
   useEffect(() => {
@@ -131,6 +135,8 @@ const MainLayout = ({ children }) => {
     </nav>
   );
 
+  const brandLogoSrc = branding.logo_url || municipalLogoPath || null;
+
   return (
     <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden">
       <PWAInstallPrompt />
@@ -146,8 +152,13 @@ const MainLayout = ({ children }) => {
                 boxShadow: `0 4px 12px ${branding.primary_color}40`
               }}
             >
-              {branding.logo_url ? (
-                <img src={branding.logo_url} alt="Logo" className="w-6 h-6 object-contain" />
+              {brandLogoSrc ? (
+                <img
+                  src={brandLogoSrc}
+                  alt="Logo institucional"
+                  className="w-6 h-6 object-contain"
+                  style={!branding.logo_url ? { filter: municipalLogoFilter } : undefined}
+                />
               ) : (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white">
                   <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
@@ -185,8 +196,20 @@ const MainLayout = ({ children }) => {
             >
               <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-                    <LayoutDashboard size={18} className="text-white" />
+                  <div
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: branding.primary_color }}
+                  >
+                    {brandLogoSrc ? (
+                      <img
+                        src={brandLogoSrc}
+                        alt="Logo institucional"
+                        className="w-5 h-5 object-contain"
+                        style={!branding.logo_url ? { filter: municipalLogoFilter } : undefined}
+                      />
+                    ) : (
+                      <LayoutDashboard size={18} className="text-white" />
+                    )}
                   </div>
                   <span className="font-bold">FormaFlow</span>
                 </div>

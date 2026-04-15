@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Logo municipal local (privado, no versionar)
+public/local-assets/municipal-logo.*

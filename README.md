@@ -126,6 +126,19 @@ Las credenciales se encuentran en la [Consola de Firebase](https://console.fireb
 
 La clave VAPID para notificaciones push se obtiene en Firebase Console → Cloud Messaging → Web Push certificates.
 
+Opcional: para usar un logo privado (sin subir al repo), agrega estas variables en tu `.env` local:
+
+```bash
+VITE_MUNICIPAL_LOGO_PATH=/local-assets/municipal-logo.png
+VITE_MUNICIPAL_LOGO_FILTER=brightness(0) invert(1) opacity(0.92)
+```
+
+> `VITE_MUNICIPAL_LOGO_PATH` debe apuntar a un archivo dentro de `public/`.
+>  
+> Ejemplo recomendado (privado): `public/local-assets/municipal-logo.png`
+>  
+> Ese archivo está excluido del repositorio en `.gitignore`.
+
 ### 4. Levantar el Entorno de Desarrollo
 ```bash
 npm run dev
