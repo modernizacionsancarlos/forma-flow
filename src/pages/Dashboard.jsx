@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import { format } from "date-fns";
 import {
@@ -32,17 +31,17 @@ const PLAN_COLORS = {
 
 /* ══════════════════════════════════════════════════════════════════ */
 export default function Dashboard() {
-    const { user, currentProfile } = useAuth();
+    const { currentProfile } = useAuth();
 
     const isSuperAdmin = currentProfile?.role === "super_admin";
     const effectiveTenantId = isSuperAdmin ? null : (currentProfile?.tenantId || null);
 
     const { data: stats, isLoading: loadingStats } = useGlobalStats(effectiveTenantId);
     const { data: activityLogs, isLoading: loadingActivity } = useRecentActivity(effectiveTenantId);
-    const { tenants = [], isLoading: loadingTenants } = useTenants();
+    const { tenants = [] } = useTenants();
     const { forms } = useForms();
     const { users } = useUsers();
-    const { submissions, isLoading: loadingSubs } = useDashboardSubmissions(effectiveTenantId);
+    const { submissions } = useDashboardSubmissions(effectiveTenantId);
 
     const isLoading = loadingStats || loadingActivity;
 

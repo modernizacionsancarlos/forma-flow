@@ -201,7 +201,6 @@ const FormBuilder = () => {
   return (
     <div className="flex flex-col h-full bg-slate-950 font-inter text-slate-300">
       <BuilderHeader 
-        formId={formId}
         title={title} setTitle={setTitle}
         description={description} setDescription={setDescription}
         acceptsResponses={acceptsResponses} setAcceptsResponses={setAcceptsResponses}

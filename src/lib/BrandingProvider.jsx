@@ -5,35 +5,46 @@ import { useAuth } from "./AuthContext";
 import { hexToRgb, hexToHsl } from "./colorUtils";
 import { BrandingContext } from "./BrandingContext";
 
+const DEFAULT_BRANDING = {
+    primary_color: "#10b981",
+    logo_url: null,
+    name: "FormaFlow"
+};
+
+const readLocalBranding = (storageKey) => {
+    try {
+        const raw = window.localStorage.getItem(storageKey);
+        return raw ? JSON.parse(raw) : {};
+    } catch (error) {
+        console.error("Error cargando branding local:", error);
+        return {};
+    }
+};
+
 export const BrandingProvider = ({ children }) => {
     const { claims, user } = useAuth();
-    const defaultBranding = {
-        primary_color: "#10b981",
-        logo_url: null,
-        name: "FormaFlow"
-    };
-    const [baseBranding, setBaseBranding] = useState(defaultBranding);
-    const [localBranding, setLocalBranding] = useState({});
+    const [baseBranding, setBaseBranding] = useState(DEFAULT_BRANDING);
     const [loading, setLoading] = useState(true);
     const userIdentity = (claims?.email || user?.email || "anon").toLowerCase();
     const brandingStorageKey = `formaflow_branding_prefs_${userIdentity}`;
+    const [localBranding, setLocalBranding] = useState(() => readLocalBranding(brandingStorageKey));
 
     // Cargar overrides locales por usuario (no globales)
     useEffect(() => {
-        try {
-            const raw = window.localStorage.getItem(brandingStorageKey);
-            setLocalBranding(raw ? JSON.parse(raw) : {});
-        } catch (error) {
-            console.error("Error cargando branding local:", error);
-            setLocalBranding({});
-        }
+        // Diferimos el setState para evitar cascadas de render al cambiar de usuario.
+        const timer = setTimeout(() => {
+            setLocalBranding(readLocalBranding(brandingStorageKey));
+        }, 0);
+        return () => clearTimeout(timer);
     }, [brandingStorageKey]);
 
     useEffect(() => {
         // Si no hay tenantId o es el sistema central, usar valores por defecto
         if (!claims?.tenantId || claims.tenantId === "Central_System") {
-            setBaseBranding(defaultBranding);
-            const timer = setTimeout(() => setLoading(false), 0);
+            const timer = setTimeout(() => {
+                setBaseBranding(DEFAULT_BRANDING);
+                setLoading(false);
+            }, 0);
             return () => clearTimeout(timer);
         }
 

@@ -42,6 +42,7 @@ export default function Submissions() {
         dateTo: "",
         search: "",
     });
+    const [datePreset, setDatePreset] = useState("any");
 
     /* ── Fetch submissions ────────────────────────────────────── */
     const fetchSubmissions = async () => {
@@ -131,6 +132,37 @@ export default function Submissions() {
     };
 
     const clearFilters = () => setFilters({ status: "all", dateFrom: "", dateTo: "", search: "" });
+
+    const applyDatePreset = (preset) => {
+        setDatePreset(preset);
+
+        if (preset === "any") {
+            setFilters(prev => ({ ...prev, dateFrom: "", dateTo: "" }));
+            return;
+        }
+
+        if (preset === "custom") {
+            setShowFilters(true);
+            return;
+        }
+
+        const now = new Date();
+        const from = new Date(now);
+        if (preset === "today") {
+            from.setHours(0, 0, 0, 0);
+        } else if (preset === "7d") {
+            from.setDate(now.getDate() - 7);
+        } else if (preset === "30d") {
+            from.setDate(now.getDate() - 30);
+        }
+
+        const formatInputDate = (date) => date.toISOString().split("T")[0];
+        setFilters(prev => ({
+            ...prev,
+            dateFrom: formatInputDate(from),
+            dateTo: formatInputDate(now),
+        }));
+    };
 
     /* ── Helpers ──────────────────────────────────────────────── */
     const getFormName = (id) => formsList.find(f => f.id === id)?.name || formsList.find(f => f.id === id)?.title || "—";
@@ -244,11 +276,15 @@ export default function Submissions() {
                             ))}
                         </select>
                         <select
-                            value={filters.dateFrom ? "custom" : "any"}
-                            onChange={() => {}}
+                            value={datePreset}
+                            onChange={(e) => applyDatePreset(e.target.value)}
                             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-emerald-500 hidden sm:block"
                         >
                             <option value="any">Cualquier fecha</option>
+                            <option value="today">Hoy</option>
+                            <option value="7d">Últimos 7 días</option>
+                            <option value="30d">Últimos 30 días</option>
+                            <option value="custom">Rango personalizado</option>
                         </select>
                     </div>
                 </div>

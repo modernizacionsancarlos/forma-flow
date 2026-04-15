@@ -1,15 +1,16 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Save, Settings, Infinity as InfinityIcon } from "lucide-react";
+import { ArrowLeft, Save, Settings, Infinity as InfinityIcon, X } from "lucide-react";
 
 const BuilderHeader = ({ 
-  formId,
   title, setTitle, 
   description, setDescription, 
   acceptsResponses, setAcceptsResponses, 
   isPublic, setIsPublic, 
   onSave, saveStatus 
 }) => {
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+
   return (
     <div className="flex flex-col border-b border-slate-800 bg-slate-950 shrink-0 relative z-50">
       {/* Header Fila 1 */}
@@ -35,7 +36,11 @@ const BuilderHeader = ({
         </div>
 
         <div className="flex items-center gap-3">
-          <button className="p-2.5 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700">
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="p-2.5 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700"
+            type="button"
+          >
             <Settings size={18} />
           </button>
           
@@ -76,6 +81,67 @@ const BuilderHeader = ({
           <span className={isPublic ? "text-white" : ""}>Hacer Público</span>
         </div>
       </div>
+
+      {showSettingsModal && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowSettingsModal(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-5 border-b border-slate-800">
+              <h3 className="text-white font-semibold">Configuración del Formulario</h3>
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="p-1 text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-5 space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white font-medium">Aceptar respuestas</p>
+                  <p className="text-xs text-slate-500">Permite nuevos envíos en el portal público.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAcceptsResponses(!acceptsResponses)}
+                  className={`w-11 h-6 rounded-full relative transition-colors ${acceptsResponses ? "bg-emerald-500" : "bg-slate-700"}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${acceptsResponses ? "left-[22px]" : "left-0.5"}`} />
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-white font-medium">Formulario público</p>
+                  <p className="text-xs text-slate-500">Disponible sin autenticación para ciudadanos.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsPublic(!isPublic)}
+                  className={`w-11 h-6 rounded-full relative transition-colors ${isPublic ? "bg-emerald-500" : "bg-slate-700"}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-all ${isPublic ? "left-[22px]" : "left-0.5"}`} />
+                </button>
+              </div>
+            </div>
+            <div className="p-5 border-t border-slate-800 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowSettingsModal(false)}
+                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium transition-colors"
+              >
+                Listo
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
