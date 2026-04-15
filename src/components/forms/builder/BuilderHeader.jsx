@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Save, Infinity as InfinityIcon, Eye, ExternalLink } from "lucide-react";
+import { ArrowLeft, Save, Settings, Infinity as InfinityIcon } from "lucide-react";
 
 const BuilderHeader = ({ 
   formId,
@@ -11,83 +11,72 @@ const BuilderHeader = ({
   onSave, saveStatus 
 }) => {
   return (
-    <>
+    <div className="flex flex-col border-b border-slate-800 bg-slate-950 shrink-0 relative z-50">
       {/* Header Fila 1 */}
-      <div className="flex justify-between items-center px-8 py-4 border-b border-white/5 bg-slate-950/80 backdrop-blur shrink-0 relative z-50 shadow-2xl">
-        <div className="flex items-center space-x-6">
-          <Link to="/forms" className="p-3 text-slate-500 hover:text-white bg-slate-900 rounded-2xl border border-white/5 transition-all shadow-xl hover:scale-105 active:scale-95">
-            <ArrowLeft size={18} />
+      <div className="flex justify-between items-center px-6 py-4">
+        <div className="flex items-center gap-4">
+          <Link to="/forms" className="p-2 text-slate-400 hover:text-white transition-colors">
+            <ArrowLeft size={20} />
           </Link>
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col">
              <input 
               value={title} 
               onChange={(e) => setTitle(e.target.value)}
-              className="bg-transparent text-xl font-black text-white focus:outline-none placeholder:text-slate-700 tracking-tighter w-96 uppercase italic transition-all focus:placeholder:opacity-0"
+              className="bg-transparent text-lg font-semibold text-white focus:outline-none placeholder:text-slate-600 w-96"
               placeholder="Nombre del formulario..."
             />
             <input 
               value={description} 
               onChange={(e) => setDescription(e.target.value)}
-              className="bg-transparent text-[11px] text-slate-600 font-bold focus:outline-none placeholder:text-slate-800 mt-1 w-[32rem] uppercase tracking-wider transition-all focus:placeholder:opacity-0"
-              placeholder="Añade una descripción estratégica..."
+              className="bg-transparent text-sm text-slate-500 focus:outline-none placeholder:text-slate-600 mt-0.5 w-[32rem]"
+              placeholder="Añade una descripción..."
             />
           </div>
         </div>
 
-        <div className="flex items-center space-x-6">
-          {formId && (
-            <a 
-              href={`/public-form/${formId}`} 
-              target="_blank" 
-              rel="noreferrer"
-              className="flex items-center space-x-3 text-slate-500 hover:text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all hover:bg-slate-900 border border-transparent hover:border-white/5 active:scale-95 group"
-            >
-              <Eye size={16} className="text-slate-600 group-hover:text-emerald-500 transition-colors" />
-              <span>Vista Previa</span>
-              <ExternalLink size={12} className="opacity-30" />
-            </a>
-          )}
+        <div className="flex items-center gap-3">
+          <button className="p-2.5 bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-slate-700">
+            <Settings size={18} />
+          </button>
           
           <button 
             onClick={onSave}
             disabled={saveStatus === "saving"}
-            className="flex items-center space-x-4 bg-emerald-600 hover:bg-emerald-500 text-white px-10 py-4 rounded-[1.5rem] text-[10px] font-black uppercase tracking-[0.2em] transition-all shadow-2xl shadow-emerald-500/20 active:scale-95 disabled:opacity-50 relative overflow-hidden group/save"
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
           >
-            <div className="absolute inset-0 bg-white/10 -translate-x-full group-hover/save:translate-x-0 transition-transform duration-700"></div>
-            <Save size={18} className={saveStatus === "saving" ? "animate-spin" : "relative z-10"} />
-            <span className="relative z-10">{saveStatus === "saving" ? "Guardando..." : "Sincronizar"}</span>
+            <Save size={16} className={saveStatus === "saving" ? "animate-spin" : ""} />
+            <span>{saveStatus === "saving" ? "Guardando..." : "Guardar"}</span>
           </button>
         </div>
       </div>
 
-      <div className="flex items-center px-8 py-4 border-b border-white/5 bg-slate-950/20 backdrop-blur-3xl text-[9px] font-black uppercase tracking-[0.2em] gap-12 text-slate-500 shrink-0 select-none">
-        <div className="flex items-center space-x-4 group">
-          <InfinityIcon size={14} className="text-slate-700 group-hover:text-emerald-500 transition-colors" />
-          <span className="group-hover:text-slate-300 transition-colors">Límite:</span>
-          <span className="text-emerald-500/60 bg-emerald-500/5 px-3 py-1 rounded-lg border border-emerald-500/10 font-mono tracking-normal shadow-inner">ILIMITADO</span>
+      {/* Header Fila 2 */}
+      <div className="flex items-center px-14 pb-3 text-sm gap-8 text-slate-400 select-none">
+        <div className="flex items-center gap-2">
+          <InfinityIcon size={16} className="text-slate-500" />
+          <span>Límite de Respuestas:</span>
+          <span className="text-white">Sin límite</span>
         </div>
 
-        <div className="h-4 w-[1px] bg-white/5"></div>
-
-        <div className="flex items-center space-x-5 cursor-pointer group" onClick={() => setAcceptsResponses(!acceptsResponses)}>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setAcceptsResponses(!acceptsResponses)}>
           <div 
-            className={`w-12 h-6 rounded-full relative transition-all duration-500 ease-out ${acceptsResponses ? 'bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.3)]' : 'bg-slate-900 border border-white/10'}`}
+            className={`w-10 h-5 rounded-full relative transition-colors ${acceptsResponses ? 'bg-emerald-500' : 'bg-slate-700'}`}
           >
-            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-500 shadow-xl ${acceptsResponses ? 'left-[26px]' : 'left-1'}`}></div>
+            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${acceptsResponses ? 'left-[22px]' : 'left-0.5'}`}></div>
           </div>
-          <span className={`transition-all duration-500 ${acceptsResponses ? "text-emerald-500" : "group-hover:text-slate-300"}`}>Acepta Respuestas</span>
+          <span className={acceptsResponses ? "text-white" : ""}>Acepta Respuestas</span>
         </div>
 
-        <div className="flex items-center space-x-5 cursor-pointer group" onClick={() => setIsPublic(!isPublic)}>
+        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setIsPublic(!isPublic)}>
           <div 
-            className={`w-12 h-6 rounded-full relative transition-all duration-500 ease-out ${isPublic ? 'bg-blue-600 shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-slate-900 border border-white/10'}`}
+            className={`w-10 h-5 rounded-full relative transition-colors ${isPublic ? 'bg-emerald-500' : 'bg-slate-700'}`}
           >
-            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-500 shadow-xl ${isPublic ? 'left-[26px]' : 'left-1'}`}></div>
+            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${isPublic ? 'left-[22px]' : 'left-0.5'}`}></div>
           </div>
-          <span className={`transition-all duration-500 ${isPublic ? "text-blue-500" : "group-hover:text-slate-300"}`}>Acceso Público {isPublic ? "(LIVE)" : "(DRAFT)"}</span>
+          <span className={isPublic ? "text-white" : ""}>Hacer Público</span>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
