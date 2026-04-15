@@ -74,9 +74,15 @@ const MainLayout = ({ children }) => {
     import.meta.env.VITE_MUNICIPAL_LOGO_PATH?.trim() || "/local-assets/municipal-logo.png";
   const municipalLogoFilter =
     import.meta.env.VITE_MUNICIPAL_LOGO_FILTER?.trim() || "none";
+  const localUserIdentity = (claims?.email || user?.email || "anon").toLowerCase();
+  const localLogoStorageKey = `formaflow_local_logo_data_url_${localUserIdentity}`;
   const [localLogoOverride] = useState(() => {
     try {
-      return window.localStorage.getItem("formaflow_local_logo_data_url") || "";
+      return (
+        window.localStorage.getItem(localLogoStorageKey) ||
+        window.localStorage.getItem("formaflow_local_logo_data_url") ||
+        ""
+      );
     } catch {
       return "";
     }
@@ -295,7 +301,7 @@ const MainLayout = ({ children }) => {
               <h2 className="text-lg md:text-xl font-medium text-slate-50 transition-all cursor-default truncate max-w-[260px] md:max-w-none">
                 {greetingText} {greetingEmoji} <span className="font-bold">{displayName}</span>
               </h2>
-              <span className="text-xs text-slate-400 hidden md:block">
+              <span className="text-sm font-black text-emerald-300 hidden md:block tracking-wide">
                 {timeStr} · {displayName}
               </span>
             </div>

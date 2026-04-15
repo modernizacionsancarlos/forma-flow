@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { Save, Layout, Palette, Loader2, Image as ImageIcon, Upload, Trash2 } from "lucide-react";
-import { useTenants } from "../api/useTenants";
 import { useAuth } from "../lib/AuthContext";
+import { useBranding } from "../lib/useBranding";
 
-const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
+const BrandingTab = ({ currentBranding, onSave, onReset, isLoading, localLogoStorageKey }) => {
   const [formData, setFormData] = useState({
-    name: currentTenant?.name || "",
-    logo_url: currentTenant?.branding?.logo_url || "",
-    primary_color: currentTenant?.branding?.primary_color || "#10b981",
-    theme: currentTenant?.settings?.theme || "dark"
+    name: currentBranding?.name || "",
+    logo_url: currentBranding?.logo_url || "",
+    primary_color: currentBranding?.primary_color || "#10b981",
+    theme: "dark"
   });
   const [isUploadingLocalLogo, setIsUploadingLocalLogo] = useState(false);
 
@@ -28,8 +28,8 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
         reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
         reader.readAsDataURL(file);
       });
-      window.localStorage.setItem("formaflow_local_logo_data_url", String(dataUrl));
-      alert("Logo local aplicado en este equipo.");
+      window.localStorage.setItem(localLogoStorageKey, String(dataUrl));
+      alert("Logo local aplicado en este usuario/equipo.");
     } catch (error) {
       console.error("Error al cargar logo local:", error);
       alert("No se pudo cargar el logo local.");
@@ -40,6 +40,7 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
   };
 
   const handleClearLocalLogo = () => {
+    window.localStorage.removeItem(localLogoStorageKey);
     window.localStorage.removeItem("formaflow_local_logo_data_url");
     alert("Logo local eliminado. Se usará el logo por URL o el predeterminado.");
   };
@@ -74,7 +75,7 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
               Logo Institucional (Local)
             </p>
             <p className="text-sm text-slate-400 leading-relaxed">
-              Puedes cargar un archivo local solo para este equipo/navegador.
+              Puedes cargar un archivo local solo para este usuario en este equipo.
               No se sube al repositorio y no afecta a otros usuarios.
             </p>
             <div className="mt-3 flex items-center gap-2">
@@ -149,18 +150,28 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
       </div>
 
       <div className="flex justify-end pt-4">
-        <button 
-          onClick={() => onSave(formData)}
-          disabled={isLoading}
-          className="group flex items-center space-x-2 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 bg-[#10b981] hover:bg-[#10b981]/80 text-[#0a101b] shadow-[#10b981]/20 disabled:opacity-50"
-        >
-          {isLoading ? (
-            <Loader2 size={18} className="animate-spin" />
-          ) : (
-            <Save size={18} className="group-hover:scale-110 transition-transform" />
-          )}
-          <span>Guardar Configuración de Marca</span>
-        </button>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={onReset}
+            className="flex items-center space-x-2 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-slate-700 text-slate-300 hover:border-slate-500"
+          >
+            <Trash2 size={16} />
+            <span>Restablecer local</span>
+          </button>
+          <button 
+            onClick={() => onSave(formData)}
+            disabled={isLoading}
+            className="group flex items-center space-x-2 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 bg-[#10b981] hover:bg-[#10b981]/80 text-[#0a101b] shadow-[#10b981]/20 disabled:opacity-50"
+          >
+            {isLoading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Save size={18} className="group-hover:scale-110 transition-transform" />
+            )}
+            <span>Guardar Personalización Local</span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -168,29 +179,31 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
 
 const Configuracion = () => {
   const [activeTab, setActiveTab] = useState("general");
-  const { claims } = useAuth();
-  const { tenants, updateTenant } = useTenants();
-  
-  const currentTenant = tenants?.find(t => t.id === claims.tenantId) || tenants?.[0];
+  const { claims, user } = useAuth();
+  const { branding, saveLocalBranding, resetLocalBranding } = useBranding();
+  const localUserIdentity = (claims?.email || user?.email || "anon").toLowerCase();
+  const localLogoStorageKey = `formaflow_local_logo_data_url_${localUserIdentity}`;
+  const displayName = claims?.full_name || user?.displayName || claims?.email?.split("@")[0] || "usuario";
 
-  const handleSaveBranding = async (formData) => {
-    if (!currentTenant) return;
+  const handleSaveBranding = (formData) => {
     try {
-      await updateTenant.mutateAsync({
-        tenantId: currentTenant.id,
-        updates: {
-          name: formData.name,
-          branding: {
-            logo_url: formData.logo_url,
-            primary_color: formData.primary_color
-          }
-        }
+      saveLocalBranding({
+        name: formData.name,
+        logo_url: formData.logo_url,
+        primary_color: formData.primary_color,
       });
-      alert("Configuración de marca actualizada");
+      alert("Personalización local guardada para tu usuario.");
     } catch (err) {
-      console.error("Error saving branding:", err);
-      alert("Error al actualizar la marca");
+      console.error("Error saving local branding:", err);
+      alert("Error al guardar personalización local");
     }
+  };
+
+  const handleResetLocalBranding = () => {
+    resetLocalBranding();
+    window.localStorage.removeItem(localLogoStorageKey);
+    window.localStorage.removeItem("formaflow_local_logo_data_url");
+    alert("Personalización local restablecida para tu usuario.");
   };
   
   return (
@@ -198,7 +211,9 @@ const Configuracion = () => {
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Configuración</h1>
-          <p className="text-slate-500 text-sm mt-1 font-medium italic">Ajustes globales del sistema para {currentTenant?.name}</p>
+          <p className="text-slate-500 text-sm mt-1 font-medium italic">
+            Ajustes locales de apariencia para {displayName}
+          </p>
         </div>
       </div>
 
@@ -235,12 +250,14 @@ const Configuracion = () => {
           </div>
         )}
 
-        {activeTab === 'branding' && currentTenant && (
+        {activeTab === 'branding' && (
           <BrandingTab 
-            key={currentTenant.id}
-            currentTenant={currentTenant}
+            key={localUserIdentity}
+            currentBranding={branding}
             onSave={handleSaveBranding}
-            isLoading={updateTenant.isLoading}
+            onReset={handleResetLocalBranding}
+            isLoading={false}
+            localLogoStorageKey={localLogoStorageKey}
           />
         )}
       </div>
