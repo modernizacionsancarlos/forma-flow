@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # ⚡ Forma Flow
 
@@ -264,4 +264,3 @@ forma-flow/
 *Interfaces de nivel mundial para la gestión pública ágil.*
 
 </div>
-]]>
