@@ -144,15 +144,17 @@ const MainLayout = ({ children }) => {
       
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
-        <div className="p-6">
-          <div className="flex items-center pb-6 border-b border-slate-800/50 min-h-[72px]">
+        <div className="px-4 pt-3 pb-2">
+          <div className="flex items-center pb-3 border-b border-slate-800/50 min-h-[84px]">
             {isUsingLocalMunicipalLogo ? (
-              <img
-                src={brandLogoSrc}
-                alt="Logo Municipalidad de San Carlos"
-                className="h-16 w-auto max-w-[240px] object-contain object-left select-none"
-                style={{ filter: municipalLogoFilter }}
-              />
+              <div className="w-full pr-1">
+                <img
+                  src={brandLogoSrc}
+                  alt="Logo Municipalidad de San Carlos"
+                  className="h-[72px] w-full object-contain object-left select-none"
+                  style={{ filter: municipalLogoFilter, mixBlendMode: "screen" }}
+                />
+              </div>
             ) : (
               <>
                 <div
@@ -203,21 +205,30 @@ const MainLayout = ({ children }) => {
             >
               <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
                 <div className="flex items-center space-x-3">
-                  <div
-                    className="w-8 h-8 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: branding.primary_color }}
-                  >
-                    {brandLogoSrc ? (
-                      <img
-                        src={brandLogoSrc}
-                        alt="Logo institucional"
-                        className="w-5 h-5 object-contain"
-                        style={!branding.logo_url && municipalLogoFilter !== "none" ? { filter: municipalLogoFilter } : undefined}
-                      />
-                    ) : (
-                      <LayoutDashboard size={18} className="text-white" />
-                    )}
-                  </div>
+                  {isUsingLocalMunicipalLogo ? (
+                    <img
+                      src={brandLogoSrc}
+                      alt="Logo Municipalidad de San Carlos"
+                      className="h-8 w-24 object-contain object-left select-none"
+                      style={{ filter: municipalLogoFilter, mixBlendMode: "screen" }}
+                    />
+                  ) : (
+                    <div
+                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      style={{ backgroundColor: branding.primary_color }}
+                    >
+                      {brandLogoSrc ? (
+                        <img
+                          src={brandLogoSrc}
+                          alt="Logo institucional"
+                          className="w-5 h-5 object-contain"
+                          style={!branding.logo_url && municipalLogoFilter !== "none" ? { filter: municipalLogoFilter } : undefined}
+                        />
+                      ) : (
+                        <LayoutDashboard size={18} className="text-white" />
+                      )}
+                    </div>
+                  )}
                   <span className="font-bold">FormaFlow</span>
                 </div>
                 <button onClick={toggleSidebar} className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
