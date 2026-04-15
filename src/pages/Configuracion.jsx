@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import { Settings, Save, Shield, Database, Layout, Palette, Image as ImageIcon, Loader2 } from "lucide-react";
+import { Save, Layout, Palette, Loader2 } from "lucide-react";
 import { useTenants } from "../api/useTenants";
 import { useAuth } from "../lib/AuthContext";
 
 const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
   const [formData, setFormData] = useState({
     name: currentTenant?.name || "",
-    logo_url: currentTenant?.branding?.logo_url || "",
     primary_color: currentTenant?.branding?.primary_color || "#10b981",
     theme: currentTenant?.settings?.theme || "dark"
   });
@@ -36,18 +35,14 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">URL del Logo (PNG/SVG)</label>
-            <div className="relative">
-              <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
-              <input 
-                type="text"
-                value={formData.logo_url}
-                onChange={(e) => setFormData({...formData, logo_url: e.target.value})}
-                placeholder="https://ejemplo.com/logo.png"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#10b981] transition-all text-white"
-              />
-            </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2">
+              Logo Institucional
+            </p>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              La carga de logo se gestiona manualmente a nivel local del entorno.
+              Esta configuración fue deshabilitada para evitar cambios accidentales.
+            </p>
           </div>
 
           <div>
@@ -76,11 +71,7 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
               className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
               style={{ backgroundColor: formData.primary_color }}
             >
-              {formData.logo_url ? (
-                <img src={formData.logo_url} alt="Logo" className="w-5 h-5 object-contain" />
-              ) : (
-                <div className="w-5 h-5 bg-white/20 rounded-full" />
-              )}
+              <div className="w-5 h-5 bg-white/20 rounded-full" />
             </div>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-white truncate w-24">{formData.name || "Institución"}</span>
@@ -123,7 +114,7 @@ const Configuracion = () => {
         updates: {
           name: formData.name,
           branding: {
-            logo_url: formData.logo_url,
+            logo_url: currentTenant?.branding?.logo_url || "",
             primary_color: formData.primary_color
           }
         }

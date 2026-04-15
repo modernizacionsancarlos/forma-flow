@@ -144,14 +144,14 @@ const MainLayout = ({ children }) => {
       
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
-        <div className="px-4 pt-3 pb-2">
-          <div className="flex items-center pb-3 border-b border-slate-800/50 min-h-[84px]">
+        <div className="px-2 pt-2 pb-1">
+          <div className="flex items-center pb-2 border-b border-slate-800/50 min-h-[88px]">
             {isUsingLocalMunicipalLogo ? (
-              <div className="w-full pr-1">
+              <div className="w-full px-1">
                 <img
                   src={brandLogoSrc}
                   alt="Logo Municipalidad de San Carlos"
-                  className="h-[72px] w-full object-contain object-left select-none"
+                  className="h-[78px] w-full object-contain object-left select-none"
                   style={{ filter: municipalLogoFilter, mixBlendMode: "screen" }}
                 />
               </div>
