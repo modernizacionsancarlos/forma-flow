@@ -159,6 +159,20 @@ npm run build-deploy
 
 ---
 
+## 🔥 Flujo Firebase CLI (Cursor)
+
+Para ejecutar Firebase desde terminal en Cursor (Windows/PowerShell), sigue la guía paso a paso:
+
+👉 `docs/firebase-cli-flujo-recomendado.md`
+
+Comando base recomendado:
+
+```bash
+npx.cmd -y firebase-tools@latest <comando>
+```
+
+---
+
 ## 📊 Diagramas de Flujo
 
 ### Proceso de Creación (Administrador)
