@@ -66,7 +66,7 @@ const getGreetingByHour = (hour) => {
 };
 
 const MainLayout = ({ children }) => {
-  const { logout, claims } = useAuth();
+  const { logout, claims, user, currentProfile } = useAuth();
   const { branding } = useBranding();
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -161,7 +161,19 @@ const MainLayout = ({ children }) => {
     Boolean(brandLogoSrc) &&
     (Boolean(localLogoOverride) || (!branding.logo_url && Boolean(municipalLogoPath)));
   const { text: greetingText, emoji: greetingEmoji } = getGreetingByHour(currentTime.getHours());
-  const displayName = claims.email?.split("@")[0] || "Usuario";
+  const displayName =
+    currentProfile?.full_name ||
+    user?.displayName ||
+    claims?.name ||
+    claims?.email?.split("@")[0] ||
+    "Usuario";
+  const timeStr = currentTime.toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden">
@@ -283,7 +295,9 @@ const MainLayout = ({ children }) => {
               <h2 className="text-lg md:text-xl font-medium text-slate-50 transition-all cursor-default truncate max-w-[260px] md:max-w-none">
                 {greetingText} {greetingEmoji} <span className="font-bold">{displayName}</span>
               </h2>
-              <span className="text-xs text-slate-400 hidden md:block">Panel de control · FormFlow SaaS</span>
+              <span className="text-xs text-slate-400 hidden md:block">
+                {timeStr} · {displayName}
+              </span>
             </div>
           </div>
           
