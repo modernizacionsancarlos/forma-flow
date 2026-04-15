@@ -67,6 +67,13 @@ const MainLayout = ({ children }) => {
     import.meta.env.VITE_MUNICIPAL_LOGO_PATH?.trim() || "/local-assets/municipal-logo.png";
   const municipalLogoFilter =
     import.meta.env.VITE_MUNICIPAL_LOGO_FILTER?.trim() || "none";
+  const [localLogoOverride] = useState(() => {
+    try {
+      return window.localStorage.getItem("formaflow_local_logo_data_url") || "";
+    } catch {
+      return "";
+    }
+  });
 
   // Cerrar sidebar cuando cambia la ruta (solo en móvil)
   useEffect(() => {
@@ -135,8 +142,10 @@ const MainLayout = ({ children }) => {
     </nav>
   );
 
-  const brandLogoSrc = branding.logo_url || municipalLogoPath || null;
-  const isUsingLocalMunicipalLogo = Boolean(brandLogoSrc) && !branding.logo_url;
+  const brandLogoSrc = localLogoOverride || branding.logo_url || municipalLogoPath || null;
+  const isUsingLocalMunicipalLogo =
+    Boolean(brandLogoSrc) &&
+    (Boolean(localLogoOverride) || (!branding.logo_url && Boolean(municipalLogoPath)));
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden">

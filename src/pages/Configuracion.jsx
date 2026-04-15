@@ -1,14 +1,48 @@
 import React, { useState } from "react";
-import { Save, Layout, Palette, Loader2 } from "lucide-react";
+import { Save, Layout, Palette, Loader2, Image as ImageIcon, Upload, Trash2 } from "lucide-react";
 import { useTenants } from "../api/useTenants";
 import { useAuth } from "../lib/AuthContext";
 
 const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
   const [formData, setFormData] = useState({
     name: currentTenant?.name || "",
+    logo_url: currentTenant?.branding?.logo_url || "",
     primary_color: currentTenant?.branding?.primary_color || "#10b981",
     theme: currentTenant?.settings?.theme || "dark"
   });
+  const [isUploadingLocalLogo, setIsUploadingLocalLogo] = useState(false);
+
+  const handleLocalLogoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      alert("Selecciona un archivo de imagen válido.");
+      return;
+    }
+
+    setIsUploadingLocalLogo(true);
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error("No se pudo leer el archivo."));
+        reader.readAsDataURL(file);
+      });
+      window.localStorage.setItem("formaflow_local_logo_data_url", String(dataUrl));
+      alert("Logo local aplicado en este equipo.");
+    } catch (error) {
+      console.error("Error al cargar logo local:", error);
+      alert("No se pudo cargar el logo local.");
+    } finally {
+      setIsUploadingLocalLogo(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleClearLocalLogo = () => {
+    window.localStorage.removeItem("formaflow_local_logo_data_url");
+    alert("Logo local eliminado. Se usará el logo por URL o el predeterminado.");
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in">
@@ -37,12 +71,41 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
 
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
             <p className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-2">
-              Logo Institucional
+              Logo Institucional (Local)
             </p>
             <p className="text-sm text-slate-400 leading-relaxed">
-              La carga de logo se gestiona manualmente a nivel local del entorno.
-              Esta configuración fue deshabilitada para evitar cambios accidentales.
+              Puedes cargar un archivo local solo para este equipo/navegador.
+              No se sube al repositorio y no afecta a otros usuarios.
             </p>
+            <div className="mt-3 flex items-center gap-2">
+              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-xs font-semibold cursor-pointer transition-colors">
+                <Upload size={14} />
+                {isUploadingLocalLogo ? "Cargando..." : "Subir archivo local"}
+                <input type="file" accept="image/*" className="hidden" onChange={handleLocalLogoUpload} />
+              </label>
+              <button
+                type="button"
+                onClick={handleClearLocalLogo}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 hover:border-slate-500 text-slate-300 text-xs font-semibold transition-colors"
+              >
+                <Trash2 size={14} />
+                Quitar local
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">URL del Logo (Opcional)</label>
+            <div className="relative">
+              <ImageIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={16} />
+              <input
+                type="text"
+                value={formData.logo_url}
+                onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                placeholder="https://ejemplo.com/logo.png"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-12 pr-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-[#10b981] transition-all text-white"
+              />
+            </div>
           </div>
 
           <div>
@@ -71,7 +134,11 @@ const BrandingTab = ({ currentTenant, onSave, isLoading }) => {
               className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden"
               style={{ backgroundColor: formData.primary_color }}
             >
-              <div className="w-5 h-5 bg-white/20 rounded-full" />
+              {formData.logo_url ? (
+                <img src={formData.logo_url} alt="Logo URL" className="w-5 h-5 object-contain" />
+              ) : (
+                <div className="w-5 h-5 bg-white/20 rounded-full" />
+              )}
             </div>
             <div className="flex flex-col">
               <span className="text-xs font-bold text-white truncate w-24">{formData.name || "Institución"}</span>
@@ -114,7 +181,7 @@ const Configuracion = () => {
         updates: {
           name: formData.name,
           branding: {
-            logo_url: currentTenant?.branding?.logo_url || "",
+            logo_url: formData.logo_url,
             primary_color: formData.primary_color
           }
         }
@@ -147,7 +214,7 @@ const Configuracion = () => {
             onClick={() => setActiveTab("branding")}
             className={`pb-4 text-xs font-black uppercase tracking-widest transition-all relative ${activeTab === 'branding' ? 'text-slate-300' : 'text-slate-600 hover:text-slate-400'}`}
          >
-           Marca Blanca
+           Apariencia
            {activeTab === 'branding' && <span className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-slate-500 shadow-[0_0_8px_rgba(100,116,139,0.5)]"></span>}
          </button>
       </div>
