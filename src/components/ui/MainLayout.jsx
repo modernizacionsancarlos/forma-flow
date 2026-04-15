@@ -66,8 +66,7 @@ const MainLayout = ({ children }) => {
   const municipalLogoPath =
     import.meta.env.VITE_MUNICIPAL_LOGO_PATH?.trim() || "/local-assets/municipal-logo.png";
   const municipalLogoFilter =
-    import.meta.env.VITE_MUNICIPAL_LOGO_FILTER?.trim() ||
-    "brightness(0) invert(1) opacity(0.92)";
+    import.meta.env.VITE_MUNICIPAL_LOGO_FILTER?.trim() || "none";
 
   // Cerrar sidebar cuando cambia la ruta (solo en móvil)
   useEffect(() => {
@@ -146,12 +145,12 @@ const MainLayout = ({ children }) => {
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
         <div className="p-6">
-          <div className="flex items-center space-x-3 pb-8 border-b border-slate-800/50 min-h-[68px]">
+          <div className="flex items-center pb-6 border-b border-slate-800/50 min-h-[72px]">
             {isUsingLocalMunicipalLogo ? (
               <img
                 src={brandLogoSrc}
                 alt="Logo Municipalidad de San Carlos"
-                className="h-14 w-full max-w-[220px] object-contain object-left"
+                className="h-16 w-auto max-w-[240px] object-contain object-left select-none"
                 style={{ filter: municipalLogoFilter }}
               />
             ) : (
@@ -213,7 +212,7 @@ const MainLayout = ({ children }) => {
                         src={brandLogoSrc}
                         alt="Logo institucional"
                         className="w-5 h-5 object-contain"
-                        style={!branding.logo_url ? { filter: municipalLogoFilter } : undefined}
+                        style={!branding.logo_url && municipalLogoFilter !== "none" ? { filter: municipalLogoFilter } : undefined}
                       />
                     ) : (
                       <LayoutDashboard size={18} className="text-white" />
