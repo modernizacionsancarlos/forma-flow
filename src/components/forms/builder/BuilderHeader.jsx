@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Infinity as InfinityIcon, Save, Settings2 } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, Infinity as InfinityIcon, Save, Settings2 } from "lucide-react";
 
 const Toggle = ({ checked, onChange, label }) => (
   <button type="button" onClick={onChange} className="flex items-center gap-2 text-xs text-slate-300">
@@ -32,6 +32,8 @@ const BuilderHeader = ({
   setIsPublic,
   responseLimit,
   onOpenResponseLimit,
+  publicUrl,
+  onCopyPublicUrl,
   onSave,
   saveStatus,
 }) => {
@@ -87,6 +89,29 @@ const BuilderHeader = ({
 
         <Toggle checked={acceptsResponses} onChange={() => setAcceptsResponses((prev) => !prev)} label="Acepta Respuestas" />
         <Toggle checked={isPublic} onChange={() => setIsPublic((prev) => !prev)} label="Hacer Público" />
+
+        {isPublic && publicUrl && (
+          <div className="flex items-center gap-2 rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2 py-1">
+            <span className="max-w-[22rem] truncate text-emerald-300">{publicUrl}</span>
+            <button
+              type="button"
+              onClick={onCopyPublicUrl}
+              className="rounded p-1 text-emerald-300 transition-colors hover:bg-emerald-500/10"
+              title="Copiar URL pública"
+            >
+              <Copy size={13} />
+            </button>
+            <a
+              href={publicUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="rounded p-1 text-emerald-300 transition-colors hover:bg-emerald-500/10"
+              title="Abrir formulario público"
+            >
+              <ExternalLink size={13} />
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

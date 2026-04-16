@@ -64,6 +64,8 @@ const AppRoutes = () => {
       <Routes location={location} key={location.pathname}>
         <Route path="/login" element={<Login />} />
         <Route path="/view/:formId" element={<PublicForm />} />
+        <Route path="/public-form/:formId" element={<PublicForm />} />
+        <Route path="/public-form" element={<PublicForm />} />
         <Route path="/portal" element={<CitizenPortal />} />
         
         <Route path="/" element={

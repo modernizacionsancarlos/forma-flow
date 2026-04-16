@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router-dom";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useForms } from "../api/useForms";
 import { useSubmissions } from "../api/useSubmissions";
 import { 
@@ -26,6 +26,7 @@ import { toast } from "react-hot-toast";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { hexToRgb, hexToHsl } from "../lib/colorUtils";
+import { getRootFields, getSectionChildren, normalizeFormDocument } from "../lib/formBuilder";
 
 
 // --- Sub-components for Form Fields ---
@@ -186,7 +187,9 @@ const GPSField = ({ value, onChange, label, error, disabled }) => {
 // --- Main Public Form Component ---
 
 const PublicFormView = () => {
-  const { formId } = useParams();
+  const { formId: formIdParam } = useParams();
+  const [searchParams] = useSearchParams();
+  const formId = formIdParam || searchParams.get("id");
   const { getFormById } = useForms();
   const { submitForm } = useSubmissions();
   
@@ -200,6 +203,22 @@ const PublicFormView = () => {
     logo_url: null,
     name: "FormaFlow"
   });
+  const normalizedForm = useMemo(
+    () => (formSchema ? normalizeFormDocument(formSchema) : null),
+    [formSchema]
+  );
+  const allFields = useMemo(() => normalizedForm?.fields || [], [normalizedForm]);
+  const rootFields = useMemo(() => getRootFields(allFields), [allFields]);
+  const normalizeOptions = (field) =>
+    (field.options || []).map((option, index) =>
+      typeof option === "string"
+        ? { id: `${field.id}_${index}`, label: option, value: option }
+        : {
+            id: option.id || `${field.id}_${index}`,
+            label: option.label || option.value || `Opción ${index + 1}`,
+            value: option.value || option.label || `option_${index + 1}`,
+          }
+    );
 
   // Suscripción al branding del tenant una vez se carga el formulario
   useEffect(() => {
@@ -233,10 +252,10 @@ const PublicFormView = () => {
       try {
         const schema = await getFormById(formId);
         if (schema && (schema.is_public || schema.status === "active")) {
+          const normalized = normalizeFormDocument(schema);
           setFormSchema(schema);
           setStatus("ready");
-          const allFields = schema.sections?.flatMap(s => s.fields) || schema.fields || [];
-          const initialData = allFields.reduce((acc, f) => ({ ...acc, [f.id]: f.type === "boolean" ? false : "" }), {});
+          const initialData = normalized.fields.reduce((acc, f) => ({ ...acc, [f.id]: f.type === "boolean" ? false : "" }), {});
           setFormData(initialData);
         } else {
            setStatus("error");
@@ -332,8 +351,8 @@ const PublicFormView = () => {
   // --- Calculation Engine (Atomic) ---
   const calculateFields = (data, schema) => {
     if (!schema) return data;
-    const allFields = schema.sections?.flatMap(s => s.fields) || schema.fields || [];
-    const calculatedFields = allFields.filter(f => f.isCalculated && f.formula);
+    const schemaFields = normalizeFormDocument(schema).fields;
+    const calculatedFields = schemaFields.filter(f => f.isCalculated && f.formula);
     
     if (calculatedFields.length === 0) return data;
 
@@ -351,7 +370,7 @@ const PublicFormView = () => {
           if (matches) {
             matches.forEach(match => {
               const depId = match.replace(/{{|}}/g, "");
-              const depField = allFields.find(f => f.id === depId);
+              const depField = schemaFields.find(f => f.id === depId);
               
               // Si el campo dependiente está oculto por lógica, su valor para el cálculo es 0
               const isHidden = depField ? isFieldHidden(depField, currentData) : false;
@@ -379,8 +398,6 @@ const PublicFormView = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
-    
     allFields.forEach(field => {
       if (isFieldHidden(field)) return;
       
@@ -491,7 +508,6 @@ const PublicFormView = () => {
 
     setStatus("submitting");
     const filteredData = {};
-    const allFields = formSchema.sections?.flatMap(s => s.fields) || formSchema.fields || [];
     allFields.forEach(f => {
       if (!isFieldHidden(f)) filteredData[f.id] = formData[f.id];
     });
@@ -666,6 +682,7 @@ const PublicFormView = () => {
                className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 resize-none ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
             />
           );
+        case "selector":
         case "select":
           return (
             <select
@@ -675,7 +692,7 @@ const PublicFormView = () => {
               className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner appearance-none ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
             >
               <option value="" disabled className="bg-slate-900">{field.placeholder || "Seleccione una opción"}</option>
-              {field.options?.map((opt) => (
+              {normalizeOptions(field).map((opt) => (
                 <option key={opt.id} value={opt.value} className="bg-slate-900">{opt.label}</option>
               ))}
             </select>
@@ -684,7 +701,7 @@ const PublicFormView = () => {
           const selectedValues = Array.isArray(formData[field.id]) ? formData[field.id] : [];
           return (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {field.options?.map((opt) => (
+              {normalizeOptions(field).map((opt) => (
                 <button
                   key={opt.id}
                   type="button"
@@ -710,7 +727,7 @@ const PublicFormView = () => {
         case "radio":
           return (
             <div className="space-y-3">
-              {field.options?.map((opt) => (
+              {normalizeOptions(field).map((opt) => (
                 <button
                   key={opt.id}
                   type="button"
@@ -743,6 +760,63 @@ const PublicFormView = () => {
               </span>
             </div>
           );
+        case "email":
+          return (
+            <input
+              type="email"
+              placeholder={isDisabled ? "Campo bloqueado" : (field.placeholder || "correo@ejemplo.com")}
+              value={formData[field.id] || ""}
+              onChange={(e) => !isDisabled && handleInputChange(field.id, e.target.value)}
+              readOnly={isDisabled}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed select-none bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+            />
+          );
+        case "phone":
+          return (
+            <input
+              type="tel"
+              placeholder={isDisabled ? "Campo bloqueado" : (field.placeholder || "+54 9 ...")}
+              value={formData[field.id] || ""}
+              onChange={(e) => !isDisabled && handleInputChange(field.id, e.target.value)}
+              readOnly={isDisabled}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner placeholder:text-slate-900 ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed select-none bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+            />
+          );
+        case "time":
+          return (
+            <input
+              type="time"
+              value={formData[field.id] || ""}
+              onChange={(e) => !isDisabled && handleInputChange(field.id, e.target.value)}
+              readOnly={isDisabled}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed select-none bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+            />
+          );
+        case "slider":
+          return (
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={formData[field.id] || 0}
+              onChange={(e) => !isDisabled && handleInputChange(field.id, e.target.value)}
+              disabled={isDisabled}
+              className="w-full accent-[var(--primary-hex)]"
+            />
+          );
+        case "rating":
+          return (
+            <input
+              type="number"
+              min="1"
+              max="5"
+              value={formData[field.id] || ""}
+              onChange={(e) => !isDisabled && handleInputChange(field.id, e.target.value)}
+              readOnly={isDisabled}
+              className={`w-full bg-slate-950 border-2 rounded-2xl px-6 py-5 text-lg font-bold text-white focus:outline-none focus:ring-4 transition-all shadow-inner ${isDisabled ? "opacity-60 border-slate-800/30 text-slate-500 cursor-not-allowed select-none bg-slate-900/10" : hasError ? "border-red-500/50 focus:ring-red-500/10" : "border-slate-800 focus:ring-emerald-500/10"}`}
+            />
+          );
+        case "image":
         case "file": return <FileField fieldId={field.id} value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
         case "signature": return <SignatureField value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
         case "gps": return <GPSField value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
@@ -793,27 +867,28 @@ const PublicFormView = () => {
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-28">
-           {(formSchema.sections || []).length > 0 ? (
-             formSchema.sections.map((section) => {
-                const visibleFields = (section.fields || []).filter(f => !isFieldHidden(f));
+          <div className="grid grid-cols-1 gap-10">
+            {rootFields.map((field) => {
+              if (field.type === "section") {
+                const visibleFields = getSectionChildren(allFields, field.id).filter((child) => !isFieldHidden(child));
                 if (visibleFields.length === 0) return null;
+
                 return (
-                  <section key={section.id} className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
-                     <div className="flex items-center space-x-10">
-                        <h2 className="text-2xl font-black text-white whitespace-nowrap uppercase tracking-[0.1em] italic">{section.title}</h2>
-                        <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-900 via-slate-800 to-transparent"></div>
-                     </div>
-                     <div className="grid grid-cols-1 gap-10">
-                       {section.fields.map(renderField)}
-                     </div>
+                  <section key={field.id} className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                    <div className="flex items-center space-x-10">
+                      <h2 className="text-2xl font-black text-white whitespace-nowrap uppercase tracking-[0.1em] italic">{field.label}</h2>
+                      <div className="h-[1px] flex-1 bg-gradient-to-r from-slate-900 via-slate-800 to-transparent"></div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-10">
+                      {visibleFields.map(renderField)}
+                    </div>
                   </section>
                 );
-             })
-           ) : (
-              <div className="grid grid-cols-1 gap-10">
-                 {(formSchema.fields || []).map(renderField)}
-              </div>
-           )}
+              }
+
+              return renderField(field);
+            })}
+          </div>
 
            <div className="pt-24 relative">
               <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
@@ -858,7 +933,7 @@ const PublicFormView = () => {
                 )}
               </div>
               <div className="flex flex-col">
-                <span className="text-sm font-black tracking-tighter text-white uppercase tracking-[0.3em]">{branding.name} System</span>
+                <span className="text-sm font-black text-white uppercase tracking-[0.3em]">{branding.name} System</span>
                 <span className="text-[9px] text-slate-600 font-extrabold uppercase tracking-[0.1em]">Public Gateway v4.5.1-GOLD</span>
               </div>
            </div>

@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { Plus } from "lucide-react";
 import { useForms } from "../api/useForms";
+import { toast } from "react-hot-toast";
 import BuilderHeader from "../components/forms/builder/BuilderHeader";
 import CustomFieldModal from "../components/forms/builder/CustomFieldModal";
 import FieldItem from "../components/forms/builder/FieldItem";
@@ -188,6 +189,10 @@ const FormBuilder = () => {
     () => formState.fields.find((field) => field.id === selectedFieldId) || null,
     [formState.fields, selectedFieldId]
   );
+  const publicUrl = useMemo(() => {
+    if (!formState.is_public || !formState.id) return "";
+    return `${window.location.origin}/public-form/${formState.id}`;
+  }, [formState.id, formState.is_public]);
 
   const syncFields = (nextFields) => {
     setFormState((current) => ({ ...current, fields: reorderFields(nextFields) }));
@@ -373,12 +378,21 @@ const FormBuilder = () => {
     try {
       const payload = serializeFormDocument(formState);
       const savedForm = await saveForm.mutateAsync(payload);
+      const savedId = savedForm?.id || formState.id;
 
-      if (!formId && savedForm?.id) {
-        navigate(`/forms/new?id=${savedForm.id}`, { replace: true });
+      if (savedId && savedId !== formState.id) {
+        setFormState((current) => ({ ...current, id: savedId }));
+      }
+
+      if (!formId && savedId) {
+        navigate(`/forms/new?id=${savedId}`, { replace: true });
       }
 
       setSaveStatus("saved");
+      if (formState.is_public && savedId) {
+        const nextPublicUrl = `${window.location.origin}/public-form/${savedId}`;
+        toast.success(`URL pública generada: ${nextPublicUrl}`);
+      }
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch (error) {
       console.error("Error saving form:", error);
@@ -423,6 +437,12 @@ const FormBuilder = () => {
         }
         responseLimit={formState.response_limit}
         onOpenResponseLimit={() => setIsResponseLimitOpen(true)}
+        publicUrl={publicUrl}
+        onCopyPublicUrl={() => {
+          if (!publicUrl) return;
+          navigator.clipboard.writeText(publicUrl);
+          toast.success("URL pública copiada");
+        }}
         onSave={handleSave}
         saveStatus={saveStatus}
       />

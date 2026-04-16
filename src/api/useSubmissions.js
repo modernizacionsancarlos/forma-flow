@@ -25,7 +25,7 @@ export const useSubmissions = () => {
     const now = Date.now();
     const submission = {
       id: submissionId,
-      tenant_id: claims.tenantId || "global",
+      tenant_id: claims?.tenantId || "global",
       schema_id: schemaId,
       data: formData,
       created_by: user?.uid || "public_citizen",
