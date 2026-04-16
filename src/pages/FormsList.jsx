@@ -28,6 +28,27 @@ const CATEGORY_LABELS = {
     otro:            "Otro",
 };
 
+const countFields = (form) => {
+    if (form.sections?.length) {
+        return form.sections.reduce((acc, section) => acc + (section.fields?.length || 0), 0);
+    }
+
+    if (form.fields?.length) {
+        return form.fields.length;
+    }
+
+    if (typeof form.fields_schema === "string") {
+        try {
+            const parsed = JSON.parse(form.fields_schema);
+            return Array.isArray(parsed) ? parsed.filter(field => field.type !== "section").length : 0;
+        } catch {
+            return 0;
+        }
+    }
+
+    return 0;
+};
+
 /* ══════════════════════════════════════════════════════════════════ */
 export default function FormsList() {
     const navigate = useNavigate();
@@ -184,9 +205,9 @@ export default function FormsList() {
                                         <span className="flex items-center gap-1">
                                             <Clock size={10} /> v{form.version || 1}
                                         </span>
-                                        {(form.sections || form.fields) && (
+                                        {(form.sections || form.fields || form.fields_schema) && (
                                             <span>
-                                                {form.sections?.reduce((acc, s) => acc + (s.fields?.length || 0), 0) || form.fields?.length || 0} campos
+                                                {countFields(form)} campos
                                             </span>
                                         )}
                                     </div>

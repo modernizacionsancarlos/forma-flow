@@ -36,18 +36,19 @@ export const useForms = () => {
                     updated_date: Timestamp.now(),
                 });
                 await updateDoc(docRef, payload);
-                return formData;
+                return { id: formData.id, ...payload };
             } else {
                 const payload = cleanObject({
                     ...formData,
                     tenant_id: claims.tenantId || "global",
                     created_date: Timestamp.now(),
                     updated_date: Timestamp.now(),
-                    status: "active",
+                    status: formData.status || "draft",
+                    version: formData.version || 1,
                 });
                 const docRef = await addDoc(collection(db, "FormSchemas"), payload);
 
-                return { id: docRef.id, ...formData };
+                return { id: docRef.id, ...payload };
             }
         },
         onSuccess: () => {
