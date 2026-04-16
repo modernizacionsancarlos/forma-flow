@@ -447,14 +447,14 @@ const FormBuilder = () => {
         saveStatus={saveStatus}
       />
 
-      <div className="flex min-h-0 flex-1">
-        <FieldPalette
-          onAddField={addField}
-          onOpenCustomField={() => setIsCustomModalOpen(true)}
-        />
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <div className="flex min-h-0 flex-1">
+          <FieldPalette
+            onAddField={addField}
+            onOpenCustomField={() => setIsCustomModalOpen(true)}
+          />
 
-        <div className="flex-1 overflow-y-auto bg-[#050816] px-8 py-4 custom-scrollbar">
-          <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="flex-1 overflow-y-auto bg-[#050816] px-8 py-4 custom-scrollbar">
             <div className="mx-auto max-w-4xl">
               <div className="mb-4 flex justify-end">
                 <button
@@ -548,17 +548,17 @@ const FormBuilder = () => {
                 )}
               </Droppable>
             </div>
-          </DragDropContext>
-        </div>
+          </div>
 
-        <PropertyPanel
-          activeField={selectedField}
-          allFields={formState.fields}
-          onUpdate={(updates) => {
-            if (selectedField) updateField(selectedField.id, updates);
-          }}
-        />
-      </div>
+          <PropertyPanel
+            activeField={selectedField}
+            allFields={formState.fields}
+            onUpdate={(updates) => {
+              if (selectedField) updateField(selectedField.id, updates);
+            }}
+          />
+        </div>
+      </DragDropContext>
 
       <CustomFieldModal
         isOpen={isCustomModalOpen}
