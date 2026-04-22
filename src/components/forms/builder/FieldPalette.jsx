@@ -1,6 +1,7 @@
 import { Draggable, Droppable } from "@hello-pangea/dnd";
 import { GripVertical, Plus } from "lucide-react";
 import { FIELD_TYPES } from "../../../constants/fieldTypes";
+import { useRef } from "react";
 
 const BASE_TYPES = [
   "section",
@@ -22,8 +23,36 @@ const BASE_TYPES = [
   "slider",
 ];
 
+const DRAG_THRESHOLD_PX = 6;
+
 const FieldPalette = ({ onAddField, onOpenCustomField }) => {
   const availableTypes = FIELD_TYPES.filter((type) => BASE_TYPES.includes(type.id));
+  const pointerStateRef = useRef({
+    startX: 0,
+    startY: 0,
+    dragged: false,
+  });
+
+  const handlePointerDown = (event) => {
+    pointerStateRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      dragged: false,
+    };
+  };
+
+  const handlePointerMove = (event) => {
+    const dx = Math.abs(event.clientX - pointerStateRef.current.startX);
+    const dy = Math.abs(event.clientY - pointerStateRef.current.startY);
+    if (dx > DRAG_THRESHOLD_PX || dy > DRAG_THRESHOLD_PX) {
+      pointerStateRef.current.dragged = true;
+    }
+  };
+
+  const handleCardClick = (typeId) => {
+    if (pointerStateRef.current.dragged) return;
+    onAddField(typeId, "root", null);
+  };
 
   return (
     <div className="flex w-[14rem] shrink-0 flex-col border-r border-slate-800 bg-slate-900">
@@ -42,24 +71,23 @@ const FieldPalette = ({ onAddField, onOpenCustomField }) => {
                     <div
                       ref={dragProvided.innerRef}
                       {...dragProvided.draggableProps}
-                      className="flex w-full items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-left text-xs text-slate-300 transition-all hover:border-slate-700 hover:bg-slate-800/80"
+                      {...dragProvided.dragHandleProps}
+                      onMouseDown={handlePointerDown}
+                      onMouseMove={handlePointerMove}
+                      onClick={() => handleCardClick(type.id)}
+                      className="flex w-full cursor-grab items-center gap-2 rounded-lg border border-transparent px-2 py-1 text-left text-xs text-slate-300 transition-all hover:border-slate-700 hover:bg-slate-800/80 active:cursor-grabbing"
+                      title="Clic para insertar o arrastra al formulario"
                     >
-                      <button
-                        type="button"
-                        onClick={() => onAddField(type.id, "root", null)}
-                        className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-1 py-1.5 text-left"
-                      >
+                      <div className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-1 py-1.5 text-left">
                         <type.icon size={14} className={type.color} />
                         <span className="truncate">{type.label}</span>
-                      </button>
-                      <button
-                        type="button"
-                        {...dragProvided.dragHandleProps}
+                      </div>
+                      <div
                         className="rounded p-1 text-slate-500 hover:bg-slate-700 hover:text-white"
                         title="Arrastrar al formulario"
                       >
                         <GripVertical size={13} />
-                      </button>
+                      </div>
                     </div>
                   )}
                 </Draggable>
