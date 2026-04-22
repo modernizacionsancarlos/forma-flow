@@ -61,6 +61,12 @@ export default function Dashboard() {
     const subsList = submissions || [];
     const logs = activityLogs || [];
 
+    const toValidDate = (raw) => {
+        if (!raw) return null;
+        const candidate = raw?.toDate ? raw.toDate() : new Date(raw);
+        return Number.isNaN(candidate?.getTime?.()) ? null : candidate;
+    };
+
     /* Computed values */
     const activeTenants = tenants.filter(t => t.status === "active").length;
     const activeForms = formsList.filter(f => f.status === "active").length;
@@ -68,7 +74,8 @@ export default function Dashboard() {
     const submissionsToday = subsList.filter(s => {
         const d = s.submitted_at || s.created_date;
         if (!d) return false;
-        const date = d.toDate ? d.toDate() : new Date(d);
+        const date = toValidDate(d);
+        if (!date) return false;
         return date >= todayStart;
     }).length;
     const inReview = subsList.filter(s =>
@@ -149,7 +156,7 @@ export default function Dashboard() {
                                         const formName = formsList.find(f => f.id === s.schema_id)?.title || "—";
                                         const st = STATUS[s.status] || { label: s.status || "—", cls: "bg-slate-700 text-slate-300" };
                                         const rawDate = s.submitted_at || s.created_date;
-                                        const dateObj = rawDate ? (rawDate.toDate ? rawDate.toDate() : new Date(rawDate)) : null;
+                                        const dateObj = toValidDate(rawDate);
                                         const dateStr = dateObj ? format(dateObj, "dd/MM/yyyy HH:mm") : "—";
                                         return (
                                             <tr key={s.id} className="border-b border-slate-800 hover:bg-slate-800/50 transition-colors">
