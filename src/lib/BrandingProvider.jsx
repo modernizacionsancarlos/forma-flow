@@ -11,6 +11,13 @@ const DEFAULT_BRANDING = {
     name: "FormaFlow"
 };
 
+const normalizePrimaryColor = (value) => {
+    if (typeof value !== "string") return DEFAULT_BRANDING.primary_color;
+    const trimmed = value.trim();
+    const isHex = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(trimmed);
+    return isHex ? trimmed : DEFAULT_BRANDING.primary_color;
+};
+
 const readLocalBranding = (storageKey) => {
     try {
         const raw = window.localStorage.getItem(storageKey);
@@ -71,15 +78,21 @@ export const BrandingProvider = ({ children }) => {
     const branding = {
         ...baseBranding,
         ...localBranding,
+        primary_color: normalizePrimaryColor(localBranding?.primary_color || baseBranding?.primary_color),
     };
 
     // Inyectar variables CSS de branding final (base + local por usuario)
     useEffect(() => {
-        const root = document.documentElement;
-        root.style.setProperty("--primary-hex", branding.primary_color);
-        root.style.setProperty("--primary-rgb", hexToRgb(branding.primary_color));
-        root.style.setProperty("--primary", hexToHsl(branding.primary_color));
-        document.title = `${branding.name || "FormaFlow"} | FormaFlow`;
+        try {
+            const root = document.documentElement;
+            const safeColor = normalizePrimaryColor(branding.primary_color);
+            root.style.setProperty("--primary-hex", safeColor);
+            root.style.setProperty("--primary-rgb", hexToRgb(safeColor));
+            root.style.setProperty("--primary", hexToHsl(safeColor));
+            document.title = `${branding.name || "FormaFlow"} | FormaFlow`;
+        } catch (error) {
+            console.error("Error aplicando branding dinámico:", error);
+        }
     }, [branding.primary_color, branding.name]);
 
     const saveLocalBranding = (updates) => {

@@ -93,6 +93,42 @@ const reloadIfAllowed = () => {
   toast.error('La app requiere recarga manual por cambio de version. Presiona F5.');
 };
 
+class RouteErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error) {
+    console.error('RouteErrorBoundary captured:', error);
+  }
+
+  render() {
+    if (!this.state.hasError) return this.props.children;
+
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
+        <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center">
+          <h2 className="text-lg font-semibold text-white">Error al cargar la vista</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Se detectó un error de ejecución. Recarga para reintentar con la versión más reciente.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            Recargar
+          </button>
+        </div>
+      </div>
+    );
+  }
+}
+
 const ProtectedRoute = ({ children, role }) => {
   const { user, claims } = useAuth()
   if (!user) return <Navigate to="/login" />
@@ -245,9 +281,11 @@ function App() {
           <BrandingProvider>
             <ReloadPrompt />
             <JoinOrganization />
-            <Suspense fallback={<PremiumSplash isLoading={true} />}>
-              <AppRoutes />
-            </Suspense>
+            <RouteErrorBoundary>
+              <Suspense fallback={<PremiumSplash isLoading={true} />}>
+                <AppRoutes />
+              </Suspense>
+            </RouteErrorBoundary>
           </BrandingProvider>
         </Router>
       </AuthProvider>
