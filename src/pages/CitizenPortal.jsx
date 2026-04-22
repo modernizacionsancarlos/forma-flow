@@ -289,21 +289,21 @@ const CitizenPortal = () => {
                 <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
                    <Clock size={24} />
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-widest italic tracking-tighter">Tiempo Real</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest italic">Tiempo Real</h3>
                 <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase opacity-70">Recibe actualizaciones instantáneas cada vez que un funcionario revise tu expediente.</p>
              </div>
              <div className="space-y-4 group">
                 <div className="w-14 h-14 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
                    <ShieldCheck size={24} />
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-widest italic tracking-tighter">Seguridad SSL</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest italic">Seguridad SSL</h3>
                 <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase opacity-70">Tus datos están protegidos bajo protocolos de cifrado de grado bancario institucional.</p>
              </div>
              <div className="space-y-4 group">
                 <div className="w-14 h-14 bg-purple-500/10 border border-purple-500/20 rounded-2xl flex items-center justify-center text-purple-500 group-hover:scale-110 transition-transform">
                    <Download size={24} />
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-widest italic tracking-tighter">Descarga PDF</h3>
+                <h3 className="text-sm font-black uppercase tracking-widest italic">Descarga PDF</h3>
                 <p className="text-[10px] text-slate-500 font-bold leading-relaxed uppercase opacity-70">Genera comprobantes oficiales con validez institucional para tus trámites públicos.</p>
              </div>
           </div>
@@ -314,7 +314,7 @@ const CitizenPortal = () => {
               <div className="w-10 h-10 bg-slate-900 border border-white/10 rounded-xl flex items-center justify-center font-black text-emerald-500 text-xl tracking-tighter">F</div>
               <span className="text-[9px] font-black uppercase tracking-[0.3em] text-white">FormaFlow Citizen Node</span>
            </div>
-           <p className="text-[8px] text-slate-600 font-black uppercase tracking-widest text-[9px]">
+           <p className="text-[9px] text-slate-600 font-black uppercase tracking-widest">
                 SISTEMA OFICIAL DE MODERNIZACIÓN DEL ESTADO<br/>
                 &copy; 2026 MUNICIPALIDAD DE SAN CARLOS. TODOS LOS DERECHOS RESERVADOS.
            </p>

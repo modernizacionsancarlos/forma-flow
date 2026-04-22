@@ -309,7 +309,7 @@ const MainLayout = ({ children }) => {
             <div className="h-10 w-[1px] bg-slate-800 hidden md:block"></div>
             
             <div className="flex items-center space-x-2 md:space-x-4">
-              <div className="flex flex-col items-end hidden sm:flex">
+              <div className="hidden sm:flex flex-col items-end">
                 <span className="text-sm font-medium text-white">{displayName}</span>
                 <span className="text-xs text-slate-400">Admin</span>
               </div>
