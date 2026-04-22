@@ -47,11 +47,10 @@ const CitizenPortal = () => {
         setSubmission({ id: docSnap.id, ...data });
         
         if (data.schema_id) {
-          // Colección vigente para esquemas de formularios.
-          const schemaRef = doc(db, "FormSchemas", data.schema_id);
-          const schemaSnap = await getDoc(schemaRef);
-          if (schemaSnap.exists()) {
-            setFormInfo(schemaSnap.data());
+          const formRef = doc(db, "Forms", data.schema_id);
+          const formSnap = await getDoc(formRef);
+          if (formSnap.exists()) {
+            setFormInfo(formSnap.data());
           }
         }
       } else {
@@ -94,11 +93,7 @@ const CitizenPortal = () => {
 
     try {
       const doc = new jsPDF();
-      const createdAt =
-        submission.created_at?.toDate?.() ||
-        submission.created_date?.toDate?.() ||
-        (submission.created_date ? new Date(submission.created_date) : null);
-      const timestamp = createdAt?.toLocaleString() || new Date().toLocaleString();
+      const timestamp = submission.created_at?.toDate().toLocaleString() || new Date().toLocaleString();
       
       // Estilo Base
       doc.setFont("helvetica", "bold");
