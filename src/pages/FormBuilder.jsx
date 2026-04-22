@@ -465,7 +465,7 @@ const FormBuilder = () => {
                 </button>
               </div>
 
-              <Droppable droppableId="root" type="root-block">
+              <Droppable droppableId="root" type="builder-field">
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
