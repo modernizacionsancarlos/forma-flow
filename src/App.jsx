@@ -1,4 +1,4 @@
-import React, { lazy, Suspense } from 'react'
+import React, { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
@@ -48,6 +48,34 @@ const queryClient = new QueryClient({
     onError: (error) => toast.error(error.message || 'Ocurrió un error en la solicitud')
   })
 })
+
+const CHUNK_ERROR_RELOAD_KEY = 'formaflow_chunk_error_last_reload';
+const CHUNK_ERROR_RELOAD_WINDOW_MS = 60 * 1000;
+
+const isChunkLoadError = (message = '') => {
+  const normalized = String(message).toLowerCase();
+  return (
+    normalized.includes('failed to fetch dynamically imported module') ||
+    normalized.includes('importing a module script failed') ||
+    normalized.includes('loading chunk') ||
+    normalized.includes('chunkloaderror')
+  );
+};
+
+const reloadIfAllowed = () => {
+  try {
+    const now = Date.now();
+    const lastReload = Number(window.sessionStorage.getItem(CHUNK_ERROR_RELOAD_KEY) || 0);
+    if (!lastReload || now - lastReload > CHUNK_ERROR_RELOAD_WINDOW_MS) {
+      window.sessionStorage.setItem(CHUNK_ERROR_RELOAD_KEY, String(now));
+      window.location.reload();
+      return;
+    }
+  } catch {
+    // Ignore storage access issues and avoid infinite reload loops.
+  }
+  toast.error('La app requiere recarga manual por cambio de version. Presiona F5.');
+};
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, claims } = useAuth()
@@ -160,6 +188,30 @@ const AppRoutes = () => {
 };
 
 function App() {
+  useEffect(() => {
+    const onError = (event) => {
+      const message = event?.message || event?.error?.message || '';
+      if (isChunkLoadError(message)) {
+        reloadIfAllowed();
+      }
+    };
+
+    const onUnhandledRejection = (event) => {
+      const message = event?.reason?.message || event?.reason || '';
+      if (isChunkLoadError(message)) {
+        reloadIfAllowed();
+      }
+    };
+
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onUnhandledRejection);
+    };
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
