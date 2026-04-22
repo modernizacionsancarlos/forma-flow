@@ -1,6 +1,7 @@
 import React from "react";
 import { Draggable, Droppable } from "@hello-pangea/dnd";
 import { Copy, GripVertical, Plus, Trash2 } from "lucide-react";
+import { sectionDroppableId } from "../../../lib/formBuilder";
 import FieldItem from "./FieldItem";
 
 const SectionItem = ({
@@ -75,12 +76,13 @@ const SectionItem = ({
             </div>
           </div>
 
-          <Droppable droppableId={`section:${section.id}`} type="builder-field">
+          <Droppable droppableId={sectionDroppableId(section.id)} type="builder-field" direction="vertical">
             {(dropProvided, dropSnapshot) => (
               <div
                 ref={dropProvided.innerRef}
                 {...dropProvided.droppableProps}
-                className={`space-y-3 px-3 py-3 ${dropSnapshot.isDraggingOver ? "bg-emerald-500/5" : ""}`}
+                onClick={(e) => e.stopPropagation()}
+                className={`min-h-[7rem] space-y-3 px-3 py-3 ${dropSnapshot.isDraggingOver ? "bg-emerald-500/5" : ""}`}
               >
                 {childrenFields.length ? (
                   childrenFields.map((field, fieldIndex) => (
@@ -100,7 +102,7 @@ const SectionItem = ({
                     </Draggable>
                   ))
                 ) : (
-                  <div className="rounded-lg border border-dashed border-slate-700 bg-slate-950/60 px-4 py-6 text-center text-xs text-slate-500">
+                  <div className="rounded-lg border border-dashed border-slate-700 bg-slate-950/60 px-4 py-8 text-center text-xs text-slate-500">
                     Arrastra campos aquí
                   </div>
                 )}
@@ -113,7 +115,7 @@ const SectionItem = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onAddField("text", `section:${section.id}`, null);
+                onAddField("text", sectionDroppableId(section.id), null);
               }}
               className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-300 transition-colors hover:bg-emerald-500/10"
             >

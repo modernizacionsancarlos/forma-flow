@@ -54,6 +54,63 @@ const normalizeStatus = (status) => {
     return STATUS_CONFIG[status] ? status : "pending_review";
 };
 
+/** Claves técnicas sin esquema: etiqueta legible para el modal. */
+function humanizeDataKey(key) {
+    if (key === "status") return "Estado (dato en envío)";
+    if (key.startsWith("section_")) return "Agrupación (sección)";
+    if (key.startsWith("field_")) {
+        const tail = key.split("_").filter(Boolean).pop() || key;
+        return `Respuesta (campo ${tail})`;
+    }
+    return key.replace(/_/g, " ");
+}
+
+/**
+ * Construye filas en orden: campos del esquema, luego datos sueltos (p. ej. formulario eliminado).
+ * Incluye separadores de tipo sección.
+ */
+function buildOrderedSubmissionRows(parsedData, flatFields) {
+    const data = parsedData && typeof parsedData === "object" ? parsedData : {};
+    const list = Array.isArray(flatFields) ? flatFields : [];
+    const seen = new Set();
+    const rows = [];
+
+    for (const f of list) {
+        if (!f) continue;
+        if (f.type === "section") {
+            rows.push({ kind: "divider", id: f.id, label: f.label || "Sección" });
+            continue;
+        }
+        const v = data[f.id] ?? data[f.name];
+        if (f.id) seen.add(f.id);
+        if (f.name) seen.add(f.name);
+        rows.push({ kind: "field", id: f.id, label: f.label || f.name, field: f, value: v });
+    }
+
+    for (const key of Object.keys(data)) {
+        if (seen.has(key)) continue;
+        if (key === "status") {
+            rows.push({
+                kind: "field",
+                id: key,
+                label: "Estado (dato en envío)",
+                field: { type: "text" },
+                value: data[key],
+            });
+            continue;
+        }
+        if (key.startsWith("section_") && (data[key] === "" || data[key] == null)) continue;
+        rows.push({
+            kind: "field",
+            id: key,
+            label: humanizeDataKey(key),
+            field: { type: "text" },
+            value: data[key],
+        });
+    }
+    return rows;
+}
+
 /* ══════════════════════════════════════════════════════════════════ */
 export default function Submissions() {
     const { claims } = useAuth();
@@ -259,11 +316,27 @@ export default function Submissions() {
     };
 
     /* ── Helpers ──────────────────────────────────────────────── */
-    const getFormName = (id) => formsList.find(f => f.id === id)?.name || formsList.find(f => f.id === id)?.title || "—";
+    const getFormName = (id) => {
+        if (!id) return "—";
+        const f = formsList.find((x) => x.id === id);
+        if (f?.name || f?.title) return f.name || f.title;
+        return "Formulario no disponible (pudo eliminarse)";
+    };
     const getAreaName = (id) => areas.find(a => a.id === id)?.name || "—";
     const formatDate = (ts) => {
         try {
-            const d = ts?.toDate?.() || (typeof ts === "number" ? new Date(ts) : new Date(ts));
+            if (ts == null) return "—";
+            if (ts?.toDate) {
+                const d = ts.toDate();
+                if (!Number.isNaN(d.getTime())) return format(d, "dd/MM/yy HH:mm");
+            }
+            if (typeof ts === "object" && typeof ts.seconds === "number") {
+                const d = new Date(ts.seconds * 1000);
+                if (!Number.isNaN(d.getTime())) return format(d, "dd/MM/yy HH:mm");
+            }
+            let n = typeof ts === "number" ? ts : NaN;
+            if (!Number.isNaN(n) && n < 1e12) n = n * 1000;
+            const d = new Date(!Number.isNaN(n) && typeof ts === "number" ? n : ts);
             if (Number.isNaN(d.getTime())) return "—";
             return format(d, "dd/MM/yy HH:mm");
         } catch { return "—"; }
@@ -589,6 +662,34 @@ function DeleteSubmissionModal({ submission, isDeleting, onCancel, onConfirm }) 
     );
 }
 
+/* Valor con etiqueta, apto para modal de detalle. */
+function renderSubmissionFieldValue(field, value) {
+    if (value === undefined || value === null || (typeof value === "string" && value.trim() === "")) {
+        return <p className="text-sm text-slate-500">—</p>;
+    }
+    const t = (field && field.type) || "text";
+    if ((t === "image" || t === "file") && typeof value === "string" && (value.startsWith("http") || value.startsWith("data:"))) {
+        return <img src={value} className="max-h-40 rounded-lg border border-slate-700 object-contain" alt="" />;
+    }
+    if (t === "signature" && value) {
+        return <img src={value} className="max-h-24 bg-white rounded p-1" alt="Firma" />;
+    }
+    if (t === "gps" || t === "location") {
+        return <p className="text-sm text-slate-300 font-mono break-all">{String(value)}</p>;
+    }
+    if (t === "boolean" || t === "yesno") {
+        return (
+            <span className={`text-xs px-2 py-0.5 rounded-full ${value ? "bg-emerald-900 text-emerald-400" : "bg-red-900 text-red-400"}`}>
+                {value ? "Sí" : "No"}
+            </span>
+        );
+    }
+    if (t === "selector" || t === "multiselect" || t === "radio") {
+        if (Array.isArray(value)) return <p className="text-sm text-white">{value.join(", ")}</p>;
+    }
+    return <p className="text-sm text-white break-words">{String(value)}</p>;
+}
+
 /* ── SubmissionDetailModal (local) ────────────────────────────────── */
 function SubmissionDetailModal({ submission, form, area, onClose, onStatusChange, formatDate }) {
     /* Parse data */
@@ -597,16 +698,30 @@ function SubmissionDetailModal({ submission, form, area, onClose, onStatusChange
         parsedData = typeof submission.data === "string" ? JSON.parse(submission.data) : (submission.data || {});
     } catch { parsedData = {}; }
 
-    let parsedFields = [];
+    let flatSchemaFields = [];
     try {
         if (form?.fields_schema) {
-            parsedFields = typeof form.fields_schema === "string" ? JSON.parse(form.fields_schema) : form.fields_schema;
-        } else if (form?.sections) {
-            parsedFields = form.sections.flatMap(s => s.fields || []);
+            flatSchemaFields = typeof form.fields_schema === "string" ? JSON.parse(form.fields_schema) : form.fields_schema;
+        } else if (form?.sections?.length) {
+            const out = [];
+            for (const s of form.sections) {
+                out.push({
+                    type: "section",
+                    id: s.id,
+                    label: s.title || s.name || s.label || "Sección",
+                });
+                for (const f of s.fields || []) {
+                    out.push({ ...f, section_id: s.id });
+                }
+            }
+            flatSchemaFields = out;
         } else if (form?.fields) {
-            parsedFields = form.fields;
+            flatSchemaFields = form.fields;
         }
-    } catch { parsedFields = []; }
+    } catch { flatSchemaFields = []; }
+
+    const displayRows = buildOrderedSubmissionRows(parsedData, flatSchemaFields);
+    const formTitle = form?.name || form?.title || "Respuesta (formulario no disponible)";
 
     return (
         <div className="fixed inset-0 bg-black/70 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -620,7 +735,7 @@ function SubmissionDetailModal({ submission, form, area, onClose, onStatusChange
                         <p className="text-xs text-slate-500 font-mono mb-1">
                             {submission.document_code || submission.id}
                         </p>
-                        <h2 className="text-white font-semibold">{form?.name || form?.title || "Respuesta"}</h2>
+                        <h2 className="text-white font-semibold">{formTitle}</h2>
                         <p className="text-slate-500 text-xs mt-1">
                             Enviado por {submission.submitted_by_name || "Anónimo"} • {area?.name || "—"}
                         </p>
@@ -643,37 +758,23 @@ function SubmissionDetailModal({ submission, form, area, onClose, onStatusChange
                     </div>
                 </div>
 
-                {/* Body — fields */}
-                <div className="p-5 space-y-4">
-                    {parsedFields.length > 0 ? (
-                        parsedFields.map(field => {
-                            const value = parsedData[field.id] ?? parsedData[field.name];
-                            if (value === undefined || value === null || value === "") return null;
-
-                            return (
-                                <div key={field.id || field.name} className="border-b border-slate-800 pb-3 last:border-0">
-                                    <p className="text-xs text-slate-500 mb-1">{field.label || field.name}</p>
-
-                                    {field.type === "image" && typeof value === "string" && value.startsWith("http") ? (
-                                        <img src={value} className="max-h-40 rounded-lg border border-slate-700 object-contain" alt="" />
-                                    ) : field.type === "signature" && value ? (
-                                        <img src={value} className="max-h-24 bg-white rounded p-1" alt="Firma" />
-                                    ) : field.type === "gps" ? (
-                                        <p className="text-sm text-slate-300 font-mono">{String(value)}</p>
-                                    ) : field.type === "boolean" || field.type === "yesno" ? (
-                                        <span className={`text-xs px-2 py-0.5 rounded-full ${value ? "bg-emerald-900 text-emerald-400" : "bg-red-900 text-red-400"}`}>
-                                            {value ? "Sí" : "No"}
-                                        </span>
-                                    ) : (
-                                        <p className="text-sm text-white">{String(value)}</p>
-                                    )}
-                                </div>
-                            );
-                        })
+                {/* Cuerpo: filas legibles; si el form se borró, aún mapea claves con etiquetas aproximadas. */}
+                <div className="p-5 space-y-0">
+                    {displayRows.length === 0 ? (
+                        <p className="text-sm text-slate-500">No hay datos en esta respuesta.</p>
                     ) : (
-                        <pre className="text-xs text-slate-400 bg-slate-800 rounded-lg p-3 overflow-auto max-h-60">
-                            {JSON.stringify(parsedData, null, 2)}
-                        </pre>
+                        displayRows.map((row) =>
+                            row.kind === "divider" ? (
+                                <div key={`d-${row.id}`} className="pt-4 mt-2 border-t border-slate-800 first:mt-0 first:pt-0 first:border-0">
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-400/90">{row.label}</p>
+                                </div>
+                            ) : (
+                                <div key={`f-${row.id}`} className="border-b border-slate-800 py-3 last:border-0">
+                                    <p className="text-xs text-slate-500 mb-1.5">{row.label}</p>
+                                    {renderSubmissionFieldValue(row.field, row.value)}
+                                </div>
+                            )
+                        )
                     )}
                 </div>
 

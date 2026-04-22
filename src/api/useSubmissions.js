@@ -23,16 +23,15 @@ export const useSubmissions = () => {
   const submitForm = async (formData, schemaId) => {
     const submissionId = crypto.randomUUID();
     const now = Date.now();
+    // Preferir el tenant del esquema (público o interno) para alinear reglas y borrados; si no hay, el del token.
     let tenantId = claims?.tenantId || null;
-
-    // Para formularios públicos sin claims, usamos el tenant del esquema.
-    if (!tenantId && schemaId) {
+    if (schemaId) {
       try {
-        const formRef = doc(db, "FormSchemas", schemaId);
-        const formSnap = await getDoc(formRef);
+        const formSnap = await getDoc(doc(db, "FormSchemas", schemaId));
         if (formSnap.exists()) {
           const schema = formSnap.data();
-          tenantId = schema?.tenant_id || schema?.tenantId || null;
+          const fromSchema = schema?.tenant_id || schema?.tenantId || null;
+          if (fromSchema) tenantId = fromSchema;
         }
       } catch (error) {
         console.warn("No se pudo resolver tenant desde FormSchemas:", error);

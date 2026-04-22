@@ -113,6 +113,25 @@ export function createFieldId(prefix = "field") {
   return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 }
 
+/** Evita colisiones con ":" si el id del campo tuviera ese carácter; usado con @hello-pangea/dnd. */
+export const DND_SECTION_DROPPABLE_PREFIX = "ffsec:";
+
+export function sectionDroppableId(sectionId) {
+  return `${DND_SECTION_DROPPABLE_PREFIX}${sectionId}`;
+}
+
+/** Resuelve el id de sección desde un droppableId (actual o legado "section:..."). */
+export function parseSectionIdFromDroppableId(droppableId) {
+  if (droppableId == null || typeof droppableId !== "string") return null;
+  if (droppableId.startsWith(DND_SECTION_DROPPABLE_PREFIX)) {
+    return droppableId.slice(DND_SECTION_DROPPABLE_PREFIX.length);
+  }
+  if (droppableId.startsWith("section:")) {
+    return droppableId.slice("section:".length);
+  }
+  return null;
+}
+
 export function createFieldFromType(type, overrides = {}) {
   const defaults = FIELD_TYPE_DEFAULTS[type] || {};
   const baseLabel = FIELD_TYPE_LABELS[type] || "Campo";

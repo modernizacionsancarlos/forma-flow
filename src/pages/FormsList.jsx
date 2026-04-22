@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { useForms } from "../api/useForms";
 import { useTenants } from "../api/useTenants";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, doc, getDocs, query, updateDoc, deleteDoc, where, writeBatch } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -93,8 +93,35 @@ export default function FormsList() {
     };
 
     const handleDelete = async (id) => {
-        if (!confirm("¿Eliminar este formulario?")) return;
+        if (
+            !confirm(
+                "¿Eliminar este formulario? También se eliminarán las respuestas asociadas a este formulario en la base de datos."
+            )
+        ) {
+            return;
+        }
         try {
+            const bySchema = query(collection(db, "Submissions"), where("schema_id", "==", id));
+            const byForm = query(collection(db, "Submissions"), where("form_id", "==", id));
+            const [snap1, snap2] = await Promise.all([getDocs(bySchema), getDocs(byForm)]);
+            const subIds = new Set([
+                ...snap1.docs.map((d) => d.id),
+                ...snap2.docs.map((d) => d.id),
+            ]);
+            const BATCH = 400;
+            let batch = writeBatch(db);
+            let n = 0;
+            for (const sid of subIds) {
+                batch.delete(doc(db, "Submissions", sid));
+                n++;
+                if (n >= BATCH) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                    n = 0;
+                }
+            }
+            if (n > 0) await batch.commit();
+
             await deleteDoc(doc(db, "FormSchemas", id));
             queryClient.invalidateQueries({ queryKey: ["forms"] });
         } catch (err) {

@@ -40,7 +40,11 @@ service cloud.firestore {
         request.resource.data.tenant_id == getUserTenantId() ||
         (getUserTenantId() == null)
       );
-      allow update, delete: if isSameTenant(resource.data);
+      // Incluye trámites con tenant_id "global" (formularios públicos viejos) o sin campo, para personal con tenant
+      // no bloquear borrado frente a isSameTenant; super_admin y mismo tenant siguen prioridad.
+      allow update, delete: if isSameTenant(resource.data)
+        || (isAuthenticated() && getUserTenantId() != null
+          && (resource.data.tenant_id == "global" || !resource.data.keys().hasAll(["tenant_id"])));
     }
 
     // Reglas para la colección de Formularios (FormSchemas)

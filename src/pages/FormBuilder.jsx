@@ -16,7 +16,9 @@ import {
   getRootFields,
   getSectionChildren,
   normalizeFormDocument,
+  parseSectionIdFromDroppableId,
   reorderFields,
+  sectionDroppableId,
   serializeFormDocument,
 } from "../lib/formBuilder";
 
@@ -247,16 +249,16 @@ const FormBuilder = () => {
       return;
     }
 
-    if (destinationDroppableId.startsWith("section:")) {
-      const sectionId = destinationDroppableId.split(":")[1];
+    const destSectionId = parseSectionIdFromDroppableId(destinationDroppableId);
+    if (destSectionId) {
       if (field.type === "section") return;
 
-      const nextChildren = [...(sectionChildrenMap[sectionId] || [])];
+      const nextChildren = [...(sectionChildrenMap[destSectionId] || [])];
       nextChildren.splice(destinationIndex ?? nextChildren.length, 0, {
         ...field,
-        section_id: sectionId,
+        section_id: destSectionId,
       });
-      sectionChildrenMap[sectionId] = nextChildren;
+      sectionChildrenMap[destSectionId] = nextChildren;
 
       syncFields(rebuildFieldOrders(formState.fields, roots, sectionChildrenMap));
       setSelectedFieldId(field.id);
@@ -285,7 +287,7 @@ const FormBuilder = () => {
     if (field.section_id) {
       const siblings = getSectionChildren(formState.fields, field.section_id);
       const insertIndex = siblings.findIndex((item) => item.id === field.id) + 1;
-      addField(firstClone.type, `section:${field.section_id}`, insertIndex, firstClone);
+      addField(firstClone.type, sectionDroppableId(field.section_id), insertIndex, firstClone);
 
       if (clonedTree.length > 1) {
         setFormState((current) => ({
@@ -341,10 +343,10 @@ const FormBuilder = () => {
         return;
       }
 
-      if (source.droppableId.startsWith("section:")) {
-        const sectionId = source.droppableId.split(":")[1];
-        sectionChildrenMap[sectionId] = moveItem(
-          sectionChildrenMap[sectionId] || [],
+      const sameSec = parseSectionIdFromDroppableId(source.droppableId);
+      if (sameSec) {
+        sectionChildrenMap[sameSec] = moveItem(
+          sectionChildrenMap[sameSec] || [],
           source.index,
           destination.index
         );
@@ -355,21 +357,25 @@ const FormBuilder = () => {
 
     if (source.droppableId === "root") {
       roots.splice(source.index, 1);
-    } else if (source.droppableId.startsWith("section:")) {
-      const sourceSectionId = source.droppableId.split(":")[1];
-      sectionChildrenMap[sourceSectionId] = [...(sectionChildrenMap[sourceSectionId] || [])];
-      sectionChildrenMap[sourceSectionId].splice(source.index, 1);
+    } else {
+      const sourceSectionId = parseSectionIdFromDroppableId(source.droppableId);
+      if (sourceSectionId) {
+        sectionChildrenMap[sourceSectionId] = [...(sectionChildrenMap[sourceSectionId] || [])];
+        sectionChildrenMap[sourceSectionId].splice(source.index, 1);
+      }
     }
 
     if (destination.droppableId === "root") {
       roots.splice(destination.index, 0, { ...movingField, section_id: null });
-    } else if (destination.droppableId.startsWith("section:")) {
-      const sectionId = destination.droppableId.split(":")[1];
-      sectionChildrenMap[sectionId] = [...(sectionChildrenMap[sectionId] || [])];
-      sectionChildrenMap[sectionId].splice(destination.index, 0, {
-        ...movingField,
-        section_id: sectionId,
-      });
+    } else {
+      const destSection = parseSectionIdFromDroppableId(destination.droppableId);
+      if (destSection) {
+        sectionChildrenMap[destSection] = [...(sectionChildrenMap[destSection] || [])];
+        sectionChildrenMap[destSection].splice(destination.index, 0, {
+          ...movingField,
+          section_id: destSection,
+        });
+      }
     }
 
     syncFields(rebuildFieldOrders(formState.fields, roots, sectionChildrenMap));
@@ -453,13 +459,13 @@ const FormBuilder = () => {
       />
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
           <FieldPalette
             onAddField={addField}
             onOpenCustomField={() => setIsCustomModalOpen(true)}
           />
 
-          <div className="flex-1 overflow-y-auto bg-[#050816] px-8 py-4 custom-scrollbar">
+          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#050816] px-8 py-4 custom-scrollbar">
             <div className="mx-auto max-w-4xl">
               <div className="mb-4 flex justify-end">
                 <button
@@ -470,7 +476,7 @@ const FormBuilder = () => {
                 </button>
               </div>
 
-              <Droppable droppableId="root" type="builder-field">
+              <Droppable droppableId="root" type="builder-field" direction="vertical">
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
