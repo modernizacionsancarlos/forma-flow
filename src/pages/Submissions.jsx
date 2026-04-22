@@ -1,10 +1,21 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import {
     ClipboardList, Filter, Search, Trash2, X, FileText, RefreshCw
 } from "lucide-react";
-import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    getDocsFromServer,
+    orderBy,
+    doc,
+    updateDoc,
+    deleteDoc,
+    getDocFromServer,
+} from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { useForms } from "../api/useForms";
@@ -59,10 +70,13 @@ export default function Submissions() {
         search: "",
     });
     const [datePreset, setDatePreset] = useState("any");
+    // IDs borrados en esta sesión: evita parpadeos/reapariciones si getDocs aún lee caché local desfasada.
+    const tombstonedSubmissionIdsRef = useRef(new Set());
 
     /* ── Fetch submissions ────────────────────────────────────── */
-    const fetchSubmissions = async () => {
-        setLoading(true);
+    const fetchSubmissions = async (options = {}) => {
+        const { source = "default", silent = false } = options;
+        if (!silent) setLoading(true);
         try {
             let q = query(collection(db, "Submissions"), orderBy("created_date", "desc"));
             if (claims.role !== "super_admin" && claims.tenantId) {
@@ -72,13 +86,21 @@ export default function Submissions() {
                     orderBy("created_date", "desc")
                 );
             }
-            const snap = await getDocs(q);
-            setSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            const snap =
+                source === "server" ? await getDocsFromServer(q) : await getDocs(q);
+            const serverIds = new Set(snap.docs.map((d) => d.id));
+            for (const tid of Array.from(tombstonedSubmissionIdsRef.current)) {
+                if (!serverIds.has(tid)) tombstonedSubmissionIdsRef.current.delete(tid);
+            }
+            let rows = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            rows = rows.filter((s) => !tombstonedSubmissionIdsRef.current.has(s.id));
+            setSubmissions(rows);
         } catch (err) {
             console.error("Error fetching submissions:", err);
             toast.error("No se pudieron recargar las respuestas");
+        } finally {
+            if (!silent) setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -152,30 +174,40 @@ export default function Submissions() {
 
     const deleteSubmission = async () => {
         if (!submissionToDelete?.id) return;
+        const idToDelete = submissionToDelete.id;
         setIsDeleting(true);
         try {
-            const submissionRef = doc(db, "Submissions", submissionToDelete.id);
+            const submissionRef = doc(db, "Submissions", idToDelete);
             await deleteDoc(submissionRef);
 
-            // Previene "resurrección" desde cola offline local en este navegador.
+            // getDoc() usa caché local y podría reportar aún "existe" tras deleteDoc; getDocFromServer evita el falso positivo.
+            // Si no hay acceso a red o falla el read, asumimos confianza en deleteDoc ya aplicada en el cliente.
+            try {
+                const fromServer = await getDocFromServer(submissionRef);
+                if (fromServer.exists()) {
+                    throw new Error("La respuesta sigue existiendo en servidor. Reintenta o revisa permisos.");
+                }
+            } catch (verifyErr) {
+                if (verifyErr?.message?.includes("sigue existiendo en servidor")) throw verifyErr;
+                if (verifyErr?.code === "permission-denied") throw verifyErr;
+                // Otras fallas p. ej. unavailable: deleteDoc ya se aplicó en cliente; se puede continuar a limpiar cola.
+            }
+
+            // Cola offline: se limpia solo tras deleteDoc y verificación (o ruta sin red arriba), no antes, para no perder reintentos.
             try {
                 const savedQueue = JSON.parse(localStorage.getItem("formflow_sync_queue") || "[]");
-                const nextQueue = savedQueue.filter((item) => item?.id !== submissionToDelete.id);
+                const nextQueue = savedQueue.filter((item) => item?.id !== idToDelete);
                 localStorage.setItem("formflow_sync_queue", JSON.stringify(nextQueue));
             } catch (storageError) {
                 console.warn("No se pudo limpiar formflow_sync_queue tras eliminar:", storageError);
             }
 
-            // Verificación contra servidor para evitar éxito falso por estado local.
-            const stillExists = await getDoc(submissionRef);
-            if (stillExists.exists()) {
-                throw new Error("La respuesta sigue existiendo en servidor. Reintenta o revisa permisos.");
-            }
-
-            setSubmissions(prev => prev.filter(s => s.id !== submissionToDelete.id));
-            if (selectedSubmission?.id === submissionToDelete.id) setSelectedSubmission(null);
+            tombstonedSubmissionIdsRef.current.add(idToDelete);
+            setSubmissions((prev) => prev.filter((s) => s.id !== idToDelete));
+            if (selectedSubmission?.id === idToDelete) setSelectedSubmission(null);
             toast.success("Respuesta eliminada correctamente");
-            await fetchSubmissions();
+            // Refresco desde el servidor para no mezclar caché local con getDocs; silent evita quitar toda la tabla con loading.
+            await fetchSubmissions({ source: "server", silent: true });
         } catch (err) {
             console.error("Error deleting submission:", err);
             toast.error(err?.message || "No se pudo eliminar la respuesta");
@@ -297,7 +329,7 @@ export default function Submissions() {
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={fetchSubmissions}
+                                onClick={() => fetchSubmissions({ source: "server" })}
                                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-300 hover:text-white transition-colors"
                                 title="Recargar respuestas"
                             >
