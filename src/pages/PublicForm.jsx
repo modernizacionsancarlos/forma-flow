@@ -658,7 +658,18 @@ const PublicFormView = () => {
 
       <div className="flex flex-col sm:flex-row gap-4">
         <button onClick={() => window.location.reload()} className="px-10 py-5 bg-slate-900 text-white border border-slate-800 rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-slate-800 transition-all active:scale-[0.98]">Nuevo Registro</button>
-        <button onClick={() => window.location.href = '/portal'} className="px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 active:scale-[0.98]">Ir al Portal de Seguimiento</button>
+        <button
+          onClick={() => {
+            if (submissionId) {
+              navigator.clipboard.writeText(submissionId);
+              toast.success("Código copiado automáticamente");
+            }
+            window.location.href = '/portal';
+          }}
+          className="px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase tracking-[0.2em] text-xs hover:bg-emerald-500 transition-all shadow-2xl shadow-emerald-900/40 active:scale-[0.98]"
+        >
+          Ir al Portal de Seguimiento
+        </button>
       </div>
     </div>
   );

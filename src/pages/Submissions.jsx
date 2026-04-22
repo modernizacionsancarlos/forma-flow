@@ -402,7 +402,7 @@ export default function Submissions() {
                                         <td className="px-4 py-3 text-slate-600 text-xs">{idx + 1}</td>
                                         <td className="px-4 py-3">
                                             <span className="font-mono text-xs text-slate-300">
-                                                {sub.document_code || sub.id.slice(0, 8).toUpperCase()}
+                                                {sub.document_code || sub.id}
                                             </span>
                                         </td>
                                         {selectedFormId === "all" && (
