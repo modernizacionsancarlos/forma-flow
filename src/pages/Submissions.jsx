@@ -12,12 +12,15 @@ import { useAreas } from "../api/useAreas";
 
 /* ── Status config ────────────────────────────────────────────────── */
 const STATUS_CONFIG = {
-    draft:     { label: "Borrador",    cls: "bg-slate-700 text-slate-300" },
-    submitted: { label: "Enviado",     cls: "bg-blue-900/40 text-blue-400" },
-    in_review: { label: "En Revisión", cls: "bg-amber-900/40 text-amber-400" },
-    approved:  { label: "Aprobado",    cls: "bg-emerald-900/40 text-emerald-400" },
-    rejected:  { label: "Rechazado",   cls: "bg-red-900/40 text-red-400" },
-    closed:    { label: "Cerrado",     cls: "bg-slate-800 text-slate-500" },
+    draft:          { label: "Borrador", cls: "bg-slate-700 text-slate-300" },
+    submitted:      { label: "Enviado", cls: "bg-blue-900/40 text-blue-400" },
+    pending_review: { label: "En Revisión", cls: "bg-amber-900/40 text-amber-400" },
+    in_review:      { label: "En Revisión", cls: "bg-amber-900/40 text-amber-400" },
+    request_info:   { label: "Info Requerida", cls: "bg-cyan-900/40 text-cyan-400" },
+    approved:       { label: "Aprobado", cls: "bg-emerald-900/40 text-emerald-400" },
+    rejected:       { label: "Rechazado", cls: "bg-red-900/40 text-red-400" },
+    archived:       { label: "Archivado", cls: "bg-slate-700 text-slate-400" },
+    closed:         { label: "Cerrado", cls: "bg-slate-800 text-slate-500" },
 };
 
 /* ══════════════════════════════════════════════════════════════════ */
@@ -169,7 +172,8 @@ export default function Submissions() {
     const getAreaName = (id) => areas.find(a => a.id === id)?.name || "—";
     const formatDate = (ts) => {
         try {
-            const d = ts?.toDate?.() || new Date(ts);
+            const d = ts?.toDate?.() || (typeof ts === "number" ? new Date(ts) : new Date(ts));
+            if (Number.isNaN(d.getTime())) return "—";
             return format(d, "dd/MM/yy HH:mm");
         } catch { return "—"; }
     };
@@ -386,12 +390,14 @@ export default function Submissions() {
                                         </td>
                                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                                             <select
-                                                value={sub.status || "submitted"}
+                                                value={sub.status || "pending_review"}
                                                 onChange={e => updateStatus(sub, e.target.value)}
-                                                className={`text-xs px-2 py-1 rounded-lg border-0 focus:outline-none cursor-pointer ${STATUS_CONFIG[sub.status]?.cls || STATUS_CONFIG.submitted.cls}`}
+                                                className="text-xs px-2 py-1 rounded-lg border border-slate-700 bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer min-w-[130px]"
                                             >
                                                 {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                                                    <option key={k} value={k}>{v.label}</option>
+                                                    <option key={k} value={k} className="bg-slate-900 text-slate-100">
+                                                        {v.label}
+                                                    </option>
                                                 ))}
                                             </select>
                                         </td>
@@ -465,12 +471,14 @@ function SubmissionDetailModal({ submission, form, area, onClose, onStatusChange
                     </div>
                     <div className="flex items-center gap-2">
                         <select
-                            value={submission.status || "submitted"}
+                            value={submission.status || "pending_review"}
                             onChange={e => onStatusChange(submission, e.target.value)}
-                            className={`text-xs px-3 py-1.5 rounded-lg cursor-pointer border-0 focus:outline-none ${STATUS_CONFIG[submission.status]?.cls || ""}`}
+                            className="text-xs px-3 py-1.5 rounded-lg cursor-pointer border border-slate-700 bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-[130px]"
                         >
                             {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                                <option key={k} value={k}>{v.label}</option>
+                                <option key={k} value={k} className="bg-slate-900 text-slate-100">
+                                    {v.label}
+                                </option>
                             ))}
                         </select>
                         <button onClick={onClose} className="text-slate-400 hover:text-white p-1">

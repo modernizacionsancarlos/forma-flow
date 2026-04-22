@@ -30,6 +30,7 @@ export const useSubmissions = () => {
       data: formData,
       created_by: user?.uid || "public_citizen",
       created_date: now,
+      submitted_at: now,
       status: "pending_review",
       history: [{
         type: "submitted",
@@ -45,6 +46,7 @@ export const useSubmissions = () => {
         const payload = cleanObject({
           ...submission,
           created_date: Timestamp.now(),
+          submitted_at: Timestamp.now(),
           history: submission.history.map(h => ({ ...h, timestamp: Timestamp.fromMillis(h.timestamp) }))
         });
         const docRef = await addDoc(collection(db, "Submissions"), payload);
@@ -119,6 +121,9 @@ export const useSubmissions = () => {
           ...firebaseData,
           data: processedData,
           created_date: Timestamp.fromMillis(item.created_date),
+          submitted_at: item.submitted_at
+            ? Timestamp.fromMillis(item.submitted_at)
+            : Timestamp.fromMillis(item.created_date),
           status: "pending_review",
           history: (item.history || []).map(h => ({ 
             ...h, 
