@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { collection, doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db, storage as firebaseStorage } from "../lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "../lib/AuthContext";

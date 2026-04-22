@@ -22,7 +22,15 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 export const functions = getFunctions(app);
-export const messaging = typeof window !== "undefined" ? getMessaging(app) : null;
+let messagingInstance = null;
+if (typeof window !== "undefined") {
+  try {
+    messagingInstance = getMessaging(app);
+  } catch (error) {
+    console.warn("Firebase Messaging no disponible en este entorno:", error);
+  }
+}
+export const messaging = messagingInstance;
 
 // Enable offline persistence
 if (typeof window !== "undefined") {
