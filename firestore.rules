@@ -25,9 +25,16 @@ service cloud.firestore {
       return isSuperAdmin() || (isAuthenticated() && getUserTenantId() == resourceData.tenant_id);
     }
 
-    // Reglas para la colección de Trámites (Submissions)
+    // Trámites (Submissions). Nota: tras un delete, getDoc puede consultar un ID sin documento; si la regla
+    // solo usa resource.data, no existe y la lectura falla (falso permission-denied / bloqueos en el cliente).
     match /Submissions/{submissionId} {
-      allow read: if isSameTenant(resource.data);
+      function submissionDocExists() {
+        return exists(/databases/$(database)/documents/Submissions/$(submissionId));
+      }
+      // get sobre documento inexistente: exige autenticación (evita sondeo anónimo) y alinea con verificaciones post-borrado.
+      allow read: if isSuperAdmin() ||
+        (isAuthenticated() && !submissionDocExists()) ||
+        isSameTenant(resource.data);
       allow create: if isAuthenticated() && (
         isSuperAdmin() || 
         request.resource.data.tenant_id == getUserTenantId() ||

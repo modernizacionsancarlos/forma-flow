@@ -9,18 +9,26 @@ import {
     query,
     where,
     getDocs,
-    getDocsFromServer,
     orderBy,
     doc,
     updateDoc,
     deleteDoc,
-    getDocFromServer,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { useForms } from "../api/useForms";
 import { useAreas } from "../api/useAreas";
 import { toast } from "react-hot-toast";
+
+/** Evita que la UI quede en "Eliminando…" para siempre si la red o Firestore no responden. */
+function withTimeout(promise, ms, message = "Tiempo de espera agotado. Reintenta.") {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+            setTimeout(() => reject(new Error(message)), ms);
+        }),
+    ]);
+}
 
 /* ── Status config ────────────────────────────────────────────────── */
 const STATUS_CONFIG = {
@@ -75,7 +83,7 @@ export default function Submissions() {
 
     /* ── Fetch submissions ────────────────────────────────────── */
     const fetchSubmissions = async (options = {}) => {
-        const { source = "default", silent = false } = options;
+        const { silent = false, quiet = false } = options;
         if (!silent) setLoading(true);
         try {
             let q = query(collection(db, "Submissions"), orderBy("created_date", "desc"));
@@ -86,8 +94,12 @@ export default function Submissions() {
                     orderBy("created_date", "desc")
                 );
             }
-            const snap =
-                source === "server" ? await getDocsFromServer(q) : await getDocs(q);
+            // getDocs (caché + servidor) evita cuelgues frecuentes con getDocsFromServer.
+            const snap = await withTimeout(
+                getDocs(q),
+                20000,
+                "No se pudo cargar la lista de respuestas a tiempo"
+            );
             const serverIds = new Set(snap.docs.map((d) => d.id));
             for (const tid of Array.from(tombstonedSubmissionIdsRef.current)) {
                 if (!serverIds.has(tid)) tombstonedSubmissionIdsRef.current.delete(tid);
@@ -97,7 +109,7 @@ export default function Submissions() {
             setSubmissions(rows);
         } catch (err) {
             console.error("Error fetching submissions:", err);
-            toast.error("No se pudieron recargar las respuestas");
+            if (!quiet) toast.error(err?.message || "No se pudieron recargar las respuestas");
         } finally {
             if (!silent) setLoading(false);
         }
@@ -178,22 +190,14 @@ export default function Submissions() {
         setIsDeleting(true);
         try {
             const submissionRef = doc(db, "Submissions", idToDelete);
-            await deleteDoc(submissionRef);
+            // Si el borrado no devuelve (red colgada), el modal no debe quedarse "Eliminando…" para siempre.
+            await withTimeout(
+                deleteDoc(submissionRef),
+                20000,
+                "No se pudo confirmar el borrado. Revisá conexión o permisos."
+            );
 
-            // getDoc() usa caché local y podría reportar aún "existe" tras deleteDoc; getDocFromServer evita el falso positivo.
-            // Si no hay acceso a red o falla el read, asumimos confianza en deleteDoc ya aplicada en el cliente.
-            try {
-                const fromServer = await getDocFromServer(submissionRef);
-                if (fromServer.exists()) {
-                    throw new Error("La respuesta sigue existiendo en servidor. Reintenta o revisa permisos.");
-                }
-            } catch (verifyErr) {
-                if (verifyErr?.message?.includes("sigue existiendo en servidor")) throw verifyErr;
-                if (verifyErr?.code === "permission-denied") throw verifyErr;
-                // Otras fallas p. ej. unavailable: deleteDoc ya se aplicó en cliente; se puede continuar a limpiar cola.
-            }
-
-            // Cola offline: se limpia solo tras deleteDoc y verificación (o ruta sin red arriba), no antes, para no perder reintentos.
+            // Limpieza de cola solo tras un deleteDoc resuelto (rechazada la promesa = no tocamos la cola).
             try {
                 const savedQueue = JSON.parse(localStorage.getItem("formflow_sync_queue") || "[]");
                 const nextQueue = savedQueue.filter((item) => item?.id !== idToDelete);
@@ -206,8 +210,8 @@ export default function Submissions() {
             setSubmissions((prev) => prev.filter((s) => s.id !== idToDelete));
             if (selectedSubmission?.id === idToDelete) setSelectedSubmission(null);
             toast.success("Respuesta eliminada correctamente");
-            // Refresco desde el servidor para no mezclar caché local con getDocs; silent evita quitar toda la tabla con loading.
-            await fetchSubmissions({ source: "server", silent: true });
+            // Refresco silencioso: si falla la red, no mostramos error (el borrado ya se aplicó en UI con tombstone).
+            await fetchSubmissions({ silent: true, quiet: true });
         } catch (err) {
             console.error("Error deleting submission:", err);
             toast.error(err?.message || "No se pudo eliminar la respuesta");
@@ -329,7 +333,7 @@ export default function Submissions() {
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => fetchSubmissions({ source: "server" })}
+                                onClick={() => fetchSubmissions()}
                                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-300 hover:text-white transition-colors"
                                 title="Recargar respuestas"
                             >
