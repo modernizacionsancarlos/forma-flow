@@ -384,19 +384,18 @@ const FormBuilder = () => {
         setFormState((current) => ({ ...current, id: savedId }));
       }
 
-      if (!formId && savedId) {
-        navigate(`/forms/new?id=${savedId}`, { replace: true });
-      }
-
       setSaveStatus("saved");
+      toast.success("Formulario guardado correctamente");
       if (formState.is_public && savedId) {
         const nextPublicUrl = `${window.location.origin}/public-form/${savedId}`;
         toast.success(`URL pública generada: ${nextPublicUrl}`);
       }
+      navigate("/forms");
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch (error) {
       console.error("Error saving form:", error);
       setSaveStatus("error");
+      toast.error(error?.message || "No se pudo guardar el formulario");
       setTimeout(() => setSaveStatus("idle"), 3000);
     }
   };

@@ -31,13 +31,14 @@ export const useForms = () => {
     const saveForm = useMutation({
         mutationFn: async (formData) => {
             if (formData.id) {
-                const docRef = doc(db, "FormSchemas", formData.id);
+                const { id, ...restData } = formData;
+                const docRef = doc(db, "FormSchemas", id);
                 const payload = cleanObject({
-                    ...formData,
+                    ...restData,
                     updated_date: Timestamp.now(),
                 });
                 await updateDoc(docRef, payload);
-                return { id: formData.id, ...payload };
+                return { id, ...payload };
             } else {
                 const payload = cleanObject({
                     ...formData,
