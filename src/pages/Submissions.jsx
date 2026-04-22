@@ -16,12 +16,22 @@ const STATUS_CONFIG = {
     draft:          { label: "Borrador", cls: "bg-slate-700 text-slate-300" },
     submitted:      { label: "Enviado", cls: "bg-blue-900/40 text-blue-400" },
     pending_review: { label: "En Revisión", cls: "bg-amber-900/40 text-amber-400" },
-    in_review:      { label: "En Revisión", cls: "bg-amber-900/40 text-amber-400" },
     request_info:   { label: "Info Requerida", cls: "bg-cyan-900/40 text-cyan-400" },
     approved:       { label: "Aprobado", cls: "bg-emerald-900/40 text-emerald-400" },
     rejected:       { label: "Rechazado", cls: "bg-red-900/40 text-red-400" },
     archived:       { label: "Archivado", cls: "bg-slate-700 text-slate-400" },
     closed:         { label: "Cerrado", cls: "bg-slate-800 text-slate-500" },
+};
+
+const STATUS_OPTIONS = Object.entries(STATUS_CONFIG).map(([value, cfg]) => ({
+    value,
+    label: cfg.label,
+}));
+
+const normalizeStatus = (status) => {
+    if (!status) return "pending_review";
+    if (status === "in_review") return "pending_review";
+    return STATUS_CONFIG[status] ? status : "pending_review";
 };
 
 /* ══════════════════════════════════════════════════════════════════ */
@@ -95,7 +105,8 @@ export default function Submissions() {
     const filtered = useMemo(() => {
         return submissions.filter(sub => {
             const matchForm = selectedFormId === "all" || sub.form_id === selectedFormId || sub.schema_id === selectedFormId;
-            const matchStatus = filters.status === "all" || sub.status === filters.status;
+            const normalizedSubStatus = normalizeStatus(sub.status);
+            const matchStatus = filters.status === "all" || normalizedSubStatus === filters.status;
             const matchSearch = !filters.search ||
                 sub.document_code?.toLowerCase().includes(filters.search.toLowerCase()) ||
                 sub.submitted_by_name?.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -125,13 +136,17 @@ export default function Submissions() {
     /* ── Actions ──────────────────────────────────────────────── */
     const updateStatus = async (sub, newStatus) => {
         try {
-            await updateDoc(doc(db, "Submissions", sub.id), { status: newStatus });
-            setSubmissions(prev => prev.map(s => s.id === sub.id ? { ...s, status: newStatus } : s));
+            const nextStatus = normalizeStatus(newStatus);
+            await updateDoc(doc(db, "Submissions", sub.id), { status: nextStatus });
+            setSubmissions(prev => prev.map(s => s.id === sub.id ? { ...s, status: nextStatus } : s));
             if (selectedSubmission?.id === sub.id) {
-                setSelectedSubmission(prev => ({ ...prev, status: newStatus }));
+                setSelectedSubmission(prev => ({ ...prev, status: nextStatus }));
             }
+            toast.success("Estado actualizado");
+            await fetchSubmissions();
         } catch (err) {
-            alert("Error: " + err.message);
+            console.error("Error updating status:", err);
+            toast.error(err?.message || "No se pudo cambiar el estado");
         }
     };
 
@@ -303,8 +318,8 @@ export default function Submissions() {
                         <select value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}
                             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-emerald-500">
                             <option value="all">Todos los estados</option>
-                            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                                <option key={k} value={k}>{v.label}</option>
+                            {STATUS_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>{option.label}</option>
                             ))}
                         </select>
                         <select
@@ -350,8 +365,8 @@ export default function Submissions() {
                                 <select value={filters.status} onChange={e => setFilters({ ...filters, status: e.target.value })}
                                     className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-emerald-500">
                                     <option value="all">Todos</option>
-                                    {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                                        <option key={k} value={k}>{v.label}</option>
+                                    {STATUS_OPTIONS.map((option) => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
                                     ))}
                                 </select>
                             </div>
@@ -417,17 +432,23 @@ export default function Submissions() {
                                             {sub.submitted_by_name || "Anónimo"}
                                         </td>
                                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
+                                            {(() => {
+                                                const normalizedSubStatus = normalizeStatus(sub.status);
+                                                const statusStyle = STATUS_CONFIG[normalizedSubStatus]?.cls || STATUS_CONFIG.pending_review.cls;
+                                                return (
                                             <select
-                                                value={sub.status || "pending_review"}
+                                                value={normalizedSubStatus}
                                                 onChange={e => updateStatus(sub, e.target.value)}
-                                                className="text-xs px-2 py-1 rounded-lg border border-slate-700 bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer min-w-[130px]"
+                                                className={`text-xs px-2 py-1 rounded-lg border border-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer min-w-[130px] bg-slate-900 ${statusStyle}`}
                                             >
-                                                {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                                                    <option key={k} value={k} className="bg-slate-900 text-slate-100">
-                                                        {v.label}
+                                                {STATUS_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value} className="bg-slate-900 text-slate-100">
+                                                        {option.label}
                                                     </option>
                                                 ))}
                                             </select>
+                                                );
+                                            })()}
                                         </td>
                                         <td className="px-4 py-3 text-xs text-slate-500 hidden sm:table-cell">
                                             {formatDate(sub.submitted_at || sub.created_date)}
@@ -548,13 +569,13 @@ function SubmissionDetailModal({ submission, form, area, onClose, onStatusChange
                     </div>
                     <div className="flex items-center gap-2">
                         <select
-                            value={submission.status || "pending_review"}
+                            value={normalizeStatus(submission.status)}
                             onChange={e => onStatusChange(submission, e.target.value)}
                             className="text-xs px-3 py-1.5 rounded-lg cursor-pointer border border-slate-700 bg-slate-900 text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-w-[130px]"
                         >
-                            {Object.entries(STATUS_CONFIG).map(([k, v]) => (
-                                <option key={k} value={k} className="bg-slate-900 text-slate-100">
-                                    {v.label}
+                            {STATUS_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value} className="bg-slate-900 text-slate-100">
+                                    {option.label}
                                 </option>
                             ))}
                         </select>
