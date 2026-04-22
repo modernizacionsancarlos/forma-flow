@@ -54,8 +54,7 @@ export const useSubmissions = () => {
 
       } catch (error) {
         console.error("Error direct submit:", error);
-        addToQueue(submission);
-        return { success: true, synced: false, id: submissionId };
+        return { success: false, synced: false, error };
       }
     } else {
       addToQueue(submission);
