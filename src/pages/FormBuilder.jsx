@@ -65,7 +65,10 @@ const ResponseLimitModal = ({ isOpen, value, onClose, onSave }) => {
   const [draft, setDraft] = useState(value || { type: "none" });
 
   useEffect(() => {
-    setDraft(value || { type: "none" });
+    const timer = setTimeout(() => {
+      setDraft(value || { type: "none" });
+    }, 0);
+    return () => clearTimeout(timer);
   }, [value]);
 
   if (!isOpen) return null;
