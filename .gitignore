@@ -30,3 +30,6 @@ dist-ssr
 
 # Logo municipal local (privado, no versionar)
 public/local-assets/municipal-logo.*
+
+# Copias locales de Firestore (no se suben a la BD con Hosting; evitar confusión en el repo)
+backups/*.json
