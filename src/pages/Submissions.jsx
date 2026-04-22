@@ -145,7 +145,7 @@ export default function Submissions() {
             toast.success("Respuesta eliminada correctamente");
         } catch (err) {
             console.error("Error deleting submission:", err);
-            toast.error("No se pudo eliminar la respuesta");
+            toast.error(err?.message || "No se pudo eliminar la respuesta");
         } finally {
             setIsDeleting(false);
             setSubmissionToDelete(null);

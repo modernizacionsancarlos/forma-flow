@@ -196,6 +196,7 @@ const PublicFormView = () => {
   const [formSchema, setFormSchema] = useState(null);
   const [formData, setFormData] = useState({});
   const [status, setStatus] = useState("loading"); // loading, ready, success, error, submitting
+  const submitLockRef = useRef(false);
   const [submissionId, setSubmissionId] = useState(null);
   const [errors, setErrors] = useState({});
   const [branding, setBranding] = useState({
@@ -504,8 +505,10 @@ const PublicFormView = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitLockRef.current || status === "submitting") return;
     if (!validateForm()) return;
 
+    submitLockRef.current = true;
     setStatus("submitting");
     const filteredData = {};
     allFields.forEach(f => {
@@ -530,14 +533,25 @@ const PublicFormView = () => {
     filteredData.status = finalStatus;
     // ------------------------------------------
 
-    const result = await submitForm(filteredData, formId);
-
-    if (result && result.success) {
-      setSubmissionId(result.id || "LOCAL_" + Math.random().toString(36).substr(2, 9).toUpperCase());
-      setStatus(result.offline || !result.synced ? "success_offline" : "success");
-    } else {
+    let wasSuccessful = false;
+    try {
+      const result = await submitForm(filteredData, formId);
+      if (result && result.success) {
+        setSubmissionId(result.id || "LOCAL_" + Math.random().toString(36).substr(2, 9).toUpperCase());
+        setStatus(result.offline || !result.synced ? "success_offline" : "success");
+        wasSuccessful = true;
+        return;
+      }
       setStatus("ready");
-      toast.error("Error al enviar. Intente más tarde.");
+      toast.error(result?.error?.message || "Error al enviar. Intente más tarde.");
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setStatus("ready");
+      toast.error("No se pudo enviar la respuesta");
+    } finally {
+      if (!wasSuccessful) {
+        submitLockRef.current = false;
+      }
     }
   };
 
@@ -902,7 +916,7 @@ const PublicFormView = () => {
                    <Loader2 className="h-10 w-10 text-white animate-spin" />
                 ) : (
                   <>
-                    <span>Sincronizar y Enviar</span>
+                    <span>Enviar Respuesta</span>
                     <ArrowRight size={36} className="group-hover:translate-x-4 transition-transform duration-700 ease-out" />
                   </>
                 )}

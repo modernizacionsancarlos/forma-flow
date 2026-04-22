@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db, storage as firebaseStorage } from "../lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuth } from "../lib/AuthContext";
@@ -23,9 +23,25 @@ export const useSubmissions = () => {
   const submitForm = async (formData, schemaId) => {
     const submissionId = crypto.randomUUID();
     const now = Date.now();
+    let tenantId = claims?.tenantId || null;
+
+    // Para formularios públicos sin claims, usamos el tenant del esquema.
+    if (!tenantId && schemaId) {
+      try {
+        const formRef = doc(db, "FormSchemas", schemaId);
+        const formSnap = await getDoc(formRef);
+        if (formSnap.exists()) {
+          const schema = formSnap.data();
+          tenantId = schema?.tenant_id || schema?.tenantId || null;
+        }
+      } catch (error) {
+        console.warn("No se pudo resolver tenant desde FormSchemas:", error);
+      }
+    }
+
     const submission = {
       id: submissionId,
-      tenant_id: claims?.tenantId || "global",
+      tenant_id: tenantId || "global",
       schema_id: schemaId,
       data: formData,
       created_by: user?.uid || "public_citizen",
@@ -49,8 +65,8 @@ export const useSubmissions = () => {
           submitted_at: Timestamp.now(),
           history: submission.history.map(h => ({ ...h, timestamp: Timestamp.fromMillis(h.timestamp) }))
         });
-        const docRef = await addDoc(collection(db, "Submissions"), payload);
-        return { success: true, synced: true, id: docRef.id };
+        await setDoc(doc(db, "Submissions", submissionId), payload);
+        return { success: true, synced: true, id: submissionId };
 
       } catch (error) {
         console.error("Error direct submit:", error);
@@ -130,7 +146,7 @@ export const useSubmissions = () => {
           }))
         });
 
-        await addDoc(collection(db, "Submissions"), payload);
+        await setDoc(doc(db, "Submissions", item.id), payload);
 
         successes.push(item);
       } catch (error) {
