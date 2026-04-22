@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import {
     ClipboardList, Filter, Search, Trash2, X, FileText, RefreshCw
 } from "lucide-react";
-import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { useForms } from "../api/useForms";
@@ -154,10 +154,28 @@ export default function Submissions() {
         if (!submissionToDelete?.id) return;
         setIsDeleting(true);
         try {
-            await deleteDoc(doc(db, "Submissions", submissionToDelete.id));
+            const submissionRef = doc(db, "Submissions", submissionToDelete.id);
+            await deleteDoc(submissionRef);
+
+            // Previene "resurrección" desde cola offline local en este navegador.
+            try {
+                const savedQueue = JSON.parse(localStorage.getItem("formflow_sync_queue") || "[]");
+                const nextQueue = savedQueue.filter((item) => item?.id !== submissionToDelete.id);
+                localStorage.setItem("formflow_sync_queue", JSON.stringify(nextQueue));
+            } catch (storageError) {
+                console.warn("No se pudo limpiar formflow_sync_queue tras eliminar:", storageError);
+            }
+
+            // Verificación contra servidor para evitar éxito falso por estado local.
+            const stillExists = await getDoc(submissionRef);
+            if (stillExists.exists()) {
+                throw new Error("La respuesta sigue existiendo en servidor. Reintenta o revisa permisos.");
+            }
+
             setSubmissions(prev => prev.filter(s => s.id !== submissionToDelete.id));
             if (selectedSubmission?.id === submissionToDelete.id) setSelectedSubmission(null);
             toast.success("Respuesta eliminada correctamente");
+            await fetchSubmissions();
         } catch (err) {
             console.error("Error deleting submission:", err);
             toast.error(err?.message || "No se pudo eliminar la respuesta");
