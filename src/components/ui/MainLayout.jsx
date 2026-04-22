@@ -91,12 +91,8 @@ const MainLayout = ({ children }) => {
 
   // Cerrar sidebar cuando cambia la ruta (solo en móvil)
   useEffect(() => {
-    if (isSidebarOpen) {
-      // Usar un microtask para desacoplar la actualización de estado del render actual
-      const timer = setTimeout(() => setIsSidebarOpen(false), 0);
-      return () => clearTimeout(timer);
-    }
-  }, [location.pathname, isSidebarOpen]);
+    setIsSidebarOpen(false);
+  }, [location.pathname]);
 
   // Activa las notificaciones en tiempo real para el administrador
   useSubmissionNotifications();
