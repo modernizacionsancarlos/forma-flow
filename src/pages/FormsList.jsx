@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
     Plus, Search, FileText, Edit3, Archive, Trash2,
@@ -66,6 +66,11 @@ export default function FormsList() {
     const formsList = forms || [];
     const tenantMap = Object.fromEntries(tenants.map(t => [t.id, t.name]));
 
+    useEffect(() => {
+        // Warm up del chunk del constructor para navegación más fluida.
+        import("./FormBuilder");
+    }, []);
+
     /* ── Filtering ────────────────────────────────────────────── */
     const filtered = formsList.filter(f => {
         const matchSearch =
@@ -110,7 +115,10 @@ export default function FormsList() {
                             {formsList.length} formularios en total
                         </p>
                     </div>
-                    <button onClick={() => navigate("/forms/new")}
+                    <button
+                        onMouseEnter={() => import("./FormBuilder")}
+                        onFocus={() => import("./FormBuilder")}
+                        onClick={() => navigate("/forms/new")}
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                         <Plus size={16} /> Nuevo Formulario
                     </button>

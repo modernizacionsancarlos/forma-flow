@@ -14,26 +14,42 @@ const PageLoader = () => (
   </div>
 );
 
-// Lazy Loaded Pages
-const Login = lazy(() => import('./pages/Login'))
-const Dashboard = lazy(() => import('./pages/Dashboard'))
-const FormsList = lazy(() => import('./pages/FormsList'))
-const FormBuilder = lazy(() => import('./pages/FormBuilder'))
-const Submissions = lazy(() => import('./pages/Submissions'))
-const PublicForm = lazy(() => import('./pages/PublicForm'))
-const Admin = lazy(() => import('./pages/Admin'))
-const Empresas = lazy(() => import('./pages/Empresas'))
-const Areas = lazy(() => import('./pages/Areas'))
-const Usuarios = lazy(() => import('./pages/Usuarios'))
-const Workflows = lazy(() => import('./pages/Workflows'))
-const Exportaciones = lazy(() => import('./pages/Exportaciones'))
-const Auditoria = lazy(() => import('./pages/Auditoria'))
-const Sincronizacion = lazy(() => import('./pages/Sincronizacion'))
-const Configuracion = lazy(() => import('./pages/Configuracion'))
-const CitizenPortal = lazy(() => import('./pages/CitizenPortal'))
-const GlobalMonitor = lazy(() => import('./pages/GlobalMonitor'))
-const NotFound = lazy(() => import('./pages/errors/NotFound'))
-const ServerError = lazy(() => import('./pages/errors/ServerError'))
+const lazyWithRetry = (factory, retries = 1, delayMs = 350) =>
+  lazy(async () => {
+    let lastError;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        return await factory();
+      } catch (error) {
+        lastError = error;
+        if (attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
+    }
+    throw lastError;
+  });
+
+// Lazy Loaded Pages with retry for smoother navigation
+const Login = lazyWithRetry(() => import('./pages/Login'))
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'))
+const FormsList = lazyWithRetry(() => import('./pages/FormsList'))
+const FormBuilder = lazyWithRetry(() => import('./pages/FormBuilder'))
+const Submissions = lazyWithRetry(() => import('./pages/Submissions'))
+const PublicForm = lazyWithRetry(() => import('./pages/PublicForm'))
+const Admin = lazyWithRetry(() => import('./pages/Admin'))
+const Empresas = lazyWithRetry(() => import('./pages/Empresas'))
+const Areas = lazyWithRetry(() => import('./pages/Areas'))
+const Usuarios = lazyWithRetry(() => import('./pages/Usuarios'))
+const Workflows = lazyWithRetry(() => import('./pages/Workflows'))
+const Exportaciones = lazyWithRetry(() => import('./pages/Exportaciones'))
+const Auditoria = lazyWithRetry(() => import('./pages/Auditoria'))
+const Sincronizacion = lazyWithRetry(() => import('./pages/Sincronizacion'))
+const Configuracion = lazyWithRetry(() => import('./pages/Configuracion'))
+const CitizenPortal = lazyWithRetry(() => import('./pages/CitizenPortal'))
+const GlobalMonitor = lazyWithRetry(() => import('./pages/GlobalMonitor'))
+const NotFound = lazyWithRetry(() => import('./pages/errors/NotFound'))
+const ServerError = lazyWithRetry(() => import('./pages/errors/ServerError'))
 
 import MainLayout from './components/ui/MainLayout'
 import JoinOrganization from './components/auth/JoinOrganization'
