@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
 import {
-    ClipboardList, Filter, Search, Trash2, X, FileText
+    ClipboardList, Filter, Search, Trash2, X, FileText, RefreshCw
 } from "lucide-react";
 import { collection, query, where, getDocs, orderBy, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { useForms } from "../api/useForms";
 import { useAreas } from "../api/useAreas";
+import { toast } from "react-hot-toast";
 
 /* ── Status config ────────────────────────────────────────────────── */
 const STATUS_CONFIG = {
@@ -37,6 +38,8 @@ export default function Submissions() {
     const [loading, setLoading] = useState(true);
     const [selectedFormId, setSelectedFormId] = useState(formParam || "all");
     const [selectedSubmission, setSelectedSubmission] = useState(null);
+    const [submissionToDelete, setSubmissionToDelete] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
     const [sidebarSearch, setSidebarSearch] = useState("");
     const [filters, setFilters] = useState({
@@ -63,6 +66,7 @@ export default function Submissions() {
             setSubmissions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
         } catch (err) {
             console.error("Error fetching submissions:", err);
+            toast.error("No se pudieron recargar las respuestas");
         }
         setLoading(false);
     };
@@ -71,6 +75,14 @@ export default function Submissions() {
         fetchSubmissions();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [claims.tenantId]);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            fetchSubmissions();
+        }, 30000);
+        return () => clearInterval(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [claims.tenantId, claims.role]);
 
     /* ── Filtering ────────────────────────────────────────────── */
     const activeFiltersCount = [
@@ -123,14 +135,20 @@ export default function Submissions() {
         }
     };
 
-    const deleteSubmission = async (id) => {
-        if (!confirm("¿Eliminar esta respuesta?")) return;
+    const deleteSubmission = async () => {
+        if (!submissionToDelete?.id) return;
+        setIsDeleting(true);
         try {
-            await deleteDoc(doc(db, "Submissions", id));
-            setSubmissions(prev => prev.filter(s => s.id !== id));
-            if (selectedSubmission?.id === id) setSelectedSubmission(null);
+            await deleteDoc(doc(db, "Submissions", submissionToDelete.id));
+            setSubmissions(prev => prev.filter(s => s.id !== submissionToDelete.id));
+            if (selectedSubmission?.id === submissionToDelete.id) setSelectedSubmission(null);
+            toast.success("Respuesta eliminada correctamente");
         } catch (err) {
-            alert("Error: " + err.message);
+            console.error("Error deleting submission:", err);
+            toast.error("No se pudo eliminar la respuesta");
+        } finally {
+            setIsDeleting(false);
+            setSubmissionToDelete(null);
         }
     };
 
@@ -244,21 +262,31 @@ export default function Submissions() {
                             <h1 className="text-lg font-bold text-white">{selectedTitle}</h1>
                             <p className="text-slate-500 text-sm">{filtered.length} entradas</p>
                         </div>
-                        <button onClick={() => setShowFilters(!showFilters)}
-                            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                                showFilters
-                                    ? "bg-emerald-600/20 text-emerald-400 border border-emerald-700/50"
-                                    : "bg-slate-800 text-slate-400 hover:text-white"
-                            }`}
-                        >
-                            <Filter size={14} />
-                            Filtros
-                            {activeFiltersCount > 0 && (
-                                <span className="bg-emerald-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                                    {activeFiltersCount}
-                                </span>
-                            )}
-                        </button>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={fetchSubmissions}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-300 hover:text-white transition-colors"
+                                title="Recargar respuestas"
+                            >
+                                <RefreshCw size={14} />
+                                Recargar
+                            </button>
+                            <button onClick={() => setShowFilters(!showFilters)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                    showFilters
+                                        ? "bg-emerald-600/20 text-emerald-400 border border-emerald-700/50"
+                                        : "bg-slate-800 text-slate-400 hover:text-white"
+                                }`}
+                            >
+                                <Filter size={14} />
+                                Filtros
+                                {activeFiltersCount > 0 && (
+                                    <span className="bg-emerald-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                        {activeFiltersCount}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {/* Filters row — always visible search + selects */}
@@ -405,7 +433,7 @@ export default function Submissions() {
                                             {formatDate(sub.submitted_at || sub.created_date)}
                                         </td>
                                         <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                                            <button onClick={() => deleteSubmission(sub.id)}
+                                            <button onClick={() => setSubmissionToDelete(sub)}
                                                 className="p-1 text-slate-700 hover:text-red-400 transition-colors">
                                                 <Trash2 size={13} />
                                             </button>
@@ -429,6 +457,55 @@ export default function Submissions() {
                     formatDate={formatDate}
                 />
             )}
+
+            {submissionToDelete && (
+                <DeleteSubmissionModal
+                    submission={submissionToDelete}
+                    isDeleting={isDeleting}
+                    onCancel={() => setSubmissionToDelete(null)}
+                    onConfirm={deleteSubmission}
+                />
+            )}
+        </div>
+    );
+}
+
+function DeleteSubmissionModal({ submission, isDeleting, onCancel, onConfirm }) {
+    const displayCode = submission?.document_code || submission?.id?.slice(0, 8)?.toUpperCase();
+    return (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onClick={onCancel}>
+            <div
+                className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="p-5 border-b border-slate-800">
+                    <h3 className="text-white font-semibold">Eliminar respuesta</h3>
+                    <p className="text-slate-400 text-sm mt-1">
+                        Esta acción no se puede deshacer.
+                    </p>
+                </div>
+                <div className="p-5">
+                    <p className="text-sm text-slate-300">
+                        ¿Seguro que querés eliminar la respuesta <span className="font-mono text-white">{displayCode}</span>?
+                    </p>
+                </div>
+                <div className="p-5 border-t border-slate-800 flex justify-end gap-3">
+                    <button
+                        onClick={onCancel}
+                        disabled={isDeleting}
+                        className="px-4 py-2 rounded-lg border border-slate-700 text-slate-300 hover:text-white transition-colors disabled:opacity-50"
+                    >
+                        Cancelar
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        disabled={isDeleting}
+                        className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors disabled:opacity-50"
+                    >
+                        {isDeleting ? "Eliminando..." : "Eliminar"}
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
