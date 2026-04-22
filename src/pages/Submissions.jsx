@@ -9,6 +9,7 @@ import {
     query,
     where,
     getDocs,
+    getDocsFromServer,
     orderBy,
     doc,
     updateDoc,
@@ -82,8 +83,10 @@ export default function Submissions() {
     const tombstonedSubmissionIdsRef = useRef(new Set());
 
     /* ── Fetch submissions ────────────────────────────────────── */
+    // source: "default" = caché + servidor (rápido, carga inicial / intervalo).
+    // source: "server" = getDocsFromServer (datos frescos; usado en "Recargar"), con timeout para no colgar la UI.
     const fetchSubmissions = async (options = {}) => {
-        const { silent = false, quiet = false } = options;
+        const { silent = false, quiet = false, source = "default" } = options;
         if (!silent) setLoading(true);
         try {
             let q = query(collection(db, "Submissions"), orderBy("created_date", "desc"));
@@ -94,10 +97,11 @@ export default function Submissions() {
                     orderBy("created_date", "desc")
                 );
             }
-            // getDocs (caché + servidor) evita cuelgues frecuentes con getDocsFromServer.
+            const fetchList =
+                source === "server" ? getDocsFromServer(q) : getDocs(q);
             const snap = await withTimeout(
-                getDocs(q),
-                20000,
+                fetchList,
+                25000,
                 "No se pudo cargar la lista de respuestas a tiempo"
             );
             const serverIds = new Set(snap.docs.map((d) => d.id));
@@ -210,8 +214,8 @@ export default function Submissions() {
             setSubmissions((prev) => prev.filter((s) => s.id !== idToDelete));
             if (selectedSubmission?.id === idToDelete) setSelectedSubmission(null);
             toast.success("Respuesta eliminada correctamente");
-            // Refresco silencioso: si falla la red, no mostramos error (el borrado ya se aplicó en UI con tombstone).
-            await fetchSubmissions({ silent: true, quiet: true });
+            // Misma fuente que "Recargar": servidor, silencioso; timeout evita cuelgues; quiet evita toasts si la red falla.
+            await fetchSubmissions({ source: "server", silent: true, quiet: true });
         } catch (err) {
             console.error("Error deleting submission:", err);
             toast.error(err?.message || "No se pudo eliminar la respuesta");
@@ -333,9 +337,9 @@ export default function Submissions() {
                         </div>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => fetchSubmissions()}
+                                onClick={() => fetchSubmissions({ source: "server" })}
                                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-300 hover:text-white transition-colors"
-                                title="Recargar respuestas"
+                                title="Recargar desde el servidor (datos actualizados)"
                             >
                                 <RefreshCw size={14} />
                                 Recargar
