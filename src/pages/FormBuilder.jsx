@@ -372,7 +372,7 @@ const FormBuilder = () => {
     syncFields(rebuildFieldOrders(formState.fields, roots, sectionChildrenMap));
   };
 
-  const handleSave = async () => {
+  const handleSave = async ({ navigateToList = false } = {}) => {
     setSaveStatus("saving");
 
     try {
@@ -390,7 +390,9 @@ const FormBuilder = () => {
         const nextPublicUrl = `${window.location.origin}/public-form/${savedId}`;
         toast.success(`URL pública generada: ${nextPublicUrl}`);
       }
-      navigate("/forms");
+      if (navigateToList) {
+        navigate("/forms");
+      }
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch (error) {
       console.error("Error saving form:", error);
@@ -442,7 +444,8 @@ const FormBuilder = () => {
           navigator.clipboard.writeText(publicUrl);
           toast.success("URL pública copiada");
         }}
-        onSave={handleSave}
+        onSave={() => handleSave({ navigateToList: false })}
+        onSaveAndExit={() => handleSave({ navigateToList: true })}
         saveStatus={saveStatus}
       />
 

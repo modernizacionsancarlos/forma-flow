@@ -35,6 +35,7 @@ const BuilderHeader = ({
   publicUrl,
   onCopyPublicUrl,
   onSave,
+  onSaveAndExit,
   saveStatus,
 }) => {
   return (
@@ -68,10 +69,18 @@ const BuilderHeader = ({
           <button
             onClick={onSave}
             disabled={saveStatus === "saving"}
-            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 disabled:opacity-50"
           >
             <Save size={14} className={saveStatus === "saving" ? "animate-spin" : ""} />
             {saveStatus === "saving" ? "Guardando..." : "Guardar"}
+          </button>
+          <button
+            onClick={onSaveAndExit}
+            disabled={saveStatus === "saving"}
+            className="flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
+          >
+            <Save size={14} className={saveStatus === "saving" ? "animate-spin" : ""} />
+            {saveStatus === "saving" ? "Guardando..." : "Guardar y volver"}
           </button>
         </div>
       </div>
