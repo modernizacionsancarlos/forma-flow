@@ -25,6 +25,29 @@ service cloud.firestore {
       return isSuperAdmin() || (isAuthenticated() && getUserTenantId() == resourceData.tenant_id);
     }
 
+    // Documento de formulario: referencia en envíos públicos anónimos
+    function formSchemaData(formId) {
+      return get(/databases/$(database)/documents/FormSchemas/$(formId)).data;
+    }
+    function formSchemaExists(formId) {
+      return exists(/databases/$(database)/documents/FormSchemas/$(formId));
+    }
+    // Crea trámite sin sesión: solo si el formulario es público y acepta respuestas, y el tenant_id coincide
+    function canCreatePublicAnonymousSubmission() {
+      return !isAuthenticated() &&
+        request.resource.data.keys().hasAll(['schema_id', 'tenant_id', 'data', 'status', 'created_by']) &&
+        formSchemaExists(request.resource.data.schema_id) &&
+        formSchemaData(request.resource.data.schema_id).is_public == true &&
+        (!formSchemaData(request.resource.data.schema_id).keys().hasAll(['accepts_responses']) ||
+         formSchemaData(request.resource.data.schema_id).accepts_responses == true) &&
+        (
+          (formSchemaData(request.resource.data.schema_id).keys().hasAll(['tenant_id']) &&
+            request.resource.data.tenant_id == formSchemaData(request.resource.data.schema_id).tenant_id) ||
+          (!formSchemaData(request.resource.data.schema_id).keys().hasAll(['tenant_id']) &&
+            request.resource.data.tenant_id == 'global')
+        );
+    }
+
     // Trámites (Submissions). Nota: tras un delete, getDoc puede consultar un ID sin documento; si la regla
     // solo usa resource.data, no existe y la lectura falla (falso permission-denied / bloqueos en el cliente).
     match /Submissions/{submissionId} {
@@ -35,11 +58,12 @@ service cloud.firestore {
       allow read: if isSuperAdmin() ||
         (isAuthenticated() && !submissionDocExists()) ||
         isSameTenant(resource.data);
-      allow create: if isAuthenticated() && (
+      allow create: if canCreatePublicAnonymousSubmission() ||
+        (isAuthenticated() && (
         isSuperAdmin() || 
         request.resource.data.tenant_id == getUserTenantId() ||
         (getUserTenantId() == null)
-      );
+      ));
       // Incluye trámites con tenant_id "global" (formularios públicos viejos) o sin campo, para personal con tenant
       // no bloquear borrado frente a isSameTenant; super_admin y mismo tenant siguen prioridad.
       allow update, delete: if isSameTenant(resource.data)

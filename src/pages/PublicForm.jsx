@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import SignatureCanvas from "react-signature-canvas";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getAuth } from "firebase/auth";
 import { storage as firebaseStorage } from "../lib/firebase";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "react-hot-toast";
@@ -221,9 +222,10 @@ const PublicFormView = () => {
           }
     );
 
-  // Suscripción al branding del tenant una vez se carga el formulario
+  // Branding del tenant: solo con sesión (las reglas de /tenants no permiten lectura anónima)
   useEffect(() => {
     if (!formSchema?.tenant_id) return;
+    if (!getAuth().currentUser) return;
 
     const unsubscribe = onSnapshot(doc(db, "tenants", formSchema.tenant_id), (docSnap) => {
       if (docSnap.exists()) {
@@ -252,15 +254,25 @@ const PublicFormView = () => {
     const fetchForm = async () => {
       try {
         const schema = await getFormById(formId);
-        if (schema && (schema.is_public || schema.status === "active")) {
-          const normalized = normalizeFormDocument(schema);
-          setFormSchema(schema);
-          setStatus("ready");
-          const initialData = normalized.fields.reduce((acc, f) => ({ ...acc, [f.id]: f.type === "boolean" ? false : "" }), {});
-          setFormData(initialData);
-        } else {
-           setStatus("error");
+        if (!schema) {
+          setStatus("error");
+          return;
         }
+        const isAuthed = !!getAuth().currentUser;
+        // Público sin login: solo formularios is_public. Con login: getDoc ya permitió (mismo tenant o público).
+        if (!isAuthed && !schema.is_public) {
+          setStatus("error");
+          return;
+        }
+        if (schema.is_public && schema.accepts_responses === false) {
+          setStatus("closed");
+          return;
+        }
+        const normalized = normalizeFormDocument(schema);
+        setFormSchema(schema);
+        setStatus("ready");
+        const initialData = normalized.fields.reduce((acc, f) => ({ ...acc, [f.id]: f.type === "boolean" ? false : "" }), {});
+        setFormData(initialData);
       } catch {
         setStatus("error");
       }
@@ -567,6 +579,14 @@ const PublicFormView = () => {
       <AlertCircle size={64} className="text-red-500 mb-6 opacity-30" />
       <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Acceso Denegado</h1>
       <p className="text-slate-500 max-w-sm">No encontramos el formulario o no tienes permiso para visualizarlo públicamente.</p>
+    </div>
+  );
+
+  if (status === "closed") return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
+      <AlertCircle size={64} className="text-amber-500 mb-6 opacity-30" />
+      <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Formulario cerrado</h1>
+      <p className="text-slate-500 max-w-sm">Este formulario no acepta respuestas en este momento.</p>
     </div>
   );
 
