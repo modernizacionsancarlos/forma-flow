@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd";
 import { Plus } from "lucide-react";
@@ -40,6 +40,22 @@ const moveItem = (items, sourceIndex, destinationIndex) => {
   return nextItems;
 };
 
+/** Mapa hijos por id de sección (todas las secciones, incluidas anidadas). */
+const buildSectionChildrenMap = (fields) =>
+  Object.fromEntries(
+    fields.filter((f) => f.type === "section").map((s) => [s.id, getSectionChildren(fields, s.id)])
+  );
+
+/** Añade en profundidad los hijos de una sección (subsecciones y sus descendientes). */
+const appendSectionSubtree = (rebuilt, sectionId, sectionChildrenMap) => {
+  (sectionChildrenMap[sectionId] || []).forEach((child) => {
+    rebuilt.push({ ...child, section_id: sectionId });
+    if (child.type === "section") {
+      appendSectionSubtree(rebuilt, child.id, sectionChildrenMap);
+    }
+  });
+};
+
 const rebuildFieldOrders = (allFields, orderedRoots, sectionChildrenMap) => {
   const rebuilt = [];
 
@@ -47,20 +63,115 @@ const rebuildFieldOrders = (allFields, orderedRoots, sectionChildrenMap) => {
     rebuilt.push({ ...rootField, section_id: null });
 
     if (rootField.type === "section") {
-      (sectionChildrenMap[rootField.id] || []).forEach((child) => {
-        rebuilt.push({ ...child, section_id: rootField.id });
-      });
+      appendSectionSubtree(rebuilt, rootField.id, sectionChildrenMap);
     }
   });
 
+  const knownSectionIds = new Set(allFields.filter((f) => f.type === "section").map((f) => f.id));
   const orphanFields = allFields.filter(
-    (field) =>
-      field.section_id &&
-      !orderedRoots.some((rootField) => rootField.id === field.section_id)
+    (field) => field.section_id && !knownSectionIds.has(field.section_id)
   );
   rebuilt.push(...orphanFields);
 
   return reorderFields(rebuilt);
+};
+
+/** ¿candidateSectionId es la sección ancestor o una subsección dentro de su árbol? */
+const isSectionOrDescendantId = (fields, ancestorSectionId, candidateSectionId) => {
+  if (ancestorSectionId === candidateSectionId) return true;
+  const children = getSectionChildren(fields, ancestorSectionId);
+  for (const ch of children) {
+    if (ch.type === "section" && isSectionOrDescendantId(fields, ch.id, candidateSectionId)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
+ * Elige la sección más específica bajo (x,y): elementsFromPoint ve debajo del preview del drag
+ * (pointer-events: none) y evita fallos cuando la sección está vacía (destination null o "root").
+ */
+const findBestSectionIdUnderPoint = (clientX, clientY, droppableRegistry) => {
+  let bestId = null;
+  let bestArea = Infinity;
+
+  if (typeof document !== "undefined" && typeof document.elementsFromPoint === "function") {
+    let stack = [];
+    try {
+      stack = document.elementsFromPoint(clientX, clientY) || [];
+    } catch {
+      stack = [];
+    }
+    for (const hit of stack) {
+      droppableRegistry.forEach((regEl, sectionId) => {
+        if (!regEl || !(regEl instanceof HTMLElement)) return;
+        if (hit === regEl || regEl.contains(hit)) {
+          const r = regEl.getBoundingClientRect();
+          const area = r.width * r.height;
+          if (area > 0 && area < bestArea) {
+            bestArea = area;
+            bestId = sectionId;
+          }
+        }
+      });
+    }
+  }
+
+  if (bestId) return bestId;
+
+  droppableRegistry.forEach((el, sectionId) => {
+    if (!el || !(el instanceof HTMLElement)) return;
+    const r = el.getBoundingClientRect();
+    if (clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom) {
+      const area = r.width * r.height;
+      if (area > 0 && area < bestArea) {
+        bestArea = area;
+        bestId = sectionId;
+      }
+    }
+  });
+  return bestId;
+};
+
+/**
+ * Con @hello-pangea/dnd, varios Droppables superpuestos (root + sección) suelen resolverse
+ * a favor del canvas; con sección vacía a menudo destination es null o "root".
+ * Corregimos usando la posición real del soltar (mouseup) y el DOM bajo el cursor.
+ */
+const fixPaletteDropIfPointerOverSection = (result, fields, clientX, clientY, droppableRegistry) => {
+  if (result.source.droppableId !== "palette") return result;
+
+  const dest = result.destination;
+  const needsFix =
+    !dest ||
+    dest.droppableId === "root" ||
+    dest.droppableId === "palette";
+
+  if (!needsFix) return result;
+
+  if (typeof clientX !== "number" || typeof clientY !== "number") return result;
+
+  const bestId = findBestSectionIdUnderPoint(clientX, clientY, droppableRegistry);
+  if (!bestId) return result;
+
+  const droppableId = sectionDroppableId(bestId);
+  const sectionChildren = getSectionChildren(fields, bestId);
+  let index = sectionChildren.length;
+  for (let i = 0; i < sectionChildren.length; i += 1) {
+    const childEl = document.querySelector(`[data-rfd-draggable-id="${sectionChildren[i].id}"]`);
+    if (!childEl) continue;
+    const cr = childEl.getBoundingClientRect();
+    if (clientY < cr.top + cr.height / 2) {
+      index = i;
+      break;
+    }
+  }
+
+  return {
+    ...result,
+    destination: { droppableId, index },
+  };
 };
 
 const ResponseLimitModal = ({ isOpen, value, onClose, onSave }) => {
@@ -161,6 +272,49 @@ const FormBuilder = () => {
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [isResponseLimitOpen, setIsResponseLimitOpen] = useState(false);
 
+  /** Registro de nodos Droppable de cada sección (para corregir destino al soltar desde la paleta). */
+  const sectionDroppableRegistryRef = useRef(new Map());
+  /** Última posición del puntero durante el arrastre; mouseup/touchend en captura actualiza al soltar (importante si la sección está vacía). */
+  const lastPointerRef = useRef({ x: 0, y: 0 });
+
+  const registerSectionDroppable = useCallback((sectionId, el) => {
+    if (el) sectionDroppableRegistryRef.current.set(sectionId, el);
+    else sectionDroppableRegistryRef.current.delete(sectionId);
+  }, []);
+
+  const trackPointerDuringDrag = useCallback((e) => {
+    lastPointerRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const trackTouchDuringDrag = useCallback((e) => {
+    const t = e.touches && e.touches[0];
+    if (t) lastPointerRef.current = { x: t.clientX, y: t.clientY };
+  }, []);
+
+  const trackPointerUpDuringDrag = useCallback((e) => {
+    lastPointerRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const trackTouchEndDuringDrag = useCallback((e) => {
+    const t = e.changedTouches && e.changedTouches[0];
+    if (t) lastPointerRef.current = { x: t.clientX, y: t.clientY };
+  }, []);
+
+  const handleBuilderDragStart = useCallback(() => {
+    lastPointerRef.current = { x: 0, y: 0 };
+    window.addEventListener("mousemove", trackPointerDuringDrag);
+    window.addEventListener("touchmove", trackTouchDuringDrag, { passive: true });
+    window.addEventListener("mouseup", trackPointerUpDuringDrag, true);
+    window.addEventListener("touchend", trackTouchEndDuringDrag, true);
+  }, [trackPointerDuringDrag, trackTouchDuringDrag, trackPointerUpDuringDrag, trackTouchEndDuringDrag]);
+
+  const clearBuilderDragTracking = useCallback(() => {
+    window.removeEventListener("mousemove", trackPointerDuringDrag);
+    window.removeEventListener("touchmove", trackTouchDuringDrag);
+    window.removeEventListener("mouseup", trackPointerUpDuringDrag, true);
+    window.removeEventListener("touchend", trackTouchEndDuringDrag, true);
+  }, [trackPointerDuringDrag, trackTouchDuringDrag, trackPointerUpDuringDrag, trackTouchEndDuringDrag]);
+
   useEffect(() => {
     const loadForm = async () => {
       if (!formId) {
@@ -232,11 +386,7 @@ const FormBuilder = () => {
 
   const insertField = (field, destinationDroppableId, destinationIndex) => {
     const roots = getRootFields(formState.fields);
-    const sectionChildrenMap = Object.fromEntries(
-      roots
-        .filter((root) => root.type === "section")
-        .map((root) => [root.id, getSectionChildren(formState.fields, root.id)])
-    );
+    const sectionChildrenMap = buildSectionChildrenMap(formState.fields);
 
     if (destinationDroppableId === "root") {
       const nextRoots = [...roots];
@@ -251,8 +401,6 @@ const FormBuilder = () => {
 
     const destSectionId = parseSectionIdFromDroppableId(destinationDroppableId);
     if (destSectionId) {
-      if (field.type === "section") return;
-
       const nextChildren = [...(sectionChildrenMap[destSectionId] || [])];
       nextChildren.splice(destinationIndex ?? nextChildren.length, 0, {
         ...field,
@@ -311,7 +459,20 @@ const FormBuilder = () => {
   };
 
   const handleDragEnd = (result) => {
-    const { source, destination, draggableId } = result;
+    clearBuilderDragTracking();
+
+    const adjusted =
+      result.source.droppableId === "palette"
+        ? fixPaletteDropIfPointerOverSection(
+            result,
+            formState.fields,
+            lastPointerRef.current.x,
+            lastPointerRef.current.y,
+            sectionDroppableRegistryRef.current
+          )
+        : result;
+
+    const { source, destination, draggableId } = adjusted;
     if (!destination) return;
 
     if (source.droppableId === "palette") {
@@ -322,14 +483,16 @@ const FormBuilder = () => {
 
     const movingField = formState.fields.find((field) => field.id === draggableId);
     if (!movingField) return;
-    if (movingField.type === "section" && destination.droppableId !== "root") return;
+
+    const destSectionFromDrop = parseSectionIdFromDroppableId(destination.droppableId);
+    if (movingField.type === "section" && destSectionFromDrop) {
+      if (isSectionOrDescendantId(formState.fields, movingField.id, destSectionFromDrop)) {
+        return;
+      }
+    }
 
     const roots = getRootFields(formState.fields);
-    const sectionChildrenMap = Object.fromEntries(
-      roots
-        .filter((root) => root.type === "section")
-        .map((root) => [root.id, getSectionChildren(formState.fields, root.id)])
-    );
+    const sectionChildrenMap = buildSectionChildrenMap(formState.fields);
 
     if (source.droppableId === destination.droppableId) {
       if (source.droppableId === "root") {
@@ -458,7 +621,7 @@ const FormBuilder = () => {
         saveStatus={saveStatus}
       />
 
-      <DragDropContext onDragEnd={handleDragEnd}>
+      <DragDropContext onDragStart={handleBuilderDragStart} onDragEnd={handleDragEnd}>
         <div className="flex min-h-0 flex-1 overflow-hidden">
           <FieldPalette
             onAddField={addField}
@@ -509,35 +672,41 @@ const FormBuilder = () => {
 
                     {rootFields.map((field, index) =>
                       field.type === "section" ? (
-                        <SectionItem
-                          key={field.id}
-                          section={field}
-                          index={index}
-                          childrenFields={getSectionChildren(formState.fields, field.id)}
-                          isActive={selectedFieldId === field.id}
-                          activeFieldId={selectedFieldId}
-                          onSelectSection={() => setSelectedFieldId(field.id)}
-                          onUpdateSection={updateField}
-                          onRemoveSection={(sectionId, event) => {
-                            event?.stopPropagation();
-                            removeFieldTree(sectionId);
-                          }}
-                          onCopySection={(section, event) => {
-                            event.stopPropagation();
-                            duplicateField(section);
-                          }}
-                          onAddField={addField}
-                          onCopyField={(_, selectedField, event) => {
-                            event.stopPropagation();
-                            duplicateField(selectedField);
-                          }}
-                          onRemoveField={(_, fieldId, event) => {
-                            event.stopPropagation();
-                            removeFieldTree(fieldId);
-                          }}
-                          onSelectField={(selected) => setSelectedFieldId(selected.id)}
-                          onUpdateField={updateField}
-                        />
+                        <Draggable key={field.id} draggableId={field.id} index={index}>
+                          {(sectionDragProvided, sectionDragSnapshot) => (
+                            <SectionItem
+                              section={field}
+                              dragProvided={sectionDragProvided}
+                              dragSnapshot={sectionDragSnapshot}
+                              allFields={formState.fields}
+                              childrenFields={getSectionChildren(formState.fields, field.id)}
+                              isActive={selectedFieldId === field.id}
+                              activeFieldId={selectedFieldId}
+                              onSelectSection={() => setSelectedFieldId(field.id)}
+                              onUpdateSection={updateField}
+                              onRemoveSection={(sectionId, event) => {
+                                event?.stopPropagation();
+                                removeFieldTree(sectionId);
+                              }}
+                              onCopySection={(section, event) => {
+                                event.stopPropagation();
+                                duplicateField(section);
+                              }}
+                              onAddField={addField}
+                              onCopyField={(_, selectedField, event) => {
+                                event.stopPropagation();
+                                duplicateField(selectedField);
+                              }}
+                              onRemoveField={(_, fieldId, event) => {
+                                event.stopPropagation();
+                                removeFieldTree(fieldId);
+                              }}
+                              onSelectField={(selected) => setSelectedFieldId(selected.id)}
+                              onUpdateField={updateField}
+                              registerSectionDroppable={registerSectionDroppable}
+                            />
+                          )}
+                        </Draggable>
                       ) : (
                         <Draggable key={field.id} draggableId={field.id} index={index}>
                           {(dragProvided, dragSnapshot) => (

@@ -1,13 +1,19 @@
 import React from "react";
 import { Draggable, Droppable } from "@hello-pangea/dnd";
 import { Copy, GripVertical, Plus, Trash2 } from "lucide-react";
-import { sectionDroppableId } from "../../../lib/formBuilder";
+import { getSectionChildren, sectionDroppableId } from "../../../lib/formBuilder";
 import FieldItem from "./FieldItem";
 
+/**
+ * Bloque de sección: el Draggable lo envuelve el padre (raíz u otra sección)
+ * para evitar anidar Droppable dentro del mismo Draggable que lo define.
+ */
 const SectionItem = ({
   section,
-  index,
   childrenFields,
+  allFields,
+  dragProvided,
+  dragSnapshot,
   isActive,
   activeFieldId,
   onSelectSection,
@@ -19,118 +25,146 @@ const SectionItem = ({
   onRemoveField,
   onSelectField,
   onUpdateField,
+  registerSectionDroppable,
 }) => {
+  const { innerRef, draggableProps, dragHandleProps } = dragProvided;
+
   return (
-    <Draggable draggableId={section.id} index={index}>
-      {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          onClick={onSelectSection}
-          className={`rounded-xl border bg-slate-900 transition-all ${
-            isActive ? "border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]" : "border-slate-800"
-          } ${snapshot.isDragging ? "rotate-[1deg] shadow-2xl" : ""}`}
-        >
-          <div className="flex items-start justify-between border-b border-slate-800 px-3 py-3">
-            <div className="flex items-start gap-2">
-              <button
-                {...provided.dragHandleProps}
-                onClick={(e) => e.stopPropagation()}
-                className="rounded p-1 text-slate-500 hover:bg-slate-800 hover:text-white"
-              >
-                <GripVertical size={13} />
-              </button>
-
-              <div className="space-y-1">
-                <div className="text-[10px] uppercase tracking-wide text-emerald-400">Sección</div>
-                <input
-                  value={section.label || ""}
-                  onChange={(e) => onUpdateSection(section.id, { label: e.target.value })}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-full bg-transparent text-sm font-semibold text-white outline-none"
-                  placeholder="Nombre de la sección"
-                />
-                <input
-                  value={section.description || ""}
-                  onChange={(e) => onUpdateSection(section.id, { description: e.target.value })}
-                  onClick={(e) => e.stopPropagation()}
-                  className="w-full bg-transparent text-xs text-slate-500 outline-none placeholder:text-slate-600"
-                  placeholder="No repetible"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1 text-slate-500">
-              <button
-                onClick={(e) => onCopySection(section, e)}
-                className="rounded p-1 hover:bg-slate-800 hover:text-white"
-              >
-                <Copy size={12} />
-              </button>
-              <button
-                onClick={(e) => onRemoveSection(section.id, e)}
-                className="rounded p-1 hover:bg-slate-800 hover:text-red-400"
-              >
-                <Trash2 size={12} />
-              </button>
-            </div>
-          </div>
-
-          <Droppable
-            droppableId={sectionDroppableId(section.id)}
-            type="builder-field"
-            direction="vertical"
-            ignoreContainerClipping
+    <div
+      ref={innerRef}
+      {...draggableProps}
+      onClick={onSelectSection}
+      className={`rounded-xl border bg-slate-900 transition-all ${
+        isActive ? "border-emerald-500 shadow-[0_0_0_1px_rgba(16,185,129,0.2)]" : "border-slate-800"
+      } ${dragSnapshot.isDragging ? "rotate-[1deg] shadow-2xl" : ""}`}
+    >
+      <div className="flex items-start justify-between border-b border-slate-800 px-3 py-3">
+        <div className="flex items-start gap-2">
+          <button
+            {...dragHandleProps}
+            onClick={(e) => e.stopPropagation()}
+            className="rounded p-1 text-slate-500 hover:bg-slate-800 hover:text-white"
           >
-            {(dropProvided, dropSnapshot) => (
-              <div
-                ref={dropProvided.innerRef}
-                {...dropProvided.droppableProps}
-                onClick={(e) => e.stopPropagation()}
-                className={`min-h-[7rem] space-y-3 px-3 py-3 ${dropSnapshot.isDraggingOver ? "bg-emerald-500/5" : ""}`}
-              >
-                {childrenFields.length ? (
-                  childrenFields.map((field, fieldIndex) => (
-                    <Draggable key={field.id} draggableId={field.id} index={fieldIndex}>
-                      {(fieldProvided, fieldSnapshot) => (
-                        <FieldItem
-                          field={field}
-                          isActive={activeFieldId === field.id}
-                          onSelect={() => onSelectField(field)}
-                          onCopy={(selectedField, event) => onCopyField(section.id, selectedField, event)}
-                          onRemove={(fieldId, event) => onRemoveField(section.id, fieldId, event)}
-                          onChange={(updates) => onUpdateField(field.id, updates)}
-                          provided={fieldProvided}
-                          snapshot={fieldSnapshot}
-                        />
-                      )}
-                    </Draggable>
-                  ))
-                ) : (
-                  <div className="rounded-lg border border-dashed border-slate-700 bg-slate-950/60 px-4 py-8 text-center text-xs text-slate-500">
-                    Arrastra campos aquí
-                  </div>
-                )}
-                {dropProvided.placeholder}
-              </div>
-            )}
-          </Droppable>
+            <GripVertical size={13} />
+          </button>
 
-          <div className="border-t border-slate-800 px-3 py-3">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddField("text", sectionDroppableId(section.id), null);
-              }}
-              className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-300 transition-colors hover:bg-emerald-500/10"
-            >
-              <Plus size={12} />
-              Añadir campo aquí
-            </button>
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-wide text-emerald-400">Sección</div>
+            <input
+              value={section.label || ""}
+              onChange={(e) => onUpdateSection(section.id, { label: e.target.value })}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-transparent text-sm font-semibold text-white outline-none"
+              placeholder="Nombre de la sección"
+            />
+            <input
+              value={section.description || ""}
+              onChange={(e) => onUpdateSection(section.id, { description: e.target.value })}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full bg-transparent text-xs text-slate-500 outline-none placeholder:text-slate-600"
+              placeholder="No repetible"
+            />
           </div>
         </div>
-      )}
-    </Draggable>
+
+        <div className="flex items-center gap-1 text-slate-500">
+          <button
+            onClick={(e) => onCopySection(section, e)}
+            className="rounded p-1 hover:bg-slate-800 hover:text-white"
+          >
+            <Copy size={12} />
+          </button>
+          <button
+            onClick={(e) => onRemoveSection(section.id, e)}
+            className="rounded p-1 hover:bg-slate-800 hover:text-red-400"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+      </div>
+
+      <Droppable
+        droppableId={sectionDroppableId(section.id)}
+        type="builder-field"
+        direction="vertical"
+        ignoreContainerClipping
+      >
+        {(dropProvided, dropSnapshot) => (
+          <div
+            ref={(el) => {
+              dropProvided.innerRef(el);
+              registerSectionDroppable?.(section.id, el);
+            }}
+            {...dropProvided.droppableProps}
+            onClick={(e) => e.stopPropagation()}
+            className={`min-h-[7rem] space-y-3 px-3 py-3 ${dropSnapshot.isDraggingOver ? "bg-emerald-500/5" : ""}`}
+          >
+            {childrenFields.length ? (
+              childrenFields.map((field, fieldIndex) =>
+                field.type === "section" ? (
+                  <Draggable key={field.id} draggableId={field.id} index={fieldIndex}>
+                    {(nestedProvided, nestedSnapshot) => (
+                      <SectionItem
+                        section={field}
+                        dragProvided={nestedProvided}
+                        dragSnapshot={nestedSnapshot}
+                        allFields={allFields}
+                        childrenFields={getSectionChildren(allFields, field.id)}
+                        isActive={activeFieldId === field.id}
+                        activeFieldId={activeFieldId}
+                        onSelectSection={() => onSelectField(field)}
+                        onUpdateSection={onUpdateSection}
+                        onRemoveSection={onRemoveSection}
+                        onCopySection={onCopySection}
+                        onAddField={onAddField}
+                        onCopyField={onCopyField}
+                        onRemoveField={onRemoveField}
+                        onSelectField={onSelectField}
+                        onUpdateField={onUpdateField}
+                        registerSectionDroppable={registerSectionDroppable}
+                      />
+                    )}
+                  </Draggable>
+                ) : (
+                  <Draggable key={field.id} draggableId={field.id} index={fieldIndex}>
+                    {(fieldProvided, fieldSnapshot) => (
+                      <FieldItem
+                        field={field}
+                        isActive={activeFieldId === field.id}
+                        onSelect={() => onSelectField(field)}
+                        onCopy={(selectedField, event) => onCopyField(section.id, selectedField, event)}
+                        onRemove={(fieldId, event) => onRemoveField(section.id, fieldId, event)}
+                        onChange={(updates) => onUpdateField(field.id, updates)}
+                        provided={fieldProvided}
+                        snapshot={fieldSnapshot}
+                      />
+                    )}
+                  </Draggable>
+                )
+              )
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-700 bg-slate-950/60 px-4 py-8 text-center text-xs text-slate-500">
+                Arrastra campos aquí
+              </div>
+            )}
+            {dropProvided.placeholder}
+          </div>
+        )}
+      </Droppable>
+
+      <div className="border-t border-slate-800 px-3 py-3">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddField("text", sectionDroppableId(section.id), null);
+          }}
+          className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-300 transition-colors hover:bg-emerald-500/10"
+        >
+          <Plus size={12} />
+          Añadir campo aquí
+        </button>
+      </div>
+    </div>
   );
 };
 
