@@ -50,48 +50,52 @@ const Workflows = () => {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-3xl font-black text-white tracking-tighter uppercase">Workflows</h1>
-          <p className="text-slate-500 text-sm mt-1 font-medium italic">Automatización y reglas de negocio</p>
-        </div>
+    <div className="min-h-screen bg-slate-950 text-white animate-in fade-in duration-500">
+      <div className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-4 sm:py-5">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="text-xl font-bold text-white">Workflows</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Automatización y reglas de negocio</p>
+          </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="group flex items-center space-x-2 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 bg-cyan-600 hover:bg-cyan-700 text-white shadow-cyan-500/20"
+          type="button"
+          className="group flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
         >
           <Plus size={18} className="group-hover:rotate-90 transition-transform" />
-          <span>Nuevo Workflow</span>
+          <span>Nuevo workflow</span>
         </button>
+        </div>
       </div>
 
-      <div className="bg-slate-950/40 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl backdrop-blur-xl">
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-8 gap-4">
-           <div className="relative group w-full max-w-md">
-              <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within:text-cyan-500 transition-colors" />
+      <div className="p-4 sm:p-6">
+        <div className="bg-slate-900/60 border border-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl">
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8">
+           <div className="relative group w-full sm:max-w-md">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-cyan-500 transition-colors pointer-events-none" />
                <input 
                 type="text" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Buscar automatizaciones..."
-                className="w-full bg-slate-950/80 border border-white/5 pl-12 pr-4 py-3 rounded-2xl text-sm focus:outline-none focus:ring-1 focus:ring-cyan-500/50 transition-all font-medium text-slate-200 placeholder:text-slate-700"
+                className="w-full bg-slate-800 border border-slate-700 pl-9 pr-3 py-2.5 rounded-lg text-sm text-white focus:outline-none focus:border-cyan-500 focus:ring-0 transition-all placeholder:text-slate-500"
               />
            </div>
            
-           <div className="px-4 py-2 bg-slate-900 border border-white/5 rounded-xl whitespace-nowrap">
-             <span className="text-[10px] font-black text-slate-500 uppercase tracking-tighter">Reglas Activas: </span>
-             <span className="text-xs font-black text-white ml-1">{isLoading ? "..." : workflows.filter(w=>w.status==='active').length}</span>
+           <div className="px-3 py-2 bg-slate-800/80 border border-slate-700 rounded-lg text-center sm:text-left whitespace-nowrap self-start sm:self-auto">
+             <span className="text-[10px] font-semibold text-slate-500 uppercase">Reglas activas: </span>
+             <span className="text-sm font-bold text-white ml-1">{isLoading ? "…" : workflows.filter(w=>w.status==='active').length}</span>
            </div>
         </div>
 
-        <div className="overflow-x-auto rounded-[1.5rem] border border-white/5 bg-slate-950/20">
-           <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto -mx-1 rounded-lg sm:rounded-xl border border-slate-800 bg-slate-950/30">
+           <table className="w-full min-w-[640px] text-left text-sm border-collapse">
              <thead>
-               <tr className="bg-white/5 border-b border-white/5">
-                 <th className="py-5 pl-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Nombre del Flujo</th>
-                 <th className="py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Disparador (Trigger)</th>
-                 <th className="py-5 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Acciones</th>
-                 <th className="py-5 pr-8 text-right"></th>
+               <tr className="bg-slate-800/50 border-b border-slate-800">
+                 <th className="py-3 sm:py-4 pl-3 sm:pl-5 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Nombre del flujo</th>
+                 <th className="py-3 sm:py-4 text-[10px] font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Disparador</th>
+                 <th className="py-3 sm:py-4 text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Acciones</th>
+                 <th className="py-3 sm:py-4 pr-3 sm:pr-5 text-right w-24"></th>
                </tr>
              </thead>
              <tbody className="divide-y divide-white/5">
@@ -110,28 +114,29 @@ const Workflows = () => {
                   </tr>
                 ) : (
                   filteredWorkflows.map(wf => (
-                    <tr key={wf.id} className="hover:bg-slate-900/30 transition-colors group">
-                      <td className="py-4 pl-8">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700">
-                            <GitMerge size={20} className={`transition-colors ${wf.status === 'active' ? 'text-slate-400 group-hover:text-cyan-500' : 'text-slate-600'}`} />
+                    <tr key={wf.id} className="hover:bg-slate-800/40 border-b border-slate-800/50 transition-colors group">
+                      <td className="py-3 sm:py-4 pl-3 sm:pl-5 align-top">
+                        <div className="flex items-start sm:items-center gap-2 sm:gap-3 min-w-0">
+                          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 shrink-0">
+                            <GitMerge size={18} className={`transition-colors ${wf.status === 'active' ? 'text-slate-400 group-hover:text-cyan-500' : 'text-slate-600'}`} />
                           </div>
-                          <div>
-                            <p className={`text-sm font-semibold ${wf.status === 'active' ? 'text-white' : 'text-slate-500'}`}>{wf.name}</p>
-                            <p className="text-[10px] font-mono text-slate-600">{wf.id}</p>
+                          <div className="min-w-0">
+                            <p className={`text-sm font-medium truncate ${wf.status === 'active' ? 'text-white' : 'text-slate-500'}`}>{wf.name}</p>
+                            <p className="text-[10px] font-mono text-slate-600 truncate sm:hidden text-cyan-500/80">{wf.trigger}</p>
+                            <p className="text-[10px] font-mono text-slate-600 truncate max-w-[180px] sm:max-w-none">{wf.id}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="py-4 font-mono text-[10px] text-slate-400">
-                        <span className="bg-slate-900 px-2 py-0.5 rounded border border-white/5">{wf.trigger}</span>
+                      <td className="py-3 sm:py-4 font-mono text-[10px] text-slate-400 hidden sm:table-cell">
+                        <span className="inline-block max-w-[200px] truncate align-top bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800">{wf.trigger}</span>
                       </td>
-                      <td className="py-4">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border bg-slate-500/10 text-slate-400 border-slate-500/30">
-                          {wf.actions || 0} Pasos
+                      <td className="py-3 sm:py-4 align-middle">
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase border bg-slate-500/10 text-slate-400 border-slate-500/30">
+                          {wf.actions || 0} pasos
                         </span>
                       </td>
-                      <td className="py-4 pr-8 text-right">
-                         <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <td className="py-3 sm:py-4 pr-3 sm:pr-5 text-right align-middle">
+                         <div className="flex justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 opacity-100 transition-opacity">
                             <button 
                               onClick={() => handleToggleStatus(wf)}
                               disabled={updateWorkflow.isPending}
@@ -155,6 +160,7 @@ const Workflows = () => {
                 )}
              </tbody>
            </table>
+        </div>
         </div>
       </div>
 

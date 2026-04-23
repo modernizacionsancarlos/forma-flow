@@ -80,56 +80,58 @@ export default function Areas() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6">
+        <div className="min-h-screen bg-slate-950 text-white">
 
-            {/* ─── HEADER ─────────────────────────────────────────── */}
-            <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <MapPin size={22} className="text-emerald-400" />
-                        <h1 className="text-2xl font-bold text-white">Áreas</h1>
+            {/* Cabecera alineada con Formularios / Respuestas */}
+            <div className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-4 sm:py-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                            <MapPin size={20} className="text-emerald-400 shrink-0" />
+                            <h1 className="text-xl font-bold text-white">Áreas</h1>
+                        </div>
+                        <p className="text-slate-500 text-sm mt-0.5 pl-0 sm:pl-7">Aislamiento por unidades organizativas</p>
                     </div>
-                    <p className="text-slate-400 text-sm mt-1">Aislamiento por unidades organizativas</p>
-                </div>
-                <button onClick={openNew}
-                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                    <Plus size={16} /> Nueva Área
+                <button type="button" onClick={openNew}
+                    className="flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                    <Plus size={16} /> Nueva área
                 </button>
-            </div>
+                </div>
 
-            {/* ─── FILTERS ROW ────────────────────────────────────── */}
-            <div className="flex flex-wrap gap-3 mb-6">
-                <div className="relative flex-1 min-w-[12rem]">
-                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4">
+                <div className="relative flex-1 min-w-0 sm:min-w-[12rem]">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Buscar área..."
-                        className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                     />
                 </div>
                 <select
                     value={filterTenant}
                     onChange={e => setFilterTenant(e.target.value)}
-                    className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-emerald-500"
+                    className="w-full sm:w-auto bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-emerald-500"
                 >
                     <option value="all">Todas las empresas</option>
                     {tenants.map(t => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                 </select>
+                </div>
             </div>
 
+            <div className="p-4 sm:p-6">
             {/* ─── STATS ROW ──────────────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
                 {[
                     { label: "Total Áreas", value: areas.length, color: "text-white" },
                     { label: "Activas", value: activeAreas, color: "text-emerald-400" },
                     { label: "Inactivas", value: inactiveAreas, color: "text-slate-400" },
                 ].map(s => (
-                    <div key={s.label} className="bg-slate-900 border border-slate-800 rounded-lg p-4 text-center">
-                        <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                    <div key={s.label} className="bg-slate-900 border border-slate-800 rounded-lg p-3 sm:p-4 text-center">
+                        <p className={`text-xl sm:text-2xl font-bold ${s.color}`}>{s.value}</p>
                         <p className="text-slate-500 text-xs mt-1">{s.label}</p>
                     </div>
                 ))}
@@ -233,6 +235,7 @@ export default function Areas() {
                     onClose={() => { setShowModal(false); setSelected(null); }}
                 />
             )}
+            </div>
         </div>
     );
 }
@@ -271,7 +274,7 @@ function AreaModal({ area, areas, tenants, users, onSave, onClose }) {
 
     return (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-800">
                     <h2 className="text-white font-semibold">
@@ -284,7 +287,7 @@ function AreaModal({ area, areas, tenants, users, onSave, onClose }) {
 
                 <form onSubmit={handleSubmit} className="p-5 space-y-4">
                     {/* Name + Code */}
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Nombre Área *</label>
                             <input required type="text" value={data.name} onChange={e => set("name", e.target.value)} className={inputCls} />

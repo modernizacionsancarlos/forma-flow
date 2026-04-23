@@ -87,35 +87,35 @@ export default function Empresas() {
     const suspendedTenants = tenants.filter(t => t.status === "suspended").length;
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6">
+        <div className="min-h-screen bg-slate-950 text-white">
 
-            {/* ─── HEADER ─────────────────────────────────────────── */}
-            <div className="flex items-center justify-between mb-8">
-                <div>
-                    <div className="flex items-center gap-2">
-                        <Building2 size={22} className="text-emerald-400" />
-                        <h1 className="text-2xl font-bold text-white">Empresas (Tenants)</h1>
+            <div className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-4 sm:py-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                            <Building2 size={20} className="text-emerald-400 shrink-0" />
+                            <h1 className="text-xl font-bold text-white">Empresas (tenants)</h1>
+                        </div>
+                        <p className="text-slate-500 text-sm mt-0.5 pl-0 sm:pl-7">Gestión multi-tenant del sistema</p>
                     </div>
-                    <p className="text-slate-400 text-sm mt-1">Gestión multi-tenant del sistema</p>
-                </div>
-                <button onClick={openNew}
-                    className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                    <Plus size={16} /> Nueva Empresa
+                <button type="button" onClick={openNew}
+                    className="flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                    <Plus size={16} /> Nueva empresa
                 </button>
-            </div>
-
-            {/* ─── SEARCH ─────────────────────────────────────────── */}
-            <div className="relative mb-6">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                </div>
+                <div className="relative mt-4">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                     type="text"
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Buscar por nombre o email..."
-                    className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-9 pr-3 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
                 />
+                </div>
             </div>
 
+            <div className="p-4 sm:p-6">
             {/* ─── STATS ROW ──────────────────────────────────────── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
                 {[
@@ -139,8 +139,8 @@ export default function Empresas() {
                         Cargando...
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+                    <div className="overflow-x-auto -mx-px">
+                        <table className="w-full min-w-[640px] text-sm">
                             <thead>
                                 <tr className="border-b border-slate-800 text-slate-400 text-xs uppercase">
                                     <th className="px-4 py-3 text-left">Empresa</th>
@@ -253,6 +253,7 @@ export default function Empresas() {
                     </div>
                 )}
             </div>
+            </div>
 
             {/* ─── MODAL ──────────────────────────────────────────── */}
             {showModal && (
@@ -310,7 +311,7 @@ function TenantModal({ tenant, onSave, onClose }) {
                 <form onSubmit={handleSubmit} className="p-6 space-y-5">
                     {/* Datos básicos */}
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Datos básicos</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Nombre Empresa</label>
                             <input required type="text" value={data.name} onChange={e => set("name", e.target.value)} className={inputCls} />
@@ -339,7 +340,7 @@ function TenantModal({ tenant, onSave, onClose }) {
 
                     {/* Plan y límites */}
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider pt-2">Plan y límites</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Plan</label>
                             <select value={data.plan} onChange={e => set("plan", e.target.value)} className={inputCls}>
@@ -372,7 +373,7 @@ function TenantModal({ tenant, onSave, onClose }) {
 
                     {/* Personalización */}
                     <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider pt-2">Personalización</p>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs text-slate-400 mb-1">Industria</label>
                             <select value={data.industry} onChange={e => set("industry", e.target.value)} className={inputCls}>

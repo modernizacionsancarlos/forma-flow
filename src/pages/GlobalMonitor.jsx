@@ -20,10 +20,10 @@ export default function GlobalMonitor() {
 
     if (loadingStats) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-white/5 border-t-emerald-500 rounded-full animate-spin" />
-                    <p className="text-slate-500 font-medium animate-pulse">Sincronizando con el Observatorio...</p>
+            <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
+                <div className="flex flex-col items-center gap-4 text-center">
+                    <div className="w-10 h-10 border-[3px] border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    <p className="text-slate-500 text-sm">Sincronizando con el Observatorio...</p>
                 </div>
             </div>
         );
@@ -37,28 +37,47 @@ export default function GlobalMonitor() {
     ];
 
     return (
-        <div className="p-6 lg:p-10 max-w-[1600px] mx-auto space-y-8 animate-in fade-in duration-1000">
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-800/60">
-                <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-emerald-500/10 rounded-2xl">
-                            <Activity className="text-emerald-500" size={28} />
+        <div className="min-h-screen bg-slate-950 text-white animate-in fade-in duration-1000">
+            {/* Cabecera alineada con Formularios / Dashboard */}
+            <div className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-4 sm:py-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between max-w-[1600px] mx-auto w-full">
+                    <div className="min-w-0 space-y-1">
+                        <div className="flex items-start sm:items-center gap-3">
+                            <div className="p-2.5 sm:p-3 bg-emerald-500/10 rounded-xl sm:rounded-2xl shrink-0">
+                                <Activity className="text-emerald-500" size={24} />
+                            </div>
+                            <div>
+                                <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">
+                                    Observatorio <span className="text-emerald-500">Global</span>
+                                </h1>
+                                <p className="text-slate-500 text-sm mt-0.5">
+                                    Inteligencia municipal y ecosistema omnicanal en tiempo real.
+                                </p>
+                            </div>
                         </div>
-                        <h1 className="text-4xl font-black text-white tracking-tight">Observatorio <span className="text-emerald-500">Global</span></h1>
                     </div>
-                    <p className="text-slate-400 font-medium ml-1">Inteligencia Municipal & Ecosistema Omnicanal en tiempo real.</p>
-                </div>
-                <div className="flex items-center gap-4 bg-slate-900/50 backdrop-blur p-1 rounded-xl border border-slate-800">
-                    <button className="px-6 py-2 bg-emerald-500 text-slate-950 rounded-lg text-sm font-black shadow-lg shadow-emerald-500/20 active:scale-95 transition-all">EN VIVO</button>
-                    <button className="px-6 py-2 text-slate-500 hover:text-white rounded-lg text-sm font-bold transition-colors">REPORTES</button>
+                    <div className="flex w-full sm:w-auto items-stretch sm:items-center gap-2 sm:gap-3 bg-slate-800/50 rounded-xl border border-slate-800 p-1">
+                        <button
+                            type="button"
+                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2 bg-emerald-500 text-slate-950 rounded-lg text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                        >
+                            EN VIVO
+                        </button>
+                        <button
+                            type="button"
+                            className="flex-1 sm:flex-none px-4 sm:px-6 py-2 text-slate-500 hover:text-white rounded-lg text-xs sm:text-sm font-semibold transition-colors"
+                        >
+                            REPORTES
+                        </button>
+                    </div>
                 </div>
             </div>
 
+            <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto space-y-6 sm:space-y-8 w-full">
             {/* Health Pulse Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
                 {healthMetrics.map((m, idx) => (
-                    <div key={idx} className="bg-slate-900/40 border border-slate-800 p-6 rounded-3xl relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500">
+                    <div key={idx} className="bg-slate-900/40 border border-slate-800 p-4 sm:p-6 rounded-2xl sm:rounded-3xl relative overflow-hidden group hover:border-emerald-500/30 transition-all duration-500">
                         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 group-hover:scale-110 transition-all">
                             <m.icon size={84} />
                         </div>
@@ -79,20 +98,20 @@ export default function GlobalMonitor() {
             </div>
 
             {/* Realtime Charts & Infrastructure Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 sm:gap-8">
                 {/* Traffic Chart */}
-                <div className="xl:col-span-8 bg-slate-900/80 border border-emerald-500/10 rounded-[2.5rem] p-10 relative shadow-2xl overflow-hidden min-h-[450px]">
+                <div className="xl:col-span-8 bg-slate-900/80 border border-emerald-500/10 rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 md:p-8 lg:p-10 relative shadow-2xl overflow-hidden min-h-[min(60vh,450px)] sm:min-h-[450px]">
                     <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/5 blur-[120px] -mr-48 -mt-48 rounded-full" />
                     
-                    <div className="flex items-center justify-between mb-12 relative z-10">
-                        <div className="space-y-1">
-                            <h3 className="text-xl font-black text-white flex items-center gap-3">
-                                <TrendingUp className="text-emerald-500" size={24} />
-                                Actividad Omnicanal Consolidada
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-12 relative z-10">
+                        <div className="space-y-1 min-w-0">
+                            <h3 className="text-base sm:text-xl font-bold text-white flex items-center gap-2 sm:gap-3">
+                                <TrendingUp className="text-emerald-500 shrink-0" size={22} />
+                                <span className="leading-tight">Actividad omnicanal consolidada</span>
                             </h3>
-                            <p className="text-sm text-slate-500 font-medium">Tráfico global de trámites y procesos municipales.</p>
+                            <p className="text-xs sm:text-sm text-slate-500">Tráfico de trámites y procesos municipales.</p>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                             <div className="flex items-center gap-1.5 px-4 py-1.5 bg-emerald-500/10 rounded-full border border-emerald-500/20">
                                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
                                 <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest leading-none">Global Link Active</span>
@@ -100,7 +119,7 @@ export default function GlobalMonitor() {
                         </div>
                     </div>
 
-                    <div className="h-[280px] w-full relative z-10">
+                    <div className="h-[200px] sm:h-[240px] md:h-[280px] w-full relative z-10 min-w-0">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={stats?.chartData || []}>
                                 <defs>
@@ -145,7 +164,7 @@ export default function GlobalMonitor() {
                 </div>
 
                 {/* Infrastructure Info */}
-                <div className="xl:col-span-4 bg-slate-900 border border-slate-800 rounded-[2.5rem] p-10 space-y-10 flex flex-col shadow-xl">
+                <div className="xl:col-span-4 bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-[2.5rem] p-4 sm:p-6 md:p-10 space-y-6 sm:space-y-10 flex flex-col shadow-xl">
                     <div className="space-y-2">
                         <h3 className="text-xl font-black text-white flex items-center gap-3 uppercase tracking-tighter">
                             <Cpu className="text-blue-500" size={24} /> Engine Status
@@ -175,10 +194,10 @@ export default function GlobalMonitor() {
             </div>
 
             {/* Bottom Section: Omni-Channel Realtime Feed */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-8">
                 {/* Communication Logs */}
-                <div className="bg-slate-900 shadow-2xl rounded-[2.5rem] border border-slate-800/80 overflow-hidden flex flex-col min-h-[500px]">
-                    <div className="px-10 py-8 border-b border-slate-800/60 flex items-center justify-between bg-slate-950/20">
+                <div className="bg-slate-900 shadow-2xl rounded-2xl sm:rounded-[2.5rem] border border-slate-800/80 overflow-hidden flex flex-col min-h-[min(50vh,500px)] sm:min-h-[500px]">
+                    <div className="px-4 sm:px-6 md:px-10 py-5 sm:py-8 border-b border-slate-800/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-950/20">
                         <div className="space-y-1">
                            <h4 className="font-black text-lg text-white flex items-center gap-3 uppercase tracking-widest">
                                <Send size={20} className="text-blue-500" /> Ecosistema Omnicanal
@@ -194,8 +213,8 @@ export default function GlobalMonitor() {
                         {commLogs?.length > 0 ? (
                             <div className="divide-y divide-slate-800/40">
                                 {commLogs.map((log, i) => (
-                                    <div key={i} className="px-10 py-6 flex items-center justify-between hover:bg-white/[0.02] transition-colors group">
-                                        <div className="flex items-center gap-5">
+                                    <div key={i} className="px-4 sm:px-6 md:px-10 py-4 sm:py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:bg-white/[0.02] transition-colors group">
+                                        <div className="flex items-start sm:items-center gap-3 sm:gap-5 min-w-0">
                                             <div className={`p-3 rounded-2xl ${log.channel === 'email' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'} group-hover:scale-110 transition-transform`}>
                                                 {log.channel === 'email' ? <Mail size={18} /> : <MessageSquare size={18} />}
                                             </div>
@@ -206,10 +225,10 @@ export default function GlobalMonitor() {
                                                         {log.channel}
                                                     </span>
                                                 </div>
-                                                <p className="text-[11px] text-slate-500 font-medium truncate max-w-[280px]">{log.subject || log.content}</p>
+                                                <p className="text-[11px] text-slate-500 font-medium break-words sm:truncate sm:max-w-[280px]">{log.subject || log.content}</p>
                                             </div>
                                         </div>
-                                        <div className="text-right flex flex-col items-end gap-1">
+                                        <div className="text-left sm:text-right flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 sm:gap-1 shrink-0 w-full sm:w-auto border-t sm:border-t-0 border-slate-800/40 sm:border-0 pt-2 sm:pt-0">
                                             <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{log.time}</span>
                                             <div className="flex items-center gap-1.5">
                                                 <div className="w-1 h-1 rounded-full bg-emerald-500" />
@@ -229,8 +248,8 @@ export default function GlobalMonitor() {
                 </div>
 
                 {/* Security Deep Scan */}
-                <div className="bg-slate-900 shadow-2xl rounded-[2.5rem] border border-rose-500/10 overflow-hidden flex flex-col min-h-[500px]">
-                    <div className="px-10 py-8 border-b border-rose-500/10 flex items-center justify-between bg-rose-500/[0.02]">
+                <div className="bg-slate-900 shadow-2xl rounded-2xl sm:rounded-[2.5rem] border border-rose-500/10 overflow-hidden flex flex-col min-h-[min(50vh,500px)] sm:min-h-[500px]">
+                    <div className="px-4 sm:px-6 md:px-10 py-5 sm:py-8 border-b border-rose-500/10 flex items-center justify-between bg-rose-500/[0.02]">
                         <div className="space-y-1">
                            <h4 className="font-black text-lg text-rose-500 flex items-center gap-3 uppercase tracking-widest">
                                <Shield size={20} /> Blindaje Dinámico
@@ -239,8 +258,8 @@ export default function GlobalMonitor() {
                         </div>
                     </div>
                     
-                    <div className="p-10 space-y-8 flex flex-col justify-center flex-1">
-                        <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 sm:p-6 md:p-10 space-y-6 sm:space-y-8 flex flex-col justify-center flex-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                              <SecurityCard label="Base de Datos" status="Protegida" color="emerald" detail="No-Inyection Validated" />
                              <SecurityCard label="Cross-Tenant" status="Aislado" color="emerald" detail="Rule Level Enforcement" />
                              <SecurityCard label="API Endpoints" status="Seguro" color="blue" detail="Auth Bound Only" />
@@ -262,6 +281,7 @@ export default function GlobalMonitor() {
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     );
