@@ -32,11 +32,13 @@ export const AuthProvider = ({ children }) => {
         
         // Carga inicial rápida de claims desde el token (si existen)
         const idTokenResult = await currentUser.getIdTokenResult();
+        const c = idTokenResult.claims;
+        // Las reglas de Firestore usan tenant_id en el token; el perfil y algunos seed usan tenantId
+        const tokenTenantId = c.tenantId ?? c.tenant_id ?? null;
         const isOverride = currentUser.email === "modernizacionsancarlos@gmail.com";
-        
         const initialClaims = {
-            tenantId: idTokenResult.claims.tenantId || (isOverride ? "Central_System" : null),
-            role: idTokenResult.claims.role || (isOverride ? "super_admin" : null),
+            tenantId: tokenTenantId || (isOverride ? "Central_System" : null),
+            role: c.role || (isOverride ? "super_admin" : null),
         };
         setClaims(initialClaims);
 
