@@ -76,7 +76,12 @@ const SectionItem = ({
             </div>
           </div>
 
-          <Droppable droppableId={sectionDroppableId(section.id)} type="builder-field" direction="vertical">
+          <Droppable
+            droppableId={sectionDroppableId(section.id)}
+            type="builder-field"
+            direction="vertical"
+            ignoreContainerClipping
+          >
             {(dropProvided, dropSnapshot) => (
               <div
                 ref={dropProvided.innerRef}

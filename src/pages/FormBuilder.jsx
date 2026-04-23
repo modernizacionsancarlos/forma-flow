@@ -465,9 +465,11 @@ const FormBuilder = () => {
             onOpenCustomField={() => setIsCustomModalOpen(true)}
           />
 
-          <div className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-[#050816] px-8 py-4 custom-scrollbar">
-            <div className="mx-auto max-w-4xl">
-              <div className="mb-4 flex justify-end">
+          {/* El scroll debe vivir en el mismo nodo que innerRef del Droppable raíz para que los Droppables
+              anidados (p. ej. dentro de secciones) calculen bien el viewport y el soltado no “caiga” solo en root. */}
+          <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-hidden bg-[#050816] px-8 py-4">
+            <div className="mx-auto flex h-full min-h-0 max-w-4xl flex-col">
+              <div className="mb-4 flex shrink-0 justify-end">
                 <button
                   onClick={() => setIsCustomModalOpen(true)}
                   className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-xs text-emerald-300 transition-colors hover:bg-emerald-500/10"
@@ -476,12 +478,17 @@ const FormBuilder = () => {
                 </button>
               </div>
 
-              <Droppable droppableId="root" type="builder-field" direction="vertical">
+              <Droppable
+                droppableId="root"
+                type="builder-field"
+                direction="vertical"
+                ignoreContainerClipping
+              >
                 {(provided, snapshot) => (
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`space-y-3 rounded-xl border border-dashed px-3 py-3 ${
+                    className={`custom-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden rounded-xl border border-dashed px-3 py-3 ${
                       snapshot.isDraggingOver
                         ? "border-emerald-500/40 bg-emerald-500/5"
                         : "border-transparent"
