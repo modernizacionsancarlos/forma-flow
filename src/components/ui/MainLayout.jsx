@@ -58,6 +58,16 @@ const SidebarLink = ({ to, icon, children, activeColor, onClick }) => {
   );
 };
 
+/** Línea divisoria ligera entre grupos de acciones similares (de más a menos uso). */
+const SidebarGroupSeparator = () => (
+  <div
+    className="mx-4 my-1.5 h-px bg-slate-800/80"
+    role="separator"
+    aria-orientation="horizontal"
+    aria-hidden="true"
+  />
+);
+
 const getGreetingByHour = (hour) => {
   if (hour >= 7 && hour < 12) return { text: "Buenos días", emoji: "☀️" };
   if (hour >= 12 && hour < 18) return { text: "Buenas tardes", emoji: "🌤️" };
@@ -116,38 +126,49 @@ const MainLayout = ({ children }) => {
   };
 
   const navLinks = (
-    <nav className="flex-1 overflow-y-auto space-y-1 custom-scrollbar py-2">
+    <nav className="flex-1 overflow-y-auto space-y-0 custom-scrollbar py-2">
+      {/* 1 · Inicio */}
       <SidebarLink to="/" icon={LayoutDashboard} activeColor={branding.primary_color}>Dashboard</SidebarLink>
-      
-      <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
-        <SidebarLink to="/observatorio" icon={Activity} activeColor={branding.primary_color}>Observatorio</SidebarLink>
-        <SidebarLink to="/admin" icon={Shield} activeColor={branding.primary_color}>Admin Panel</SidebarLink>
-        <SidebarLink to="/empresas" icon={Building2} activeColor={branding.primary_color}>Empresas</SidebarLink>
-      </Guard>
+      <SidebarGroupSeparator />
 
+      {/* 2 · Formularios y entregas */}
+      <SidebarLink to="/forms" icon={FileText} activeColor={branding.primary_color}>Formularios</SidebarLink>
+      <SidebarLink to="/submissions" icon={ClipboardList} activeColor={branding.primary_color}>Respuestas</SidebarLink>
+      <SidebarGroupSeparator />
+
+      {/* 3 · Estructura: áreas, empresas, usuarios */}
       <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
         <SidebarLink to="/areas" icon={MapPin} activeColor={branding.primary_color}>Áreas</SidebarLink>
       </Guard>
-
-      <SidebarLink to="/forms" icon={FileText} activeColor={branding.primary_color}>Formularios</SidebarLink>
-      <SidebarLink to="/submissions" icon={ClipboardList} activeColor={branding.primary_color}>Respuestas</SidebarLink>
-      
+      <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+        <SidebarLink to="/empresas" icon={Building2} activeColor={branding.primary_color}>Empresas</SidebarLink>
+      </Guard>
       <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS}>
         <SidebarLink to="/usuarios" icon={Users} activeColor={branding.primary_color}>Usuarios</SidebarLink>
       </Guard>
+      <SidebarGroupSeparator />
 
+      {/* 4 · Plataforma */}
+      <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+        <SidebarLink to="/admin" icon={Shield} activeColor={branding.primary_color}>Admin Panel</SidebarLink>
+        <SidebarLink to="/observatorio" icon={Activity} activeColor={branding.primary_color}>Observatorio</SidebarLink>
+      </Guard>
+      <SidebarGroupSeparator />
+
+      {/* 5 · Automatización y exportación */}
       <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
         <SidebarLink to="/workflows" icon={GitMerge} activeColor={branding.primary_color}>Workflows</SidebarLink>
       </Guard>
-
       <SidebarLink to="/exportaciones" icon={Download} activeColor={branding.primary_color}>Exportaciones</SidebarLink>
-      
+      <SidebarGroupSeparator />
+
+      {/* 6 · Cumplimiento y operaciones centrales */}
       <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
         <SidebarLink to="/auditoria" icon={ShieldCheck} activeColor={branding.primary_color}>Auditoría</SidebarLink>
         <SidebarLink to="/sincronizacion" icon={RefreshCw} activeColor={branding.primary_color}>Sincronización</SidebarLink>
       </Guard>
-      
-      <div className="pt-6 mt-6 border-t border-slate-800/50">
+
+      <div className="pt-6 mt-2 border-t border-slate-800/50">
          <SidebarLink to="/configuracion" icon={Settings} activeColor={branding.primary_color}>Configuración</SidebarLink>
          <button
            onClick={logout}
