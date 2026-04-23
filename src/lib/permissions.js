@@ -21,6 +21,17 @@ export const PERMISSIONS = {
   VIEW_AUDIT_LOGS: 'view_audit_logs',
   VIEW_GLOBAL_STATS: 'view_global_stats',
   MANAGE_TENANT: 'manage_tenant',
+
+  /**
+   * Permisos usados en MainLayout (sidebar) y pantallas: deben existir en ROLE_PERMISSIONS
+   * o hasPermission() recibe `undefined` y el menú queda vacío aunque el rol sea admin.
+   */
+  /** Listado y gestión de empresas / tenants (super admin y admin de plataforma) */
+  MANAGE_TENANTS: 'manage_tenants',
+  /** Áreas, Workflows y recursos del tenant */
+  MANAGE_TENANT_RESOURCES: 'manage_tenant_resources',
+  /** Usuarios del tenant (pantalla Usuarios) */
+  MANAGE_TENANT_USERS: 'manage_tenant_users',
 };
 
 export const ROLES = {
@@ -45,7 +56,10 @@ const ROLE_PERMISSIONS = {
     PERMISSIONS.TRANSITION_STATE,
     PERMISSIONS.MANAGE_USERS,
     PERMISSIONS.VIEW_AUDIT_LOGS,
-    PERMISSIONS.MANAGE_TENANT
+    PERMISSIONS.MANAGE_TENANT,
+    PERMISSIONS.MANAGE_TENANTS,
+    PERMISSIONS.MANAGE_TENANT_RESOURCES,
+    PERMISSIONS.MANAGE_TENANT_USERS,
   ],
   
   [ROLES.EDITOR]: [
