@@ -51,13 +51,17 @@ service cloud.firestore {
     // Trámites (Submissions). Nota: tras un delete, getDoc puede consultar un ID sin documento; si la regla
     // solo usa resource.data, no existe y la lectura falla (falso permission-denied / bloqueos en el cliente).
     match /Submissions/{submissionId} {
-      function submissionDocExists() {
+      function submissionPathExists() {
         return exists(/databases/$(database)/documents/Submissions/$(submissionId));
       }
-      // get sobre documento inexistente: exige autenticación (evita sondeo anónimo) y alinea con verificaciones post-borrado.
-      allow read: if isSuperAdmin() ||
-        (isAuthenticated() && !submissionDocExists()) ||
-        isSameTenant(resource.data);
+      // get: seguimiento público (portal ciudadano) — quien posea el ID puede leer ese documento; el ID no es enumerable.
+      //      Consultas list siguen restringidas a personal autenticado (no filtrar todo en anónimo).
+      allow get: if isSuperAdmin() ||
+        (isAuthenticated() && !submissionPathExists()) ||
+        (isAuthenticated() && resource != null && isSameTenant(resource.data)) ||
+        (!isAuthenticated() && submissionPathExists());
+      // list: nunca anónimo; filtrado por tenant vía isSameTenant en cada fila.
+      allow list: if isSuperAdmin() || (isAuthenticated() && isSameTenant(resource.data));
       allow create: if canCreatePublicAnonymousSubmission() ||
         (isAuthenticated() && (
         isSuperAdmin() || 

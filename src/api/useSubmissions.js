@@ -24,12 +24,15 @@ export const useSubmissions = () => {
     const submissionId = crypto.randomUUID();
     const now = Date.now();
     // Preferir el tenant del esquema (público o interno) para alinear reglas y borrados; si no hay, el del token.
+    // Título denormalizado para el portal de seguimiento (lectura pública de Submissions sin leer FormSchemas).
     let tenantId = claims?.tenantId || null;
+    let formTitle = null;
     if (schemaId) {
       try {
         const formSnap = await getDoc(doc(db, "FormSchemas", schemaId));
         if (formSnap.exists()) {
           const schema = formSnap.data();
+          formTitle = schema.name || schema.title || null;
           const fromSchema = schema?.tenant_id || schema?.tenantId || null;
           if (fromSchema) tenantId = fromSchema;
         }
@@ -42,6 +45,7 @@ export const useSubmissions = () => {
       id: submissionId,
       tenant_id: tenantId || "global",
       schema_id: schemaId,
+      form_title: formTitle,
       data: formData,
       created_by: user?.uid || "public_citizen",
       created_date: now,

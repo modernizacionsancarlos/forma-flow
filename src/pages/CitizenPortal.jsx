@@ -45,13 +45,26 @@ const CitizenPortal = () => {
       if (docSnap.exists()) {
         const data = docSnap.data();
         setSubmission({ id: docSnap.id, ...data });
-        
-        if (data.schema_id) {
-          const formRef = doc(db, "Forms", data.schema_id);
-          const formSnap = await getDoc(formRef);
-          if (formSnap.exists()) {
-            setFormInfo(formSnap.data());
+        // Título guardado en el envío (acceso público sin leer FormSchemas)
+        if (data.form_title) {
+          setFormInfo({ title: data.form_title, name: data.form_title });
+        } else if (data.schema_id) {
+          // Compatibilidad: envíos viejos sin form_title; lectura de FormSchemas puede fallar si el form es privado.
+          try {
+            const formRef = doc(db, "FormSchemas", data.schema_id);
+            const formSnap = await getDoc(formRef);
+            if (formSnap.exists()) {
+              const fd = formSnap.data();
+              setFormInfo({ title: fd.name || fd.title, name: fd.name, ...fd });
+            } else {
+              setFormInfo({ title: "Trámite registrado" });
+            }
+          } catch (e) {
+            console.warn("No se pudo cargar el formulario (puede requerir permisos o ser privado):", e);
+            setFormInfo({ title: "Trámite registrado" });
           }
+        } else {
+          setFormInfo({ title: "Trámite registrado" });
         }
       } else {
         setError("No se encontró ningún trámite con ese código de seguimiento.");
@@ -93,7 +106,10 @@ const CitizenPortal = () => {
 
     try {
       const doc = new jsPDF();
-      const timestamp = submission.created_at?.toDate().toLocaleString() || new Date().toLocaleString();
+      const ts = submission.created_date || submission.submitted_at || submission.created_at;
+      const timestamp = ts?.toDate
+        ? ts.toDate().toLocaleString()
+        : (typeof ts === "number" ? new Date(ts).toLocaleString() : new Date().toLocaleString());
       
       // Estilo Base
       doc.setFont("helvetica", "bold");
