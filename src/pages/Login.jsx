@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useAuth } from "../lib/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { LogIn, ShieldAlert, FileText, CheckCircle2 } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { LogIn, ShieldAlert, FileText, CheckCircle2, Mail } from "lucide-react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -10,6 +10,11 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const invitationHint = useMemo(() => {
+    const v = searchParams.get("invitacion");
+    return v === "pendiente" || v === "1";
+  }, [searchParams]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,6 +50,17 @@ export default function Login() {
                 <span>Portal de Gestión Municipal</span>
              </div>
           </div>
+
+          {invitationHint && (
+            <div className="bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 p-4 rounded-2xl mb-6 text-[11px] font-semibold flex items-start gap-3">
+              <Mail size={18} className="shrink-0 text-emerald-400 mt-0.5" />
+              <span>
+                Tenés una <strong className="text-white">invitación pendiente</strong>. Ingresá con el{" "}
+                <strong className="text-white">mismo correo</strong> al que te enviaron la invitación; al entrar al panel
+                podrás pulsar <strong className="text-white">Aceptar</strong> en el aviso inferior.
+              </span>
+            </div>
+          )}
 
           {error && (
             <div className="bg-rose-500/5 border border-rose-500/20 text-rose-400 p-4 rounded-2xl mb-8 text-[11px] font-bold flex items-center space-x-3 animate-in slide-in-from-top-2 duration-300">

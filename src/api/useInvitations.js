@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, doc, getDocs, Timestamp, query, where, deleteDoc, addDoc, setDoc, updateDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, Timestamp, query, where, deleteDoc, addDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 
@@ -53,12 +53,14 @@ export const useInvitations = () => {
                 action: "invite_user",
                 invited_email: docData.email,
                 target_tenant: docData.tenantId,
+                tenant_id: docData.tenantId,
                 performer_id: performer?.uid || "system",
                 performer_name: performer?.email || "system",
                 timestamp: Timestamp.now()
             });
 
-            return await addDoc(collection(db, "invitations"), docData);
+            const ref = await addDoc(collection(db, "invitations"), docData);
+            return { id: ref.id, ...docData };
         },
         onSuccess: () => {
             queryClient.invalidateQueries(["invitations-list"]);
@@ -73,6 +75,7 @@ export const useInvitations = () => {
             await addDoc(collection(db, "AuditLogs"), {
                 action: "revoke_invite",
                 invite_id: id,
+                tenant_id: claims?.tenantId || "global",
                 performer_id: performer?.uid || "system",
                 performer_name: performer?.email || "system",
                 timestamp: Timestamp.now()
@@ -103,21 +106,24 @@ export const useInvitations = () => {
 
     const acceptInvitation = useMutation({
         mutationFn: async ({ invitationId, tenantId, role }) => {
-            // 1. Update Profile (This might need a cloud function or being more direct)
-            // But since we use userProfiles/{uid}, we need the UID
-            const profileRef = doc(db, "userProfiles", performer.uid);
-            const userRef = doc(db, "users", performer.uid); // Base user doc
+            // Perfiles en FormaFlow usan el email en minúsculas como ID del documento
+            const emailKey = performer.email.toLowerCase();
+            const invSnap = await getDoc(doc(db, "invitations", invitationId));
+            const inv = invSnap.exists() ? invSnap.data() : {};
 
-            // Update both for consistency
-            const updates = { 
-                tenantId, 
-                role, 
-                status: 'active',
-                updatedAt: Timestamp.now() 
+            const updates = {
+                email: emailKey,
+                tenantId,
+                role,
+                status: "active",
+                user_name: inv.user_name || inv.full_name || performer.displayName || "",
+                phone: inv.phone || "",
+                area_ids: inv.area_ids || [],
+                updatedAt: Timestamp.now(),
             };
 
+            const profileRef = doc(db, "userProfiles", emailKey);
             await setDoc(profileRef, updates, { merge: true });
-            await updateDoc(userRef, updates);
 
             // 2. Mark Invitation as accepted
             await updateDoc(doc(db, "invitations", invitationId), { status: 'accepted', acceptedAt: Timestamp.now() });
@@ -126,6 +132,7 @@ export const useInvitations = () => {
             await addDoc(collection(db, "AuditLogs"), {
                 action: "accept_invite",
                 tenantId,
+                tenant_id: tenantId,
                 role,
                 performer_id: performer.uid,
                 performer_email: performer.email,

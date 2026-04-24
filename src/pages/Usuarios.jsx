@@ -1,15 +1,20 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Users, UserPlus, Search, X } from "lucide-react";
+import toast from "react-hot-toast";
+import { Users, UserPlus, UserCircle2, Search, X } from "lucide-react";
 import { useUsers } from "../api/useUsers";
 import { useTenants } from "../api/useTenants";
 import { useAreas } from "../api/useAreas";
+import { useInvitations } from "../api/useInvitations";
+import { useAuth } from "../lib/AuthContext";
+import NotificationService from "../api/NotificationService";
 import Guard from "../components/auth/Guard";
 import { PERMISSIONS } from "../lib/permissions";
 
 /* ── Roles config ─────────────────────────────────────────────────── */
 const ROLES = [
     { id: "super_admin",      label: "Super Admin",   cls: "bg-red-900/50 text-red-300",     numCls: "text-red-400" },
+    { id: "admin",            label: "Admin",         cls: "bg-amber-900/50 text-amber-300", numCls: "text-amber-400" },
     { id: "admin_empresa",    label: "Admin Empresa",  cls: "bg-amber-900/50 text-amber-300", numCls: "text-amber-400" },
     { id: "responsable_area", label: "Resp. Área",     cls: "bg-blue-900/50 text-blue-300",   numCls: "text-blue-400" },
     { id: "operador",         label: "Operador",       cls: "bg-emerald-900/50 text-emerald-300", numCls: "text-emerald-400" },
@@ -27,15 +32,19 @@ export default function Usuarios() {
     const [searchParams] = useSearchParams();
     const tenantParam = searchParams.get("tenant");
 
+    const { user: authUser } = useAuth();
     const { users, isLoading, createUser, updateUser } = useUsers();
     const { tenants = [] } = useTenants();
     const { areas = [] } = useAreas();
+    const { inviteUser } = useInvitations();
 
     const [search, setSearch] = useState("");
     const [filterTenant, setFilterTenant] = useState(tenantParam || "all");
     const [filterRole, setFilterRole] = useState("all");
     const [showModal, setShowModal] = useState(false);
     const [selected, setSelected] = useState(null);
+    /** Flujo para usuarios nuevos: invitación (colección invitations + correo) o creación directa (userProfiles + correo). */
+    const [modalIntent, setModalIntent] = useState("create");
 
     const usersList = useMemo(() => users || [], [users]);
     const tenantMap = Object.fromEntries(tenants.map(t => [t.id, t.name]));
@@ -65,22 +74,70 @@ export default function Usuarios() {
     };
 
     const handleSave = async (data) => {
+        const wasEdit = Boolean(selected);
+        const intentUsed = modalIntent;
         try {
             if (selected) {
                 await updateUser.mutateAsync({ id: selected.id, ...data });
             } else {
-                await createUser.mutateAsync({
-                    email: data.user_email || data.email,
-                    role: data.role || "operador",
-                    tenantId: data.tenant_id || data.tenantId || "",
-                    user_name: data.user_name || "",
-                    phone: data.phone || "",
-                    status: data.status || "pending_invite",
-                    area_ids: data.area_ids || [],
-                });
+                const email = (data.user_email || data.email || "").trim().toLowerCase();
+                const tenantId = data.tenant_id || data.tenantId || "";
+                const tenantName = tenants.find((t) => t.id === tenantId)?.name || tenantId;
+
+                if (!email) {
+                    alert("Indicá un correo electrónico válido.");
+                    return;
+                }
+                if (!tenantId) {
+                    alert("Seleccioná una empresa.");
+                    return;
+                }
+
+                if (modalIntent === "invite") {
+                    await inviteUser.mutateAsync({
+                        email,
+                        role: data.role || "operador",
+                        tenantId,
+                        user_name: data.user_name || "",
+                        phone: data.phone || "",
+                        area_ids: data.area_ids || [],
+                    });
+                    await NotificationService.sendInvitationEmail(email, {
+                        recipientName: data.user_name || email.split("@")[0],
+                        role: data.role || "operador",
+                        tenantName,
+                        invitedBy: authUser?.email || "Administración",
+                        tenantId,
+                    });
+                } else {
+                    await createUser.mutateAsync({
+                        email,
+                        role: data.role || "operador",
+                        tenantId,
+                        user_name: data.user_name || "",
+                        phone: data.phone || "",
+                        status: data.status || "active",
+                        area_ids: data.area_ids || [],
+                    });
+                    await NotificationService.sendUserCreatedEmail(email, {
+                        recipientName: data.user_name || email.split("@")[0],
+                        role: data.role || "operador",
+                        tenantName,
+                        createdBy: authUser?.email || "Administración",
+                        tenantId,
+                    });
+                }
             }
             setShowModal(false);
             setSelected(null);
+            setModalIntent("create");
+            if (wasEdit) {
+                toast.success("Usuario actualizado.");
+            } else if (intentUsed === "invite") {
+                toast.success("Invitación registrada y correo preparado (revisá Observatorio o tu webhook).");
+            } else {
+                toast.success("Usuario creado y correo preparado.");
+            }
         } catch (err) {
             alert("Error: " + err.message);
         }
@@ -116,10 +173,30 @@ export default function Usuarios() {
                     </p>
                 </div>
                 <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS} fallback={null}>
-                    <button onClick={() => { setSelected(null); setShowModal(true); }}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-                        <UserPlus size={16} /> Invitar Usuario
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelected(null);
+                                setModalIntent("invite");
+                                setShowModal(true);
+                            }}
+                            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <UserPlus size={16} /> Invitar usuario
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSelected(null);
+                                setModalIntent("create");
+                                setShowModal(true);
+                            }}
+                            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                            <UserCircle2 size={16} /> Crear usuario
+                        </button>
+                    </div>
                 </Guard>
             </div>
 
@@ -274,12 +351,17 @@ export default function Usuarios() {
             {/* ─── MODAL ───────────────────────────────────── */}
             {showModal && (
                 <UserModal
-                    key={selected ? (selected.email || selected.id) : "invite-new"}
+                    key={selected ? (selected.email || selected.id) : `new-${modalIntent}`}
                     user={selected}
+                    intent={selected ? "edit" : modalIntent}
                     tenants={tenants}
                     areas={areas}
                     onSave={handleSave}
-                    onClose={() => { setShowModal(false); setSelected(null); }}
+                    onClose={() => {
+                        setShowModal(false);
+                        setSelected(null);
+                        setModalIntent("create");
+                    }}
                 />
             )}
         </div>
@@ -287,7 +369,7 @@ export default function Usuarios() {
 }
 
 /* ── UserModal ────────────────────────────────────────────────────── */
-function UserModal({ user, tenants, areas, onSave, onClose }) {
+function UserModal({ user, intent = "create", tenants, areas, onSave, onClose }) {
     const [data, setData] = useState(user ? {
         user_name: user.user_name || user.displayName || "",
         user_email: user.user_email || user.email || "",
@@ -323,10 +405,14 @@ function UserModal({ user, tenants, areas, onSave, onClose }) {
                     <div>
                         <h2 className="text-white font-semibold flex items-center gap-2">
                             <UserPlus size={16} className="text-emerald-400" />
-                            {user ? "Editar Usuario" : "Invitar Usuario"}
+                            {user ? "Editar usuario" : intent === "invite" ? "Invitar usuario" : "Crear usuario"}
                         </h2>
                         <p className="text-slate-500 text-xs mt-0.5">
-                            {user ? "Modifica los datos del usuario" : "Envía una invitación para unirse"}
+                            {user
+                                ? "Modifica los datos del usuario"
+                                : intent === "invite"
+                                    ? "Se enviará un correo con invitación y enlace para ingresar a FormaFlow"
+                                    : "Se creará el perfil y se notificará por correo electrónico"}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
@@ -384,16 +470,22 @@ function UserModal({ user, tenants, areas, onSave, onClose }) {
                         </div>
                     </div>
 
-                    {/* Row 4: Status */}
-                    <div>
-                        <label className="text-xs text-slate-400 block mb-1.5">Estado</label>
-                        <select value={data.status} onChange={e => set("status", e.target.value)}
-                            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-emerald-500">
-                            <option value="active">Activo</option>
-                            <option value="inactive">Inactivo</option>
-                            <option value="pending_invite">Pendiente</option>
-                        </select>
-                    </div>
+                    {/* Estado: solo al crear perfil directo (no en modo invitación por correo) */}
+                    {user || intent !== "invite" ? (
+                        <div>
+                            <label className="text-xs text-slate-400 block mb-1.5">Estado</label>
+                            <select value={data.status} onChange={e => set("status", e.target.value)}
+                                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-emerald-500">
+                                <option value="active">Activo</option>
+                                <option value="inactive">Inactivo</option>
+                                <option value="pending_invite">Pendiente</option>
+                            </select>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-amber-400/90 bg-amber-950/30 border border-amber-900/40 rounded-lg px-3 py-2">
+                            La invitación quedará pendiente hasta que la persona inicie sesión y pulse <strong>Aceptar</strong> en el aviso del sistema.
+                        </p>
+                    )}
 
                     {/* Row 5: Areas multiselect */}
                     {data.tenant_id && (
@@ -432,8 +524,19 @@ function UserModal({ user, tenants, areas, onSave, onClose }) {
                     </button>
                     <button onClick={() => onSave(data)}
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors">
-                        {!user && <UserPlus size={14} />}
-                        {user ? "Guardar Cambios" : "Enviar Invitación"}
+                        {user ? (
+                            "Guardar cambios"
+                        ) : intent === "invite" ? (
+                            <>
+                                <UserPlus size={14} />
+                                Enviar invitación por correo
+                            </>
+                        ) : (
+                            <>
+                                <UserCircle2 size={14} />
+                                Crear usuario y notificar
+                            </>
+                        )}
                     </button>
                 </div>
             </div>
