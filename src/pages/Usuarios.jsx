@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { Users, UserPlus, UserCircle2, Search, X } from "lucide-react";
@@ -351,7 +351,11 @@ export default function Usuarios() {
             {/* ─── MODAL ───────────────────────────────────── */}
             {showModal && (
                 <UserModal
-                    key={selected ? (selected.email || selected.id) : `new-${modalIntent}`}
+                    key={
+                        selected
+                            ? (selected.email || selected.id)
+                            : `new-${modalIntent}-${tenants.map((t) => t.id).sort().join(",")}`
+                    }
                     user={selected}
                     intent={selected ? "edit" : modalIntent}
                     tenants={tenants}
@@ -370,6 +374,9 @@ export default function Usuarios() {
 
 /* ── UserModal ────────────────────────────────────────────────────── */
 function UserModal({ user, intent = "create", tenants, areas, onSave, onClose }) {
+    // tenant por defecto si solo hay una empresa (evita useEffect + setState: el key del modal remonta al cargar tenants).
+    const defaultTenantId = !user && tenants.length === 1 ? tenants[0].id : "";
+
     const [data, setData] = useState(user ? {
         user_name: user.user_name || user.displayName || "",
         user_email: user.user_email || user.email || "",
@@ -380,15 +387,11 @@ function UserModal({ user, intent = "create", tenants, areas, onSave, onClose })
         area_ids: user.area_ids || [],
     } : {
         user_name: "", user_email: "", phone: "",
-        role: "operador", tenant_id: "", status: "active", area_ids: [],
+        role: "operador",
+        tenant_id: defaultTenantId,
+        status: "active",
+        area_ids: [],
     });
-
-    // Admin de un solo tenant: al cargar empresas, fijar empresa por defecto (antes el select quedaba vacío).
-    useEffect(() => {
-        if (user) return;
-        if (tenants.length !== 1) return;
-        setData((prev) => (prev.tenant_id ? prev : { ...prev, tenant_id: tenants[0].id }));
-    }, [user, tenants]);
 
     const set = (k, v) => setData(prev => ({ ...prev, [k]: v }));
 
