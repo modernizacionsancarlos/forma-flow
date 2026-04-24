@@ -7,22 +7,46 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Función para verificar si es un super administrador
+    // Perfil de app en Firestore (misma fuente que el cliente); el ID es el email en minúsculas.
+    function hasUserProfile() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/userProfiles/$(request.auth.token.email.lower()));
+    }
+    function userProfile() {
+      return get(/databases/$(database)/documents/userProfiles/$(request.auth.token.email.lower())).data;
+    }
+
+    // Super admin: custom claims O email legacy O perfil en userProfiles (sin depender solo del JWT)
     function isSuperAdmin() {
       return isAuthenticated() && (
-        request.auth.token.role == 'super_admin' || 
-        request.auth.token.email == 'modernizacionsancarlos@gmail.com'
+        request.auth.token.role == 'super_admin' ||
+        request.auth.token.email == 'modernizacionsancarlos@gmail.com' ||
+        (hasUserProfile() && userProfile().keys().hasAll(['role']) && userProfile().role == 'super_admin')
       );
     }
 
-    // Función para obtener el tenant_id del usuario
+    // Tenant efectivo: claim tenant_id o tenantId en userProfiles (alineado con AuthContext)
     function getUserTenantId() {
-      return request.auth.token.tenant_id;
+      return (request.auth.token.keys().hasAll(['tenant_id']) && request.auth.token.tenant_id != null)
+        ? request.auth.token.tenant_id
+        : (hasUserProfile() && userProfile().keys().hasAll(['tenantId']) ? userProfile().tenantId : null);
     }
 
-    // Función para verificar si el usuario pertenece al tenant del documento
+    // Puede administrar un tenant (admin de empresa) según claim o perfil
+    function isProfileTenantAdmin() {
+      return hasUserProfile() && userProfile().keys().hasAll(['role']) &&
+        (userProfile().role == 'admin' || userProfile().role == 'admin_empresa');
+    }
+    function isTokenTenantAdmin() {
+      return request.auth.token.keys().hasAll(['role']) && request.auth.token.role == 'admin';
+    }
+
+    // Mismo tenant: envíos y form usan tenant_id; áreas, workflows, exports, invitations usan tenantId
     function isSameTenant(resourceData) {
-      return isSuperAdmin() || (isAuthenticated() && getUserTenantId() == resourceData.tenant_id);
+      return isSuperAdmin() || (isAuthenticated() && getUserTenantId() != null && (
+        (resourceData.keys().hasAll(['tenant_id']) && getUserTenantId() == resourceData.tenant_id) ||
+        (resourceData.keys().hasAll(['tenantId']) && getUserTenantId() == resourceData.tenantId)
+      ));
     }
 
     // Documento de formulario: referencia en envíos públicos anónimos
@@ -85,7 +109,11 @@ service cloud.firestore {
     // Reglas para la configuración del Tenant (tenants)
     match /tenants/{tenantId} {
       allow read: if isAuthenticated() && (isSuperAdmin() || getUserTenantId() == tenantId);
-      allow write: if isSuperAdmin() || (isAuthenticated() && getUserTenantId() == tenantId && request.auth.token.role == 'admin');
+      allow write: if isSuperAdmin() || (
+        isAuthenticated() &&
+        getUserTenantId() == tenantId &&
+        (isTokenTenantAdmin() || isProfileTenantAdmin())
+      );
     }
 
     // Reglas para Perfiles de Usuario
@@ -126,9 +154,16 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // Bloqueo por defecto para seguridad máxima
+    // Colecciones adicionales (áreas, workflows, exports, invitations, …): acceso por tenant o super
+    // En create, resource aún no existe: usar request.resource
     match /{document=**} {
-      allow read, write: if isSuperAdmin();
+      allow get, list: if isSuperAdmin() ||
+        (isAuthenticated() && resource != null && isSameTenant(resource.data));
+      allow create: if isSuperAdmin() ||
+        (isAuthenticated() && isSameTenant(request.resource.data));
+      allow update, delete: if isSuperAdmin() ||
+        (isAuthenticated() && resource != null && isSameTenant(resource.data) &&
+          isSameTenant(request.resource.data));
     }
   }
 }
