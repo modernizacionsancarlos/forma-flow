@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Users, UserPlus, Search, X } from "lucide-react";
 import { useUsers } from "../api/useUsers";
@@ -274,6 +274,7 @@ export default function Usuarios() {
             {/* ─── MODAL ───────────────────────────────────── */}
             {showModal && (
                 <UserModal
+                    key={selected ? (selected.email || selected.id) : "invite-new"}
                     user={selected}
                     tenants={tenants}
                     areas={areas}
@@ -300,6 +301,13 @@ function UserModal({ user, tenants, areas, onSave, onClose }) {
         role: "operador", tenant_id: "", status: "active", area_ids: [],
     });
 
+    // Admin de un solo tenant: al cargar empresas, fijar empresa por defecto (antes el select quedaba vacío).
+    useEffect(() => {
+        if (user) return;
+        if (tenants.length !== 1) return;
+        setData((prev) => (prev.tenant_id ? prev : { ...prev, tenant_id: tenants[0].id }));
+    }, [user, tenants]);
+
     const set = (k, v) => setData(prev => ({ ...prev, [k]: v }));
 
     const filteredAreas = areas.filter(a =>
@@ -307,8 +315,8 @@ function UserModal({ user, tenants, areas, onSave, onClose }) {
     );
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl relative z-[201]" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-800">

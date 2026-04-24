@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { collection, query, where, getDocs, addDoc, updateDoc, doc, Timestamp } from "firebase/firestore";
+import { collection, query, getDocs, getDoc, addDoc, updateDoc, doc, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 
@@ -8,12 +8,18 @@ export const useTenants = () => {
     const queryClient = useQueryClient();
 
     const fetchTenants = async () => {
-        let q = query(collection(db, "tenants"));
-        if (claims.role !== 'super_admin' && claims.tenantId) {
-            q = query(collection(db, "tenants"), where("id", "==", claims.tenantId));
+        // Super admin: lista completa. Resto: el tenant vive en el ID del documento (p. ej. Central_System), no en un campo "id".
+        if (claims.role === "super_admin") {
+            const querySnapshot = await getDocs(query(collection(db, "tenants")));
+            return querySnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
         }
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (claims.tenantId) {
+            const tenantRef = doc(db, "tenants", claims.tenantId);
+            const snap = await getDoc(tenantRef);
+            if (!snap.exists()) return [];
+            return [{ id: snap.id, ...snap.data() }];
+        }
+        return [];
     };
 
     const fetchQuery = useQuery({

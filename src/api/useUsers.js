@@ -32,63 +32,69 @@ export const useUsers = () => {
             const userRef = doc(db, "userProfiles", userEmail); 
             const tenantRef = doc(db, "tenants", tenantId);
 
+            // Firestore exige: en una transacción, todas las lecturas (get) antes de cualquier escritura.
             await runTransaction(db, async (transaction) => {
-                // If not Central_System, check limits
-                if (tenantId !== 'Central_System') {
-                    const tenantSnap = await transaction.get(tenantRef);
+                // --- 1) Solo lecturas ---
+                let tenantSnap = null;
+                if (tenantId !== "Central_System") {
+                    tenantSnap = await transaction.get(tenantRef);
+                }
+                const userSnap = await transaction.get(userRef);
+
+                let oldTenantRef = null;
+                let oldTenantSnap = null;
+                if (userSnap.exists()) {
+                    const oldTenantId = userSnap.data().tenantId;
+                    if (oldTenantId && oldTenantId !== tenantId && oldTenantId !== "Central_System") {
+                        oldTenantRef = doc(db, "tenants", oldTenantId);
+                        oldTenantSnap = await transaction.get(oldTenantRef);
+                    }
+                }
+
+                // --- 2) Validaciones (sin I/O) ---
+                if (tenantId !== "Central_System") {
                     if (!tenantSnap.exists()) throw new Error("Tenant no existe");
-                    
                     const tenantData = tenantSnap.data();
                     const currentCount = tenantData.userCount || 0;
                     const limit = tenantData.userLimit || 10;
-
                     if (currentCount >= limit) {
                         throw new Error(`Límite de usuarios alcanzado (${limit}) para este tenant.`);
                     }
+                }
 
-                    // Increment counter
-                    transaction.update(tenantRef, { 
+                // --- 3) Solo escrituras ---
+                if (tenantId !== "Central_System") {
+                    const tenantData = tenantSnap.data();
+                    const currentCount = tenantData.userCount || 0;
+                    transaction.update(tenantRef, {
                         userCount: currentCount + 1,
-                        updated_date: Timestamp.now()
+                        updated_date: Timestamp.now(),
                     });
                 }
 
-                // Check if user already exists
-                const userSnap = await transaction.get(userRef);
-                if (userSnap.exists()) {
-                    // Update instead of error if person is just changing tenant
-                    const oldTenantId = userSnap.data().tenantId;
-                    if (oldTenantId && oldTenantId !== tenantId && oldTenantId !== 'Central_System') {
-                        // We would need to decrement the old tenant count too
-                        const oldTenantRef = doc(db, "tenants", oldTenantId);
-                        const oldTenantSnap = await transaction.get(oldTenantRef);
-                        if (oldTenantSnap.exists()) {
-                            transaction.update(oldTenantRef, { 
-                                userCount: Math.max(0, (oldTenantSnap.data().userCount || 1) - 1) 
-                            });
-                        }
-                    }
+                if (userSnap.exists() && oldTenantRef && oldTenantSnap?.exists()) {
+                    transaction.update(oldTenantRef, {
+                        userCount: Math.max(0, (oldTenantSnap.data().userCount || 1) - 1),
+                    });
                 }
 
-                // Create/Update User
-                transaction.set(userRef, { 
-                    ...userData, 
+                transaction.set(userRef, {
+                    ...userData,
                     email: userEmail,
                     createdAt: Timestamp.now(),
-                    role: userData.role || 'user',
-                    tenantId: tenantId
+                    role: userData.role || "user",
+                    tenantId: tenantId,
                 });
 
-                // Audit Log (Add to transaction as an addDoc equivalent)
                 const auditRef = doc(collection(db, "AuditLogs"));
                 transaction.set(auditRef, {
                     action: "link_user_profile",
                     user_email: userEmail,
                     target_tenant: tenantId,
-                    assigned_role: userData.role || 'lector',
+                    assigned_role: userData.role || "lector",
                     performer_id: performer?.uid || "system",
                     performer_name: performer?.email || "system",
-                    timestamp: Timestamp.now()
+                    timestamp: Timestamp.now(),
                 });
             });
         },
