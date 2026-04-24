@@ -45,7 +45,7 @@ export default function Login() {
              </div>
              
              <h1 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">FormFlow</h1>
-             <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 py-1 bg-white/5 rounded-full inline-flex mx-auto">
+             <div className="inline-flex items-center justify-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 py-1 bg-white/5 rounded-full mx-auto">
                 <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
                 <span>Portal de Gestión Municipal</span>
              </div>
