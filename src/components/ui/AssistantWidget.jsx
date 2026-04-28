@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Bot, MessageSquare, Sparkles, X, ArrowRight } from "lucide-react";
+import { Bot, MessageSquare, Sparkles, X, ArrowRight, Send } from "lucide-react";
 import { useBranding } from "../../lib/useBranding";
 
 const ROUTE_ASSISTANT_CONFIG = {
@@ -157,6 +157,20 @@ const DEFAULT_ASSISTANT_CONFIG = {
   ],
 };
 
+const HELP_BY_ROUTE = {
+  "/": "En Dashboard puedes revisar KPIs, respuestas recientes y usar acciones rápidas de gestión.",
+  "/forms": "En Formularios puedes crear uno nuevo desde 'Nuevo form' y editar los existentes.",
+  "/forms/new": "En Nuevo formulario define campos, secciones y guarda para publicarlo luego.",
+  "/submissions": "En Respuestas puedes filtrar por estado y revisar envíos pendientes.",
+  "/empresas": "En Empresas puedes ver organizaciones, planes y estado de cada tenant.",
+  "/usuarios": "En Usuarios puedes gestionar accesos y roles de personas del sistema.",
+  "/workflows": "En Workflows puedes configurar automatizaciones entre eventos y acciones.",
+  "/exportaciones": "En Exportaciones puedes descargar datos para análisis o reportes.",
+  "/auditoria": "En Auditoría revisas trazabilidad de acciones y cambios del sistema.",
+  "/sincronizacion": "En Sincronización puedes monitorear y reintentar sincronizaciones.",
+  "/configuracion": "En Configuración ajustas parámetros generales de la plataforma.",
+};
+
 const getConfigForPath = (pathname) => {
   if (ROUTE_ASSISTANT_CONFIG[pathname]) return ROUTE_ASSISTANT_CONFIG[pathname];
 
@@ -168,18 +182,181 @@ const getConfigForPath = (pathname) => {
   return routeKey ? ROUTE_ASSISTANT_CONFIG[routeKey] : DEFAULT_ASSISTANT_CONFIG;
 };
 
+const normalizeText = (text) =>
+  text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+
+const KEYWORD_NAV_RULES = [
+  {
+    keywords: ["dashboard", "inicio", "home", "principal"],
+    action: { label: "Ir al Dashboard", path: "/" },
+    response: "Te llevo al panel principal para ver el estado general.",
+  },
+  {
+    keywords: ["formulario", "formularios", "form"],
+    action: { label: "Ir a Formularios", path: "/forms" },
+    response: "Te llevo al módulo de formularios.",
+  },
+  {
+    keywords: ["nuevo formulario", "crear formulario", "alta formulario"],
+    action: { label: "Crear nuevo formulario", path: "/forms/new" },
+    response: "Perfecto, te llevo a la creación de formularios.",
+  },
+  {
+    keywords: ["respuesta", "respuestas", "pendiente", "revision"],
+    action: { label: "Ir a Respuestas", path: "/submissions" },
+    response: "Te llevo a respuestas para revisar y filtrar envíos.",
+  },
+  {
+    keywords: ["empresa", "empresas", "tenant"],
+    action: { label: "Ir a Empresas", path: "/empresas" },
+    response: "Te llevo al módulo de empresas.",
+  },
+  {
+    keywords: ["usuario", "usuarios", "acceso", "rol"],
+    action: { label: "Ir a Usuarios", path: "/usuarios" },
+    response: "Te llevo al módulo de usuarios y permisos.",
+  },
+  {
+    keywords: ["workflow", "workflows", "automatizacion", "flujo"],
+    action: { label: "Ir a Workflows", path: "/workflows" },
+    response: "Te llevo a workflows para gestionar automatizaciones.",
+  },
+  {
+    keywords: ["exportar", "exportacion", "descargar", "reporte"],
+    action: { label: "Ir a Exportaciones", path: "/exportaciones" },
+    response: "Te llevo a exportaciones para descargar información.",
+  },
+  {
+    keywords: ["auditoria", "log", "trazabilidad"],
+    action: { label: "Ir a Auditoría", path: "/auditoria" },
+    response: "Te llevo a auditoría para revisar actividad.",
+  },
+  {
+    keywords: ["sincronizacion", "sincronizar", "sync"],
+    action: { label: "Ir a Sincronización", path: "/sincronizacion" },
+    response: "Te llevo al módulo de sincronización.",
+  },
+  {
+    keywords: ["configuracion", "ajustes", "parametros"],
+    action: { label: "Ir a Configuración", path: "/configuracion" },
+    response: "Te llevo a configuración para ajustar parámetros del sistema.",
+  },
+];
+
+const HOWTO_RULES = [
+  {
+    keywords: ["crear formulario", "nuevo formulario", "como creo un formulario", "como crear formulario"],
+    response:
+      "Para crear un formulario: 1) entra a Formularios, 2) presiona 'Nuevo form', 3) agrega campos y secciones, 4) guarda/publica. Si quieres, te llevo ahora.",
+    action: { label: "Ir a crear formulario", path: "/forms/new" },
+  },
+  {
+    keywords: ["exportar", "como exportar", "descargar reporte"],
+    response:
+      "Para exportar: 1) entra a Exportaciones, 2) elige tipo/rango, 3) genera el archivo y 4) descárgalo. Si quieres, te llevo ahora.",
+    action: { label: "Ir a exportaciones", path: "/exportaciones" },
+  },
+  {
+    keywords: ["revisar pendientes", "pendientes", "en revision", "en revision"],
+    response:
+      "Para revisar pendientes: 1) entra a Respuestas, 2) filtra por estado 'Pendiente/En revisión', 3) abre cada envío y actualiza su estado.",
+    action: { label: "Ir a respuestas", path: "/submissions" },
+  },
+];
+
+const resolveAssistantIntent = (rawQuestion, pathname, activeConfig) => {
+  const normalized = normalizeText(rawQuestion);
+
+  if (!normalized) {
+    return {
+      response: "Escribe una pregunta o una acción, por ejemplo: 'ir a respuestas' o 'cómo crear formulario'.",
+      action: null,
+    };
+  }
+
+  const matchedRule = KEYWORD_NAV_RULES.find((rule) =>
+    rule.keywords.some((keyword) => normalized.includes(keyword)),
+  );
+
+  const matchedHowTo = HOWTO_RULES.find((rule) =>
+    rule.keywords.some((keyword) => normalized.includes(keyword)),
+  );
+
+  // Prioriza guías y acciones concretas antes que ayuda genérica.
+  if (matchedHowTo) {
+    return {
+      response: matchedHowTo.response,
+      action: matchedHowTo.action,
+    };
+  }
+
+  if (matchedRule) {
+    return {
+      response: matchedRule.response,
+      action: matchedRule.action,
+    };
+  }
+
+  if (normalized.includes("ayuda") || normalized.includes("como") || normalized.includes("como ")) {
+    const helpText = HELP_BY_ROUTE[pathname] || HELP_BY_ROUTE["/"];
+    return {
+      response: `${helpText} Si quieres, también puedo llevarte directamente a otra sección.`,
+      action: activeConfig.actions?.[0] || null,
+    };
+  }
+
+  const fallbackAction = activeConfig.actions?.[0] || null;
+  return {
+    response:
+      "No encontré una coincidencia exacta. Prueba con palabras clave como 'formularios', 'respuestas', 'usuarios', 'exportar' o 'auditoría'.",
+    action: fallbackAction,
+  };
+};
+
 export default function AssistantWidget() {
   const location = useLocation();
   const navigate = useNavigate();
   const { branding } = useBranding();
   const [isOpen, setIsOpen] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState("");
+  const [question, setQuestion] = useState("");
+  const [chatHistory, setChatHistory] = useState([]);
+  const [pendingAction, setPendingAction] = useState(null);
 
   const activeConfig = useMemo(() => getConfigForPath(location.pathname), [location.pathname]);
 
   const onActionClick = (path) => {
     setIsOpen(false);
     navigate(path);
+  };
+
+  const onSuggestionClick = (suggestion) => {
+    setSelectedSuggestion(suggestion);
+    const result = resolveAssistantIntent(suggestion, location.pathname, activeConfig);
+    setChatHistory((prev) => [
+      ...prev,
+      { role: "user", text: suggestion },
+      { role: "assistant", text: result.response },
+    ]);
+    setPendingAction(result.action);
+  };
+
+  const onSendQuestion = () => {
+    const currentQuestion = question.trim();
+    if (!currentQuestion) return;
+
+    const result = resolveAssistantIntent(currentQuestion, location.pathname, activeConfig);
+    setChatHistory((prev) => [
+      ...prev,
+      { role: "user", text: currentQuestion },
+      { role: "assistant", text: result.response },
+    ]);
+    setPendingAction(result.action);
+    setQuestion("");
   };
 
   return (
@@ -225,7 +402,7 @@ export default function AssistantWidget() {
                   <button
                     key={suggestion}
                     type="button"
-                    onClick={() => setSelectedSuggestion(suggestion)}
+                    onClick={() => onSuggestionClick(suggestion)}
                     className="rounded-full border border-slate-700 px-3 py-1 text-xs text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
                   >
                     {suggestion}
@@ -238,6 +415,58 @@ export default function AssistantWidget() {
                 </div>
               ) : null}
             </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Pregúntame algo</p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={question}
+                  onChange={(event) => setQuestion(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") onSendQuestion();
+                  }}
+                  placeholder="Ej: llévame a respuestas pendientes"
+                  className="h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none placeholder:text-slate-500 focus:border-slate-500"
+                />
+                <button
+                  type="button"
+                  onClick={onSendQuestion}
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-700 bg-slate-950 text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
+                  aria-label="Enviar pregunta"
+                >
+                  <Send size={14} />
+                </button>
+              </div>
+            </div>
+
+            {chatHistory.length ? (
+              <div className="max-h-40 space-y-2 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/70 p-2">
+                {chatHistory.slice(-6).map((message, index) => (
+                  <div
+                    key={`${message.role}-${index}`}
+                    className={`rounded-lg px-2 py-1.5 text-xs ${
+                      message.role === "assistant"
+                        ? "bg-slate-900 text-slate-300"
+                        : "bg-slate-800 text-white"
+                    }`}
+                  >
+                    {message.text}
+                  </div>
+                ))}
+              </div>
+            ) : null}
+
+            {pendingAction ? (
+              <button
+                type="button"
+                onClick={() => onActionClick(pendingAction.path)}
+                className="flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-2 text-left text-xs font-medium text-white transition-colors hover:border-slate-500"
+              >
+                <span>{pendingAction.label}</span>
+                <ArrowRight size={14} />
+              </button>
+            ) : null}
 
             <div className="space-y-2">
               <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
