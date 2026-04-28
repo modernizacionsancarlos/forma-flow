@@ -27,6 +27,7 @@ import NotificationCenter from "./NotificationCenter";
 import AnimatedPage from "./AnimatedPage";
 import NotificationPrompt from "./NotificationPrompt";
 import PWAInstallPrompt from "./PWAInstallPrompt";
+import AssistantWidget from "./AssistantWidget";
 import { PERMISSIONS } from "../../lib/permissions";
 import { useSubmissionNotifications } from "../../api/useSubmissionNotifications";
 
@@ -354,16 +355,7 @@ const MainLayout = ({ children }) => {
         </main>
       </div>
 
-      <div className="hidden sm:flex fixed bottom-6 right-6 z-30 items-center bg-black/80 rounded-full px-4 py-2 border border-slate-800 shadow-xl backdrop-blur">
-          <div 
-            className="w-5 h-5 rounded-full mr-2 shadow-lg"
-            style={{ 
-              backgroundColor: branding.primary_color,
-              boxShadow: `0 0 10px ${branding.primary_color}80` 
-            }}
-          ></div>
-          <span className="text-white text-xs font-semibold">Core <span className="font-bold">FormFlow</span></span>
-      </div>
+      <AssistantWidget />
     </div>
   );
 };
