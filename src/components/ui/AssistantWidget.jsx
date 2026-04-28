@@ -189,59 +189,63 @@ const normalizeText = (text) =>
     .replace(/[\u0300-\u036f]/g, "")
     .trim();
 
+const includesAny = (text, terms) => terms.some((term) => text.includes(term));
+
+const includesAll = (text, terms) => terms.every((term) => text.includes(term));
+
 const KEYWORD_NAV_RULES = [
   {
-    keywords: ["dashboard", "inicio", "home", "principal"],
+    keywords: ["dashboard", "inicio", "home", "principal", "panel", "portada", "resumen"],
     action: { label: "Ir al Dashboard", path: "/" },
     response: "Te llevo al panel principal para ver el estado general.",
   },
   {
-    keywords: ["formulario", "formularios", "form"],
+    keywords: ["formulario", "formularios", "form", "tramite", "tramites", "expediente", "expedientes"],
     action: { label: "Ir a Formularios", path: "/forms" },
     response: "Te llevo al módulo de formularios.",
   },
   {
-    keywords: ["nuevo formulario", "crear formulario", "alta formulario"],
+    keywords: ["nuevo formulario", "crear formulario", "alta formulario", "nuevo tramite", "crear tramite"],
     action: { label: "Crear nuevo formulario", path: "/forms/new" },
     response: "Perfecto, te llevo a la creación de formularios.",
   },
   {
-    keywords: ["respuesta", "respuestas", "pendiente", "revision"],
+    keywords: ["respuesta", "respuestas", "pendiente", "revision", "revisión", "envio", "envíos", "solicitud"],
     action: { label: "Ir a Respuestas", path: "/submissions" },
     response: "Te llevo a respuestas para revisar y filtrar envíos.",
   },
   {
-    keywords: ["empresa", "empresas", "tenant"],
+    keywords: ["empresa", "empresas", "tenant", "organizacion", "organización", "institucion", "institución"],
     action: { label: "Ir a Empresas", path: "/empresas" },
     response: "Te llevo al módulo de empresas.",
   },
   {
-    keywords: ["usuario", "usuarios", "acceso", "rol"],
+    keywords: ["usuario", "usuarios", "acceso", "rol", "permisos", "persona", "personas"],
     action: { label: "Ir a Usuarios", path: "/usuarios" },
     response: "Te llevo al módulo de usuarios y permisos.",
   },
   {
-    keywords: ["workflow", "workflows", "automatizacion", "flujo"],
+    keywords: ["workflow", "workflows", "automatizacion", "flujo", "automatización", "regla", "reglas"],
     action: { label: "Ir a Workflows", path: "/workflows" },
     response: "Te llevo a workflows para gestionar automatizaciones.",
   },
   {
-    keywords: ["exportar", "exportacion", "descargar", "reporte"],
+    keywords: ["exportar", "exportacion", "exportación", "descargar", "reporte", "informes", "excel", "csv", "pdf"],
     action: { label: "Ir a Exportaciones", path: "/exportaciones" },
     response: "Te llevo a exportaciones para descargar información.",
   },
   {
-    keywords: ["auditoria", "log", "trazabilidad"],
+    keywords: ["auditoria", "auditoría", "log", "trazabilidad", "historial", "movimientos"],
     action: { label: "Ir a Auditoría", path: "/auditoria" },
     response: "Te llevo a auditoría para revisar actividad.",
   },
   {
-    keywords: ["sincronizacion", "sincronizar", "sync"],
+    keywords: ["sincronizacion", "sincronización", "sincronizar", "sync", "integracion", "integración", "actualizar datos"],
     action: { label: "Ir a Sincronización", path: "/sincronizacion" },
     response: "Te llevo al módulo de sincronización.",
   },
   {
-    keywords: ["configuracion", "ajustes", "parametros"],
+    keywords: ["configuracion", "configuración", "ajustes", "parametros", "parámetros", "preferencias"],
     action: { label: "Ir a Configuración", path: "/configuracion" },
     response: "Te llevo a configuración para ajustar parámetros del sistema.",
   },
@@ -249,22 +253,51 @@ const KEYWORD_NAV_RULES = [
 
 const HOWTO_RULES = [
   {
-    keywords: ["crear formulario", "nuevo formulario", "como creo un formulario", "como crear formulario"],
+    keywords: [
+      "crear formulario",
+      "nuevo formulario",
+      "como creo un formulario",
+      "como crear formulario",
+      "crear un formulario",
+      "armar formulario",
+      "generar formulario",
+      "crear tramite",
+      "nuevo tramite",
+      "crear expediente",
+    ],
     response:
       "Para crear un formulario: 1) entra a Formularios, 2) presiona 'Nuevo form', 3) agrega campos y secciones, 4) guarda/publica. Si quieres, te llevo ahora.",
     action: { label: "Ir a crear formulario", path: "/forms/new" },
   },
   {
-    keywords: ["exportar", "como exportar", "descargar reporte"],
+    keywords: ["exportar", "como exportar", "descargar reporte", "descargar excel", "descargar csv", "sacar reporte"],
     response:
       "Para exportar: 1) entra a Exportaciones, 2) elige tipo/rango, 3) genera el archivo y 4) descárgalo. Si quieres, te llevo ahora.",
     action: { label: "Ir a exportaciones", path: "/exportaciones" },
   },
   {
-    keywords: ["revisar pendientes", "pendientes", "en revision", "en revision"],
+    keywords: ["revisar pendientes", "pendientes", "en revision", "en revisión", "revisar envios", "revisar solicitudes"],
     response:
       "Para revisar pendientes: 1) entra a Respuestas, 2) filtra por estado 'Pendiente/En revisión', 3) abre cada envío y actualiza su estado.",
     action: { label: "Ir a respuestas", path: "/submissions" },
+  },
+  {
+    keywords: ["crear usuario", "nuevo usuario", "dar acceso", "asignar rol", "permisos de usuario"],
+    response:
+      "Para crear un usuario: 1) entra a Usuarios, 2) crea/invita usuario, 3) asigna rol y permisos, 4) confirma acceso.",
+    action: { label: "Ir a usuarios", path: "/usuarios" },
+  },
+  {
+    keywords: ["crear workflow", "automatizar", "regla automatica", "regla automática", "flujo automatico", "flujo automático"],
+    response:
+      "Para automatizar: 1) entra a Workflows, 2) define evento disparador, 3) configura acciones, 4) guarda y activa.",
+    action: { label: "Ir a workflows", path: "/workflows" },
+  },
+  {
+    keywords: ["ver historial", "quien cambio", "quién cambió", "auditar cambios", "trazabilidad"],
+    response:
+      "Para auditar cambios: 1) entra a Auditoría, 2) filtra por fecha/usuario/acción, 3) revisa el detalle del evento.",
+    action: { label: "Ir a auditoría", path: "/auditoria" },
   },
 ];
 
@@ -285,6 +318,23 @@ const resolveAssistantIntent = (rawQuestion, pathname, activeConfig) => {
   const matchedHowTo = HOWTO_RULES.find((rule) =>
     rule.keywords.some((keyword) => normalized.includes(keyword)),
   );
+
+  // Intenciones compuestas para frases naturales (ej: "quiero crear un formulario").
+  if (includesAll(normalized, ["crear", "formulario"]) || includesAll(normalized, ["crear", "tramite"])) {
+    return {
+      response:
+        "Claro. Para crear un formulario: 1) abre Formularios, 2) clic en 'Nuevo form', 3) define campos/secciones, 4) guarda/publica.",
+      action: { label: "Ir a crear formulario", path: "/forms/new" },
+    };
+  }
+
+  if (includesAny(normalized, ["vecino", "ciudadano", "ciudadana"]) && includesAny(normalized, ["respuesta", "tramite", "expediente"])) {
+    return {
+      response:
+        "Si quieres revisar gestión de trámites/expedientes del vecino, te conviene ir a Respuestas y filtrar por estado y fecha.",
+      action: { label: "Ir a respuestas", path: "/submissions" },
+    };
+  }
 
   // Prioriza guías y acciones concretas antes que ayuda genérica.
   if (matchedHowTo) {
