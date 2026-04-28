@@ -193,61 +193,117 @@ const includesAny = (text, terms) => terms.some((term) => text.includes(term));
 
 const includesAll = (text, terms) => terms.every((term) => text.includes(term));
 
+const pickVariant = (variants, seed) => {
+  if (!Array.isArray(variants) || !variants.length) return "";
+  return variants[seed % variants.length];
+};
+
+const getRoutePriorityBonus = (pathname, actionPath) => {
+  if (!pathname || !actionPath) return 0;
+  if (pathname === actionPath) return 3;
+  if (pathname.startsWith(actionPath) || actionPath.startsWith(pathname)) return 2;
+  return 0;
+};
+
 const KEYWORD_NAV_RULES = [
   {
     keywords: ["dashboard", "inicio", "home", "principal", "panel", "portada", "resumen"],
     action: { label: "Ir al Dashboard", path: "/" },
-    response: "Te llevo al panel principal para ver el estado general.",
+    responses: [
+      "Te llevo al panel principal para ver el estado general.",
+      "Vamos al dashboard para que revises el resumen general.",
+      "Perfecto, te redirijo al inicio para ver los indicadores.",
+    ],
   },
   {
     keywords: ["formulario", "formularios", "form", "tramite", "tramites", "expediente", "expedientes"],
     action: { label: "Ir a Formularios", path: "/forms" },
-    response: "Te llevo al módulo de formularios.",
+    responses: [
+      "Te llevo al módulo de formularios.",
+      "Vamos a Formularios para gestionar tus plantillas.",
+      "Listo, te dirijo a la vista de formularios.",
+    ],
   },
   {
     keywords: ["nuevo formulario", "crear formulario", "alta formulario", "nuevo tramite", "crear tramite"],
     action: { label: "Crear nuevo formulario", path: "/forms/new" },
-    response: "Perfecto, te llevo a la creación de formularios.",
+    responses: [
+      "Perfecto, te llevo a la creación de formularios.",
+      "Vamos al constructor para crear uno nuevo.",
+      "Te abro la pantalla de alta de formulario.",
+    ],
   },
   {
     keywords: ["respuesta", "respuestas", "pendiente", "revision", "revisión", "envio", "envíos", "solicitud"],
     action: { label: "Ir a Respuestas", path: "/submissions" },
-    response: "Te llevo a respuestas para revisar y filtrar envíos.",
+    responses: [
+      "Te llevo a respuestas para revisar y filtrar envíos.",
+      "Vamos a Respuestas para ver pendientes y en revisión.",
+      "Te redirijo a Submissions para que gestiones solicitudes.",
+    ],
   },
   {
     keywords: ["empresa", "empresas", "tenant", "organizacion", "organización", "institucion", "institución"],
     action: { label: "Ir a Empresas", path: "/empresas" },
-    response: "Te llevo al módulo de empresas.",
+    responses: [
+      "Te llevo al módulo de empresas.",
+      "Vamos a Empresas para revisar organizaciones registradas.",
+      "Te dirijo a la sección de tenants/empresas.",
+    ],
   },
   {
     keywords: ["usuario", "usuarios", "acceso", "rol", "permisos", "persona", "personas"],
     action: { label: "Ir a Usuarios", path: "/usuarios" },
-    response: "Te llevo al módulo de usuarios y permisos.",
+    responses: [
+      "Te llevo al módulo de usuarios y permisos.",
+      "Vamos a Usuarios para gestionar accesos y roles.",
+      "Te redirijo a la sección de personas y permisos.",
+    ],
   },
   {
     keywords: ["workflow", "workflows", "automatizacion", "flujo", "automatización", "regla", "reglas"],
     action: { label: "Ir a Workflows", path: "/workflows" },
-    response: "Te llevo a workflows para gestionar automatizaciones.",
+    responses: [
+      "Te llevo a workflows para gestionar automatizaciones.",
+      "Vamos a Workflows para configurar reglas automáticas.",
+      "Te redirijo al módulo de flujos automáticos.",
+    ],
   },
   {
     keywords: ["exportar", "exportacion", "exportación", "descargar", "reporte", "informes", "excel", "csv", "pdf"],
     action: { label: "Ir a Exportaciones", path: "/exportaciones" },
-    response: "Te llevo a exportaciones para descargar información.",
+    responses: [
+      "Te llevo a exportaciones para descargar información.",
+      "Vamos a Exportaciones para generar reportes.",
+      "Te redirijo al módulo de descargas y reportes.",
+    ],
   },
   {
     keywords: ["auditoria", "auditoría", "log", "trazabilidad", "historial", "movimientos"],
     action: { label: "Ir a Auditoría", path: "/auditoria" },
-    response: "Te llevo a auditoría para revisar actividad.",
+    responses: [
+      "Te llevo a auditoría para revisar actividad.",
+      "Vamos a Auditoría para ver trazabilidad de cambios.",
+      "Te redirijo al historial de operaciones.",
+    ],
   },
   {
     keywords: ["sincronizacion", "sincronización", "sincronizar", "sync", "integracion", "integración", "actualizar datos"],
     action: { label: "Ir a Sincronización", path: "/sincronizacion" },
-    response: "Te llevo al módulo de sincronización.",
+    responses: [
+      "Te llevo al módulo de sincronización.",
+      "Vamos a Sincronización para revisar integraciones.",
+      "Te redirijo al panel de sincronización de datos.",
+    ],
   },
   {
     keywords: ["configuracion", "configuración", "ajustes", "parametros", "parámetros", "preferencias"],
     action: { label: "Ir a Configuración", path: "/configuracion" },
-    response: "Te llevo a configuración para ajustar parámetros del sistema.",
+    responses: [
+      "Te llevo a configuración para ajustar parámetros del sistema.",
+      "Vamos a Configuración para cambiar ajustes generales.",
+      "Te redirijo al panel de preferencias.",
+    ],
   },
 ];
 
@@ -301,7 +357,7 @@ const HOWTO_RULES = [
   },
 ];
 
-const resolveAssistantIntent = (rawQuestion, pathname, activeConfig) => {
+const resolveAssistantIntent = (rawQuestion, pathname, activeConfig, responseSeed = 0) => {
   const normalized = normalizeText(rawQuestion);
 
   if (!normalized) {
@@ -311,9 +367,21 @@ const resolveAssistantIntent = (rawQuestion, pathname, activeConfig) => {
     };
   }
 
-  const matchedRule = KEYWORD_NAV_RULES.find((rule) =>
-    rule.keywords.some((keyword) => normalized.includes(keyword)),
-  );
+  const rankedNavRules = KEYWORD_NAV_RULES.map((rule) => {
+    const keywordHits = rule.keywords.reduce(
+      (acc, keyword) => acc + (normalized.includes(keyword) ? 1 : 0),
+      0,
+    );
+    const routeBonus = getRoutePriorityBonus(pathname, rule.action?.path);
+    return {
+      rule,
+      score: keywordHits + routeBonus,
+    };
+  })
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  const matchedRule = rankedNavRules[0]?.rule || null;
 
   const matchedHowTo = HOWTO_RULES.find((rule) =>
     rule.keywords.some((keyword) => normalized.includes(keyword)),
@@ -346,8 +414,9 @@ const resolveAssistantIntent = (rawQuestion, pathname, activeConfig) => {
 
   if (matchedRule) {
     return {
-      response: matchedRule.response,
+      response: pickVariant(matchedRule.responses, responseSeed),
       action: matchedRule.action,
+      intentLabel: matchedRule.action?.label || "Navegación",
     };
   }
 
@@ -356,6 +425,7 @@ const resolveAssistantIntent = (rawQuestion, pathname, activeConfig) => {
     return {
       response: `${helpText} Si quieres, también puedo llevarte directamente a otra sección.`,
       action: activeConfig.actions?.[0] || null,
+      intentLabel: "Ayuda contextual",
     };
   }
 
@@ -364,6 +434,7 @@ const resolveAssistantIntent = (rawQuestion, pathname, activeConfig) => {
     response:
       "No encontré una coincidencia exacta. Prueba con palabras clave como 'formularios', 'respuestas', 'usuarios', 'exportar' o 'auditoría'.",
     action: fallbackAction,
+    intentLabel: "Sin coincidencia exacta",
   };
 };
 
@@ -376,6 +447,8 @@ export default function AssistantWidget() {
   const [question, setQuestion] = useState("");
   const [chatHistory, setChatHistory] = useState([]);
   const [pendingAction, setPendingAction] = useState(null);
+  const [responseSeed, setResponseSeed] = useState(0);
+  const [intentMemory, setIntentMemory] = useState([]);
 
   const activeConfig = useMemo(() => getConfigForPath(location.pathname), [location.pathname]);
 
@@ -386,20 +459,22 @@ export default function AssistantWidget() {
 
   const onSuggestionClick = (suggestion) => {
     setSelectedSuggestion(suggestion);
-    const result = resolveAssistantIntent(suggestion, location.pathname, activeConfig);
+    const result = resolveAssistantIntent(suggestion, location.pathname, activeConfig, responseSeed);
     setChatHistory((prev) => [
       ...prev,
       { role: "user", text: suggestion },
       { role: "assistant", text: result.response },
     ]);
     setPendingAction(result.action);
+    setResponseSeed((prev) => prev + 1);
+    setIntentMemory((prev) => [result.intentLabel || "Sugerencia", ...prev].slice(0, 5));
   };
 
   const onSendQuestion = () => {
     const currentQuestion = question.trim();
     if (!currentQuestion) return;
 
-    const result = resolveAssistantIntent(currentQuestion, location.pathname, activeConfig);
+    const result = resolveAssistantIntent(currentQuestion, location.pathname, activeConfig, responseSeed);
     setChatHistory((prev) => [
       ...prev,
       { role: "user", text: currentQuestion },
@@ -407,6 +482,8 @@ export default function AssistantWidget() {
     ]);
     setPendingAction(result.action);
     setQuestion("");
+    setResponseSeed((prev) => prev + 1);
+    setIntentMemory((prev) => [result.intentLabel || "Consulta", ...prev].slice(0, 5));
   };
 
   return (
@@ -516,6 +593,22 @@ export default function AssistantWidget() {
                 <span>{pendingAction.label}</span>
                 <ArrowRight size={14} />
               </button>
+            ) : null}
+
+            {intentMemory.length ? (
+              <div className="space-y-2">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Memoria reciente</p>
+                <div className="flex flex-wrap gap-2">
+                  {intentMemory.map((intent, index) => (
+                    <span
+                      key={`${intent}-${index}`}
+                      className="rounded-full border border-slate-700 bg-slate-950/70 px-2.5 py-1 text-[11px] text-slate-300"
+                    >
+                      {intent}
+                    </span>
+                  ))}
+                </div>
+              </div>
             ) : null}
 
             <div className="space-y-2">
