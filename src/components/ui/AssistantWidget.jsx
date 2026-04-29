@@ -567,7 +567,10 @@ export default function AssistantWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-40">
       {isOpen ? (
-        <div className="w-[340px] max-w-[90vw] rounded-2xl border border-slate-800 bg-slate-900/95 shadow-2xl backdrop-blur-xl">
+        <div
+          id="formaflow-assistant-panel"
+          className="w-[340px] max-w-[90vw] rounded-2xl border border-slate-800 bg-slate-900/95 shadow-2xl backdrop-blur-xl"
+        >
           <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
             <div className="flex items-center gap-2">
               <div
@@ -720,15 +723,21 @@ export default function AssistantWidget() {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
+        aria-expanded={isOpen}
+        aria-controls="formaflow-assistant-panel"
         className="mt-3 flex items-center rounded-full border border-slate-800 bg-black/80 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur transition-transform hover:scale-[1.02]"
       >
-        <div
-          className="mr-2 h-5 w-5 rounded-full shadow-lg"
+        {/* Icono tipo robot para identificar mejor el asistente automatizado */}
+        <span
+          className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-900/90 shadow-md"
           style={{
-            backgroundColor: branding.primary_color,
-            boxShadow: `0 0 10px ${branding.primary_color}80`,
+            borderColor: `${branding.primary_color}55`,
+            boxShadow: `0 0 14px ${branding.primary_color}55`,
           }}
-        />
+          aria-hidden="true"
+        >
+          <Bot size={17} strokeWidth={2.2} style={{ color: branding.primary_color }} />
+        </span>
         <span>Asistente</span>
       </button>
     </div>
