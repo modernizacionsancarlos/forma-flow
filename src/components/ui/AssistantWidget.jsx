@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Bot, MessageSquare, Sparkles, X, ArrowRight, Send } from "lucide-react";
 import { useBranding } from "../../lib/useBranding";
@@ -506,6 +506,40 @@ export default function AssistantWidget() {
 
   const activeConfig = useMemo(() => getConfigForPath(location.pathname), [location.pathname]);
 
+  /** Sugerencias priorizadas según intenciones recientes de la sesión (sin IA). */
+  const orderedSuggestions = useMemo(() => {
+    const list = [...activeConfig.suggestions];
+    const context = normalizeText(intentMemory.join(" "));
+    if (!context.trim()) return list;
+    return list.sort((a, b) => {
+      const score = (text) =>
+        normalizeText(text)
+          .split(/\s+/)
+          .filter((w) => w.length > 2)
+          .reduce((acc, w) => acc + (context.includes(w) ? 1 : 0), 0);
+      return score(b) - score(a);
+    });
+  }, [activeConfig.suggestions, intentMemory]);
+
+  /** Atajo global para abrir/cerrar el panel (no interfiere con campos de texto). */
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (!e.ctrlKey || e.key !== "/") return;
+      const target = e.target;
+      const tag = target?.tagName?.toLowerCase();
+      const isEditable =
+        tag === "textarea" ||
+        (tag === "input" &&
+          !["button", "checkbox", "radio", "submit", "reset"].includes(target.type)) ||
+        target?.isContentEditable;
+      if (isEditable) return;
+      e.preventDefault();
+      setIsOpen((prev) => !prev);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const onActionClick = (path) => {
     setIsOpen(false);
     navigate(path);
@@ -572,16 +606,24 @@ export default function AssistantWidget() {
           className="w-[340px] max-w-[90vw] rounded-2xl border border-slate-800 bg-slate-900/95 shadow-2xl backdrop-blur-xl"
         >
           <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <div
-                className="flex h-8 w-8 items-center justify-center rounded-full"
-                style={{ backgroundColor: `${branding.primary_color}22` }}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 ${
+                  pendingAction ? "animate-pulse" : ""
+                }`}
+                style={{
+                  backgroundColor: `${branding.primary_color}22`,
+                  borderColor: pendingAction ? `${branding.primary_color}99` : undefined,
+                  boxShadow: pendingAction ? `0 0 12px ${branding.primary_color}66` : undefined,
+                }}
               >
                 <Bot size={16} style={{ color: branding.primary_color }} />
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-sm font-semibold text-white">Asistente</p>
-                <p className="text-[11px] text-slate-400">Contextual por vista</p>
+                <p className="truncate text-[11px] text-slate-400">
+                  FormFlow · Guías y atajos
+                </p>
               </div>
             </div>
             <button
@@ -595,6 +637,12 @@ export default function AssistantWidget() {
           </div>
 
           <div className="space-y-4 px-4 py-4">
+            {/* Transparencia: modo guiado por reglas, sin modelo generativo */}
+            <p className="rounded-lg border border-slate-800/80 bg-slate-950/50 px-3 py-2 text-[11px] leading-snug text-slate-500">
+              <span className="font-medium text-slate-400">Modo guiado:</span> respuestas y navegación automáticas
+              según reglas y palabras clave (sin IA generativa).
+            </p>
+
             <div>
               <p className="text-sm font-semibold text-white">{activeConfig.title}</p>
               <p className="mt-1 text-xs text-slate-400">{activeConfig.description}</p>
@@ -604,9 +652,12 @@ export default function AssistantWidget() {
               <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                 <Sparkles size={12} />
                 Sugerencias
+                {intentMemory.length ? (
+                  <span className="font-normal normal-case text-slate-600">(priorizadas por tu sesión)</span>
+                ) : null}
               </p>
               <div className="flex flex-wrap gap-2">
-                {activeConfig.suggestions.map((suggestion) => (
+                {orderedSuggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
@@ -636,6 +687,7 @@ export default function AssistantWidget() {
                   }}
                   placeholder="Ej: llévame a respuestas pendientes"
                   className="h-9 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-xs text-white outline-none placeholder:text-slate-500 focus:border-slate-500"
+                  title="Atajo global fuera de campos de texto: Ctrl + /"
                 />
                 <button
                   type="button"
@@ -716,6 +768,12 @@ export default function AssistantWidget() {
                 ))}
               </div>
             </div>
+
+            <p className="text-center text-[10px] text-slate-600">
+              Atajo: <kbd className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-mono text-slate-500">Ctrl</kbd>{" "}
+              + <kbd className="rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 font-mono text-slate-500">/</kbd>{" "}
+              para abrir o cerrar (cuando no escribes en un campo)
+            </p>
           </div>
         </div>
       ) : null}
@@ -725,20 +783,24 @@ export default function AssistantWidget() {
         onClick={() => setIsOpen((prev) => !prev)}
         aria-expanded={isOpen}
         aria-controls="formaflow-assistant-panel"
-        className="mt-3 flex items-center rounded-full border border-slate-800 bg-black/80 px-4 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur transition-transform hover:scale-[1.02]"
+        aria-label={isOpen ? "Cerrar asistente" : "Abrir asistente (atajo Ctrl + /)"}
+        title="Asistente — atajo Ctrl + /"
+        className="mt-3 flex max-w-[calc(100vw-1.5rem)] items-center rounded-full border border-slate-800 bg-black/80 px-3 py-2 text-xs font-semibold text-white shadow-xl backdrop-blur transition-transform hover:scale-[1.02] sm:px-4"
       >
-        {/* Icono tipo robot para identificar mejor el asistente automatizado */}
+        {/* Icono tipo robot — pulso suave si hay acción pendiente de confirmar; nombre "Asistente" siempre visible */}
         <span
-          className="mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-900/90 shadow-md"
+          className={`mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-900/90 shadow-md ${pendingAction && !isOpen ? "animate-pulse" : ""}`}
           style={{
-            borderColor: `${branding.primary_color}55`,
-            boxShadow: `0 0 14px ${branding.primary_color}55`,
+            borderColor: pendingAction ? `${branding.primary_color}99` : `${branding.primary_color}55`,
+            boxShadow: pendingAction
+              ? `0 0 16px ${branding.primary_color}77`
+              : `0 0 14px ${branding.primary_color}55`,
           }}
           aria-hidden="true"
         >
           <Bot size={17} strokeWidth={2.2} style={{ color: branding.primary_color }} />
         </span>
-        <span>Asistente</span>
+        <span className="truncate">Asistente</span>
       </button>
     </div>
   );
