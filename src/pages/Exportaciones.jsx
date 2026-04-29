@@ -33,26 +33,41 @@ const Exportaciones = () => {
 
     setIsExporting(true);
     try {
-      // 1. Fetch Submissions for the specific form with DATE FILTERS
-      let q = query(collection(db, "Submissions"), where("form_id", "==", selectedFormId));
-      
-      if (startDate) {
-        q = query(q, where("created_date", ">=", new Date(startDate)));
-      }
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        q = query(q, where("created_date", "<=", end));
-      }
+      // Compatibilidad: algunos registros usan schema_id y otros form_id.
+      const schemaQuery = query(collection(db, "Submissions"), where("schema_id", "==", selectedFormId));
+      const legacyQuery = query(collection(db, "Submissions"), where("form_id", "==", selectedFormId));
+      const [schemaSnap, legacySnap] = await Promise.all([getDocs(schemaQuery), getDocs(legacyQuery)]);
 
-      const snapshot = await getDocs(q);
-      const data = snapshot.docs.map(doc => {
-        const docData = doc.data();
+      const docsById = new Map();
+      schemaSnap.docs.forEach((d) => docsById.set(d.id, d));
+      legacySnap.docs.forEach((d) => docsById.set(d.id, d));
+
+      const startMs = startDate ? new Date(startDate).setHours(0, 0, 0, 0) : null;
+      const endMs = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : null;
+
+      const toMillis = (rawDate) => {
+        if (!rawDate) return null;
+        if (typeof rawDate.toMillis === "function") return rawDate.toMillis();
+        const value = rawDate?.toDate ? rawDate.toDate() : new Date(rawDate);
+        const ms = value?.getTime?.();
+        return Number.isFinite(ms) ? ms : null;
+      };
+
+      const data = Array.from(docsById.values())
+        .map(doc => ({ id: doc.id, ...doc.data() }))
+        .filter((docData) => {
+          const createdMs = toMillis(docData.created_date || docData.submitted_at);
+          if (startMs && (!createdMs || createdMs < startMs)) return false;
+          if (endMs && (!createdMs || createdMs > endMs)) return false;
+          return true;
+        })
+        .map((docData) => {
+          const createdMs = toMillis(docData.created_date || docData.submitted_at);
         return {
-          ID: doc.id,
-          FECHA: docData.created_date?.toDate().toLocaleString() || "---",
-          // Transform the complex values object into flat columns for Excel
-          ...docData.values
+          ID: docData.id,
+          FECHA: createdMs ? new Date(createdMs).toLocaleString() : "---",
+          // Transformar payload en columnas planas para export.
+          ...(docData.values || docData.data || {})
         };
       });
 

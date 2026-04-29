@@ -105,16 +105,33 @@ export const useInvitations = () => {
     });
 
     const acceptInvitation = useMutation({
-        mutationFn: async ({ invitationId, tenantId, role }) => {
+        mutationFn: async ({ invitationId }) => {
             // Perfiles en FormaFlow usan el email en minúsculas como ID del documento
             const emailKey = performer.email.toLowerCase();
             const invSnap = await getDoc(doc(db, "invitations", invitationId));
-            const inv = invSnap.exists() ? invSnap.data() : {};
+            if (!invSnap.exists()) {
+                throw new Error("La invitación ya no existe o fue eliminada.");
+            }
+            const inv = invSnap.data();
+            const invitationEmail = String(inv.email || "").toLowerCase();
+
+            if (inv.status !== "pending") {
+                throw new Error("La invitación ya no está pendiente.");
+            }
+            if (invitationEmail !== emailKey) {
+                throw new Error("La invitación no corresponde al usuario autenticado.");
+            }
+
+            const safeTenantId = inv.tenantId || inv.tenant_id;
+            const safeRole = inv.role;
+            if (!safeTenantId || !safeRole) {
+                throw new Error("La invitación está incompleta (tenant/rol).");
+            }
 
             const updates = {
                 email: emailKey,
-                tenantId,
-                role,
+                tenantId: safeTenantId,
+                role: safeRole,
                 status: "active",
                 user_name: inv.user_name || inv.full_name || performer.displayName || "",
                 phone: inv.phone || "",
@@ -131,9 +148,9 @@ export const useInvitations = () => {
             // 3. Audit
             await addDoc(collection(db, "AuditLogs"), {
                 action: "accept_invite",
-                tenantId,
-                tenant_id: tenantId,
-                role,
+                tenantId: safeTenantId,
+                tenant_id: safeTenantId,
+                role: safeRole,
                 performer_id: performer.uid,
                 performer_email: performer.email,
                 timestamp: Timestamp.now()

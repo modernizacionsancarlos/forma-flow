@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { doc, getDoc, setDoc, Timestamp } from "firebase/firestore";
 import { db, storage as firebaseStorage } from "../lib/firebase";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -11,9 +11,14 @@ import { getOfflineFiles, removeOfflineFile } from "../lib/offlineFiles";
 export const useSubmissions = () => {
   const { user, claims } = useAuth();
   const [isSyncing, setIsSyncing] = useState(false);
+  const syncLockRef = useRef(false);
   const [offlineQueue, setOfflineQueue] = useState(() => {
-    const saved = localStorage.getItem("formflow_sync_queue");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("formflow_sync_queue");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   // Effect to persist queue to localStorage
@@ -98,78 +103,87 @@ export const useSubmissions = () => {
   };
 
   const syncQueue = useCallback(async (silent = false) => {
-    if (!navigator.onLine || (offlineQueue.length === 0 && !isSyncing)) return;
-    if (isSyncing) return;
+    if (!navigator.onLine || offlineQueue.length === 0) return;
+    if (syncLockRef.current) return;
 
+    syncLockRef.current = true;
     setIsSyncing(true);
-    const queueToSync = [...offlineQueue];
-    const successes = [];
+    try {
+      const queueToSync = [...offlineQueue];
+      const successes = [];
+      let offlineFiles = [];
 
-    // Primero intentamos sincronizar archivos pendientes si existen
-    const offlineFiles = await getOfflineFiles();
-
-    for (const item of queueToSync) {
       try {
-        const { id: _id, ...firebaseData } = item;
-        const processedData = { ...firebaseData.data };
+        // Primero intentamos sincronizar archivos pendientes si existen
+        offlineFiles = await getOfflineFiles();
+      } catch (error) {
+        console.error("No se pudieron cargar archivos offline para sincronizar:", error);
+      }
 
-        // Buscar campos con prefijo offline:// en los datos del formulario
-        for (const [key, value] of Object.entries(processedData)) {
-          if (typeof value === "string" && value.startsWith("offline://")) {
-            const fileId = value.replace("offline://", "");
-            const fileRecord = offlineFiles.find(f => f.id === fileId);
+      for (const item of queueToSync) {
+        try {
+          const { id: _id, ...firebaseData } = item;
+          const processedData = { ...firebaseData.data };
 
-            if (fileRecord) {
-              try {
-                const storageRef = ref(firebaseStorage, `submissions/${fileRecord.fieldId}/${Date.now()}_${fileRecord.fileName}`);
-                await uploadBytes(storageRef, fileRecord.fileBlob);
-                const url = await getDownloadURL(storageRef);
-                processedData[key] = url;
-                await removeOfflineFile(fileId);
-              } catch (uploadError) {
-                console.error("Error uploading offline file:", fileId, uploadError);
-                throw new Error("Failed to upload offline file");
+          // Buscar campos con prefijo offline:// en los datos del formulario
+          for (const [key, value] of Object.entries(processedData)) {
+            if (typeof value === "string" && value.startsWith("offline://")) {
+              const fileId = value.replace("offline://", "");
+              const fileRecord = offlineFiles.find(f => f.id === fileId);
+
+              if (fileRecord) {
+                try {
+                  const storageRef = ref(firebaseStorage, `submissions/${fileRecord.fieldId}/${Date.now()}_${fileRecord.fileName}`);
+                  await uploadBytes(storageRef, fileRecord.fileBlob);
+                  const url = await getDownloadURL(storageRef);
+                  processedData[key] = url;
+                  await removeOfflineFile(fileId);
+                } catch (uploadError) {
+                  console.error("Error uploading offline file:", fileId, uploadError);
+                  throw new Error("Failed to upload offline file");
+                }
               }
             }
           }
+
+          const payload = cleanObject({
+            ...firebaseData,
+            data: processedData,
+            created_date: Timestamp.fromMillis(item.created_date),
+            submitted_at: item.submitted_at
+              ? Timestamp.fromMillis(item.submitted_at)
+              : Timestamp.fromMillis(item.created_date),
+            status: "pending_review",
+            history: (item.history || []).map(h => ({ 
+              ...h, 
+              timestamp: typeof h.timestamp === 'number' ? Timestamp.fromMillis(h.timestamp) : h.timestamp 
+            }))
+          });
+
+          await setDoc(doc(db, "Submissions", item.id), payload);
+
+          successes.push(item);
+        } catch (error) {
+          console.error("Sync failed for item:", item.id, error);
         }
-
-
-        const payload = cleanObject({
-          ...firebaseData,
-          data: processedData,
-          created_date: Timestamp.fromMillis(item.created_date),
-          submitted_at: item.submitted_at
-            ? Timestamp.fromMillis(item.submitted_at)
-            : Timestamp.fromMillis(item.created_date),
-          status: "pending_review",
-          history: (item.history || []).map(h => ({ 
-            ...h, 
-            timestamp: typeof h.timestamp === 'number' ? Timestamp.fromMillis(h.timestamp) : h.timestamp 
-          }))
-        });
-
-        await setDoc(doc(db, "Submissions", item.id), payload);
-
-        successes.push(item);
-      } catch (error) {
-        console.error("Sync failed for item:", item.id, error);
       }
-    }
 
-    if (successes.length > 0) {
-      setOfflineQueue((prev) => prev.filter(qItem => !successes.some(sItem => sItem.id === qItem.id)));
-      if (!silent) {
-        toast.success(`Sincronizados ${successes.length} registros pendientes`, {
-          icon: '✅',
-          style: { background: '#0f172a', color: '#fff', border: '1px solid rgba(16,185,129,0.2)' }
-        });
+      if (successes.length > 0) {
+        setOfflineQueue((prev) => prev.filter(qItem => !successes.some(sItem => sItem.id === qItem.id)));
+        if (!silent) {
+          toast.success(`Sincronizados ${successes.length} registros pendientes`, {
+            icon: '✅',
+            style: { background: '#0f172a', color: '#fff', border: '1px solid rgba(16,185,129,0.2)' }
+          });
+        }
       }
+      
+      return { total: queueToSync.length, success: successes.length };
+    } finally {
+      syncLockRef.current = false;
+      setIsSyncing(false);
     }
-    
-    setIsSyncing(false);
-    return { total: queueToSync.length, success: successes.length };
-  }, [offlineQueue, isSyncing]);
+  }, [offlineQueue]);
 
   // Automatic sync when connection is restored & periodic check
   useEffect(() => {

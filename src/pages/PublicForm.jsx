@@ -319,6 +319,38 @@ const PublicFormView = () => {
     return results.every(r => r === true);
   };
 
+  const evaluateSubmissionRule = (rule, currentData = formData) => {
+    if (!rule?.fieldId) return false;
+    const dependencyValue = currentData[rule.fieldId];
+    const targetValue = rule.value;
+
+    const depNormalized = Array.isArray(dependencyValue)
+      ? dependencyValue.map((v) => String(v || "").toLowerCase().trim())
+      : String(dependencyValue || "").toLowerCase().trim();
+    const tgtNormalized = String(targetValue || "").toLowerCase().trim();
+
+    switch (rule.operator) {
+      case "==":
+        return Array.isArray(dependencyValue)
+          ? depNormalized.includes(tgtNormalized)
+          : depNormalized === tgtNormalized;
+      case "!=":
+        return Array.isArray(dependencyValue)
+          ? !depNormalized.includes(tgtNormalized)
+          : depNormalized !== tgtNormalized;
+      case "contains":
+        return Array.isArray(dependencyValue)
+          ? depNormalized.includes(tgtNormalized)
+          : depNormalized.includes(tgtNormalized);
+      case "greater":
+        return Number(dependencyValue || 0) > Number(targetValue || 0);
+      case "less":
+        return Number(dependencyValue || 0) < Number(targetValue || 0);
+      default:
+        return false;
+    }
+  };
+
   const isFieldHidden = (field, currentData = formData) => {
     const isConditionMet = evaluateLogic(field, currentData);
     if (isConditionMet === null) return false;
@@ -534,8 +566,7 @@ const PublicFormView = () => {
         const depField = allFields.find(f => f.id === rule.fieldId);
         if (depField && isFieldHidden(depField)) return; // Ignorar si el disparador está oculto
 
-        // Usamos la misma lógica de comparación que los campos para consistencia
-        const match = evaluateLogic(rule, formData);
+        const match = evaluateSubmissionRule(rule, formData);
 
         if (match) {
           finalStatus = rule.action.value;

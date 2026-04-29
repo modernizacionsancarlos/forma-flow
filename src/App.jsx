@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@ta
 import toast, { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './lib/AuthContext'
 import { BrandingProvider } from './lib/BrandingProvider'
+import { hasPermission } from './lib/permissions'
+import { PERMISSIONS } from './lib/permissions'
 import './index.css'
 
 // Loading component
@@ -129,10 +131,11 @@ class RouteErrorBoundary extends React.Component {
   }
 }
 
-const ProtectedRoute = ({ children, role }) => {
+const ProtectedRoute = ({ children, role, permission }) => {
   const { user, claims } = useAuth()
   if (!user) return <Navigate to="/login" />
   if (role && claims.role !== role) return <Navigate to="/" />
+  if (permission && !hasPermission(claims?.role, permission)) return <Navigate to="/" />
   return children
 }
 
@@ -191,19 +194,19 @@ const AppRoutes = () => {
         } />
 
         <Route path="/usuarios" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.MANAGE_TENANT_USERS}>
             <MainLayout><Usuarios /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/workflows" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
             <MainLayout><Workflows /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/exportaciones" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
             <MainLayout><Exportaciones /></MainLayout>
           </ProtectedRoute>
         } />
@@ -221,7 +224,7 @@ const AppRoutes = () => {
         } />
 
         <Route path="/sincronizacion" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.MANAGE_TENANTS}>
             <MainLayout><Sincronizacion /></MainLayout>
           </ProtectedRoute>
         } />
