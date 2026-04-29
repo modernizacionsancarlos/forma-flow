@@ -8,6 +8,9 @@ import { useAreas } from "../api/useAreas";
 import { useTenants } from "../api/useTenants";
 import { useUsers } from "../api/useUsers";
 import { useForms } from "../api/useForms";
+import { useAuth } from "../lib/AuthContext";
+import Guard from "../components/auth/Guard";
+import { PERMISSIONS, hasPermission } from "../lib/permissions";
 
 /* ── Constants ────────────────────────────────────────────────────── */
 const STATUS_BADGE = {
@@ -24,6 +27,8 @@ export default function Areas() {
     const [filterTenant, setFilterTenant] = useState(tenantParam || "all");
     const [showModal, setShowModal] = useState(false);
     const [selected, setSelected] = useState(null);
+    const { claims } = useAuth();
+    const canManageAreas = hasPermission(claims?.role, PERMISSIONS.MANAGE_TENANT_RESOURCES);
 
     const { areas = [], isLoading, createArea, updateArea, deleteArea } = useAreas();
     const { tenants = [] } = useTenants();
@@ -45,10 +50,19 @@ export default function Areas() {
     const inactiveAreas = areas.filter(a => a.status === "inactive").length;
 
     /* ── Actions ──────────────────────────────────────────────── */
-    const openNew = () => { setSelected(null); setShowModal(true); };
-    const openEdit = (area) => { setSelected(area); setShowModal(true); };
+    const openNew = () => {
+        if (!canManageAreas) return;
+        setSelected(null);
+        setShowModal(true);
+    };
+    const openEdit = (area) => {
+        if (!canManageAreas) return;
+        setSelected(area);
+        setShowModal(true);
+    };
 
     const handleDelete = async (id) => {
+        if (!canManageAreas) return;
         if (!confirm("¿Eliminar esta área?")) return;
         try {
             await deleteArea.mutateAsync(id);
@@ -58,6 +72,7 @@ export default function Areas() {
     };
 
     const handleSave = async (data) => {
+        if (!canManageAreas) return;
         try {
             if (selected) {
                 await updateArea.mutateAsync({ id: selected.id, ...data });
@@ -92,10 +107,12 @@ export default function Areas() {
                         </div>
                         <p className="text-slate-500 text-sm mt-0.5 pl-0 sm:pl-7">Aislamiento por unidades organizativas</p>
                     </div>
-                <button type="button" onClick={openNew}
-                    className="flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
-                    <Plus size={16} /> Nueva área
-                </button>
+                <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES} fallback={null}>
+                    <button type="button" onClick={openNew}
+                        className="flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
+                        <Plus size={16} /> Nueva área
+                    </button>
+                </Guard>
                 </div>
 
                 <div className="flex flex-col sm:flex-row flex-wrap gap-3 mt-4">
@@ -208,14 +225,16 @@ export default function Areas() {
 
                                 {/* Footer actions */}
                                 <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-800">
-                                    <button onClick={() => openEdit(area)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
-                                        <Edit3 size={12} /> Editar
-                                    </button>
-                                    <button onClick={() => handleDelete(area.id)}
-                                        className="ml-auto p-1.5 text-slate-700 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors">
-                                        <Trash2 size={13} />
-                                    </button>
+                                    <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES} fallback={null}>
+                                        <button onClick={() => openEdit(area)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors">
+                                            <Edit3 size={12} /> Editar
+                                        </button>
+                                        <button onClick={() => handleDelete(area.id)}
+                                            className="ml-auto p-1.5 text-slate-700 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors">
+                                            <Trash2 size={13} />
+                                        </button>
+                                    </Guard>
                                 </div>
                             </div>
                         );
@@ -224,7 +243,7 @@ export default function Areas() {
             )}
 
             {/* ─── MODAL ──────────────────────────────────────────── */}
-            {showModal && (
+            {showModal && canManageAreas && (
                 <AreaModal
                     area={selected}
                     areas={areas}

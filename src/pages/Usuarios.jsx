@@ -10,6 +10,7 @@ import { useAuth } from "../lib/AuthContext";
 import NotificationService from "../api/NotificationService";
 import Guard from "../components/auth/Guard";
 import { PERMISSIONS } from "../lib/permissions";
+import { hasPermission } from "../lib/permissions";
 
 /* ── Roles config ─────────────────────────────────────────────────── */
 const ROLES = [
@@ -32,7 +33,8 @@ export default function Usuarios() {
     const [searchParams] = useSearchParams();
     const tenantParam = searchParams.get("tenant");
 
-    const { user: authUser } = useAuth();
+    const { user: authUser, claims } = useAuth();
+    const canManageUsers = hasPermission(claims?.role, PERMISSIONS.MANAGE_TENANT_USERS);
     const { users, isLoading, createUser, updateUser } = useUsers();
     const { tenants = [] } = useTenants();
     const { areas = [] } = useAreas();
@@ -65,6 +67,7 @@ export default function Usuarios() {
 
     /* ── Actions ──────────────────────────────────────────────── */
     const toggleStatus = async (u) => {
+        if (!canManageUsers) return;
         const newStatus = u.status === "active" ? "inactive" : "active";
         try {
             await updateUser.mutateAsync({ id: u.id, status: newStatus });
@@ -74,6 +77,7 @@ export default function Usuarios() {
     };
 
     const handleSave = async (data) => {
+        if (!canManageUsers) return;
         const wasEdit = Boolean(selected);
         const intentUsed = modalIntent;
         try {
@@ -325,18 +329,20 @@ export default function Usuarios() {
                                             {/* Acciones */}
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center justify-end gap-2">
-                                                    <button onClick={() => { setSelected(u); setShowModal(true); }}
-                                                        className="text-xs text-slate-400 hover:text-white hover:bg-slate-800 px-2 py-1 rounded transition-colors">
-                                                        Editar
-                                                    </button>
-                                                    <button onClick={() => toggleStatus(u)}
-                                                        className={`text-xs px-2 py-1 rounded transition-colors ${
-                                                            u.status === "active"
-                                                                ? "text-red-400 hover:text-red-300 hover:bg-slate-800"
-                                                                : "text-emerald-400 hover:text-emerald-300 hover:bg-slate-800"
-                                                        }`}>
-                                                        {u.status === "active" ? "Desactivar" : "Activar"}
-                                                    </button>
+                                                    <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS} fallback={null}>
+                                                        <button onClick={() => { setSelected(u); setShowModal(true); }}
+                                                            className="text-xs text-slate-400 hover:text-white hover:bg-slate-800 px-2 py-1 rounded transition-colors">
+                                                            Editar
+                                                        </button>
+                                                        <button onClick={() => toggleStatus(u)}
+                                                            className={`text-xs px-2 py-1 rounded transition-colors ${
+                                                                u.status === "active"
+                                                                    ? "text-red-400 hover:text-red-300 hover:bg-slate-800"
+                                                                    : "text-emerald-400 hover:text-emerald-300 hover:bg-slate-800"
+                                                            }`}>
+                                                            {u.status === "active" ? "Desactivar" : "Activar"}
+                                                        </button>
+                                                    </Guard>
                                                 </div>
                                             </td>
                                         </tr>

@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { Search, Plus, GitMerge, RefreshCw, X, Loader2, Trash2 } from "lucide-react";
 import { useWorkflows } from "../api/useWorkflows";
+import { useAuth } from "../lib/AuthContext";
+import { PERMISSIONS, hasPermission } from "../lib/permissions";
+import Guard from "../components/auth/Guard";
 
 const Workflows = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -9,6 +12,8 @@ const Workflows = () => {
   // Form state
   const [newName, setNewName] = useState("");
   const [newTrigger, setNewTrigger] = useState("");
+  const { claims } = useAuth();
+  const canManageWorkflows = hasPermission(claims?.role, PERMISSIONS.MANAGE_TENANT_RESOURCES);
 
   const { workflows, isLoading, createWorkflow, updateWorkflow, deleteWorkflow } = useWorkflows();
 
@@ -18,6 +23,7 @@ const Workflows = () => {
 
   const handleCreateWorkflow = async (e) => {
     e.preventDefault();
+    if (!canManageWorkflows) return;
     if (!newName.trim() || !newTrigger.trim()) return;
 
     try {
@@ -36,6 +42,7 @@ const Workflows = () => {
   };
 
   const handleToggleStatus = async (workflow) => {
+    if (!canManageWorkflows) return;
     const newStatus = workflow.status === "active" ? "inactive" : "active";
     await updateWorkflow.mutateAsync({
       id: workflow.id,
@@ -44,6 +51,7 @@ const Workflows = () => {
   };
 
   const handleDeleteWorkflow = async (id) => {
+    if (!canManageWorkflows) return;
     if (window.confirm("¿Estás seguro de eliminar este workflow?")) {
       await deleteWorkflow.mutateAsync(id);
     }
@@ -57,14 +65,16 @@ const Workflows = () => {
             <h1 className="text-xl font-bold text-white">Workflows</h1>
             <p className="text-slate-500 text-sm mt-0.5">Automatización y reglas de negocio</p>
           </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          type="button"
-          className="group flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
-        >
-          <Plus size={18} className="group-hover:rotate-90 transition-transform" />
-          <span>Nuevo workflow</span>
-        </button>
+        <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES} fallback={null}>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            type="button"
+            className="group flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-500/20 active:scale-[0.98]"
+          >
+            <Plus size={18} className="group-hover:rotate-90 transition-transform" />
+            <span>Nuevo workflow</span>
+          </button>
+        </Guard>
         </div>
       </div>
 
@@ -137,22 +147,24 @@ const Workflows = () => {
                       </td>
                       <td className="py-3 sm:py-4 pr-3 sm:pr-5 text-right align-middle">
                          <div className="flex justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 opacity-100 transition-opacity">
-                            <button 
-                              onClick={() => handleToggleStatus(wf)}
-                              disabled={updateWorkflow.isPending}
-                              className={`p-2 rounded-lg transition-colors ${wf.status === 'active' ? 'text-amber-500 hover:bg-amber-500/10' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
-                              title={wf.status === 'active' ? "Desactivar" : "Activar"}
-                            >
-                                <RefreshCw size={16} className={updateWorkflow.isPending ? "animate-spin" : ""} />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteWorkflow(wf.id)}
-                              disabled={deleteWorkflow.isPending}
-                              className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
-                              title="Eliminar"
-                            >
-                                <Trash2 size={16} />
-                            </button>
+                            <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES} fallback={null}>
+                              <button 
+                                onClick={() => handleToggleStatus(wf)}
+                                disabled={updateWorkflow.isPending}
+                                className={`p-2 rounded-lg transition-colors ${wf.status === 'active' ? 'text-amber-500 hover:bg-amber-500/10' : 'text-emerald-500 hover:bg-emerald-500/10'}`}
+                                title={wf.status === 'active' ? "Desactivar" : "Activar"}
+                              >
+                                  <RefreshCw size={16} className={updateWorkflow.isPending ? "animate-spin" : ""} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteWorkflow(wf.id)}
+                                disabled={deleteWorkflow.isPending}
+                                className="p-2 text-slate-600 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors"
+                                title="Eliminar"
+                              >
+                                  <Trash2 size={16} />
+                              </button>
+                            </Guard>
                          </div>
                       </td>
                     </tr>
@@ -164,7 +176,7 @@ const Workflows = () => {
         </div>
       </div>
 
-      {isModalOpen && (
+      {isModalOpen && canManageWorkflows && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md p-8 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 -mr-8 -mt-8 bg-cyan-500/5 blur-3xl rounded-full" />
