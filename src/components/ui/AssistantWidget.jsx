@@ -601,15 +601,28 @@ export default function AssistantWidget() {
   return (
     <div className="fixed bottom-6 right-6 z-40">
       {isOpen ? (
+        <button
+          type="button"
+          className="fixed inset-0 z-30 cursor-default bg-slate-950/35 backdrop-blur-[1px]"
+          onClick={() => setIsOpen(false)}
+          aria-label="Cerrar asistente"
+        />
+      ) : null}
+
+      {isOpen ? (
         <div
           id="formaflow-assistant-panel"
-          className="w-[340px] max-w-[90vw] rounded-2xl border border-slate-800 bg-slate-900/95 shadow-2xl backdrop-blur-xl"
+          className="relative z-40 w-[340px] max-w-[90vw] rounded-2xl border border-slate-800 bg-slate-900/95 shadow-2xl backdrop-blur-xl"
+          style={{
+            borderColor: `${branding.primary_color}55`,
+            boxShadow: `0 0 0 1px ${branding.primary_color}33, 0 0 24px ${branding.primary_color}22`,
+          }}
         >
           <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
             <div className="flex min-w-0 items-center gap-2">
               <div
                 className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 ${
-                  pendingAction ? "animate-pulse" : ""
+                  pendingAction ? "animate-pulse [animation-duration:2.6s] opacity-90" : ""
                 }`}
                 style={{
                   backgroundColor: `${branding.primary_color}22`,
@@ -789,7 +802,7 @@ export default function AssistantWidget() {
       >
         {/* Icono tipo robot — pulso suave si hay acción pendiente de confirmar; nombre "Asistente" siempre visible */}
         <span
-          className={`mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-900/90 shadow-md ${pendingAction && !isOpen ? "animate-pulse" : ""}`}
+          className={`mr-2 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-slate-900/90 shadow-md ${pendingAction && !isOpen ? "animate-pulse [animation-duration:2.6s] opacity-90" : ""}`}
           style={{
             borderColor: pendingAction ? `${branding.primary_color}99` : `${branding.primary_color}55`,
             boxShadow: pendingAction
