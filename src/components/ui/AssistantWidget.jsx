@@ -205,6 +205,11 @@ const getRoutePriorityBonus = (pathname, actionPath) => {
   return 0;
 };
 
+const GREETING_TERMS = ["hola", "buenas", "buen dia", "buen día", "buenas tardes", "buenas noches", "hey"];
+const FAREWELL_TERMS = ["gracias", "chau", "adios", "adiós", "nos vemos", "listo gracias"];
+const CONFIRM_TERMS = ["si", "sí", "dale", "ok", "bueno", "perfecto", "de una", "llévame", "llevame", "abrilo", "ábrelo"];
+const CANCEL_TERMS = ["cancelar", "no", "mejor no", "espera", "pará", "para"];
+
 const KEYWORD_NAV_RULES = [
   {
     keywords: ["dashboard", "inicio", "home", "principal", "panel", "portada", "resumen"],
@@ -357,13 +362,57 @@ const HOWTO_RULES = [
   },
 ];
 
-const resolveAssistantIntent = (rawQuestion, pathname, activeConfig, responseSeed = 0) => {
+const resolveAssistantIntent = (
+  rawQuestion,
+  pathname,
+  activeConfig,
+  responseSeed = 0,
+  conversationContext = {},
+) => {
   const normalized = normalizeText(rawQuestion);
+  const {
+    lastSuggestedAction = null,
+  } = conversationContext;
 
   if (!normalized) {
     return {
       response: "Escribe una pregunta o una acción, por ejemplo: 'ir a respuestas' o 'cómo crear formulario'.",
       action: null,
+      intentLabel: "Entrada vacía",
+    };
+  }
+
+  if (includesAny(normalized, GREETING_TERMS)) {
+    return {
+      response: "¡Hola! Estoy listo para ayudarte. Puedes pedirme una acción o preguntarme cómo hacer algo.",
+      action: null,
+      intentLabel: "Saludo",
+    };
+  }
+
+  if (includesAny(normalized, FAREWELL_TERMS)) {
+    return {
+      response: "Perfecto. Cuando quieras seguimos, estoy aquí para ayudarte.",
+      action: null,
+      intentLabel: "Despedida",
+    };
+  }
+
+  if (includesAny(normalized, CANCEL_TERMS) && lastSuggestedAction) {
+    return {
+      response: "Listo, cancelé esa acción. Si quieres, te propongo otra opción.",
+      action: null,
+      intentLabel: "Cancelar acción",
+      clearSuggestedAction: true,
+    };
+  }
+
+  if (includesAny(normalized, CONFIRM_TERMS) && lastSuggestedAction) {
+    return {
+      response: `Perfecto, te llevo a ${lastSuggestedAction.label.toLowerCase()}.`,
+      action: lastSuggestedAction,
+      intentLabel: "Confirmación de acción",
+      autoNavigate: true,
     };
   }
 
@@ -393,6 +442,7 @@ const resolveAssistantIntent = (rawQuestion, pathname, activeConfig, responseSee
       response:
         "Claro. Para crear un formulario: 1) abre Formularios, 2) clic en 'Nuevo form', 3) define campos/secciones, 4) guarda/publica.",
       action: { label: "Ir a crear formulario", path: "/forms/new" },
+      intentLabel: "Cómo crear formulario",
     };
   }
 
@@ -401,6 +451,7 @@ const resolveAssistantIntent = (rawQuestion, pathname, activeConfig, responseSee
       response:
         "Si quieres revisar gestión de trámites/expedientes del vecino, te conviene ir a Respuestas y filtrar por estado y fecha.",
       action: { label: "Ir a respuestas", path: "/submissions" },
+      intentLabel: "Gestión de vecino",
     };
   }
 
@@ -409,6 +460,7 @@ const resolveAssistantIntent = (rawQuestion, pathname, activeConfig, responseSee
     return {
       response: matchedHowTo.response,
       action: matchedHowTo.action,
+      intentLabel: matchedHowTo.action?.label || "Guía paso a paso",
     };
   }
 
@@ -449,6 +501,8 @@ export default function AssistantWidget() {
   const [pendingAction, setPendingAction] = useState(null);
   const [responseSeed, setResponseSeed] = useState(0);
   const [intentMemory, setIntentMemory] = useState([]);
+  const [lastSuggestedAction, setLastSuggestedAction] = useState(null);
+  const [lastIntentLabel, setLastIntentLabel] = useState("");
 
   const activeConfig = useMemo(() => getConfigForPath(location.pathname), [location.pathname]);
 
@@ -459,31 +513,55 @@ export default function AssistantWidget() {
 
   const onSuggestionClick = (suggestion) => {
     setSelectedSuggestion(suggestion);
-    const result = resolveAssistantIntent(suggestion, location.pathname, activeConfig, responseSeed);
+    const result = resolveAssistantIntent(
+      suggestion,
+      location.pathname,
+      activeConfig,
+      responseSeed,
+      { lastSuggestedAction, lastIntentLabel },
+    );
     setChatHistory((prev) => [
       ...prev,
       { role: "user", text: suggestion },
       { role: "assistant", text: result.response },
     ]);
-    setPendingAction(result.action);
+    const nextAction = result.clearSuggestedAction ? null : result.action;
+    setPendingAction(nextAction);
+    setLastSuggestedAction(nextAction);
+    setLastIntentLabel(result.intentLabel || "");
     setResponseSeed((prev) => prev + 1);
     setIntentMemory((prev) => [result.intentLabel || "Sugerencia", ...prev].slice(0, 5));
+    if (result.autoNavigate && result.action?.path) {
+      onActionClick(result.action.path);
+    }
   };
 
   const onSendQuestion = () => {
     const currentQuestion = question.trim();
     if (!currentQuestion) return;
 
-    const result = resolveAssistantIntent(currentQuestion, location.pathname, activeConfig, responseSeed);
+    const result = resolveAssistantIntent(
+      currentQuestion,
+      location.pathname,
+      activeConfig,
+      responseSeed,
+      { lastSuggestedAction, lastIntentLabel },
+    );
     setChatHistory((prev) => [
       ...prev,
       { role: "user", text: currentQuestion },
       { role: "assistant", text: result.response },
     ]);
-    setPendingAction(result.action);
+    const nextAction = result.clearSuggestedAction ? null : result.action;
+    setPendingAction(nextAction);
+    setLastSuggestedAction(nextAction);
+    setLastIntentLabel(result.intentLabel || "");
     setQuestion("");
     setResponseSeed((prev) => prev + 1);
     setIntentMemory((prev) => [result.intentLabel || "Consulta", ...prev].slice(0, 5));
+    if (result.autoNavigate && result.action?.path) {
+      onActionClick(result.action.path);
+    }
   };
 
   return (
@@ -608,6 +686,11 @@ export default function AssistantWidget() {
                     </span>
                   ))}
                 </div>
+                {lastIntentLabel ? (
+                  <p className="text-[11px] text-slate-400">
+                    Seguimiento: estábamos en <span className="text-slate-300">{lastIntentLabel}</span>.
+                  </p>
+                ) : null}
               </div>
             ) : null}
 
