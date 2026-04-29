@@ -1,7 +1,16 @@
 import React, { useState } from "react";
 import { Save, Layout, Palette, Loader2, Image as ImageIcon, Upload, Trash2 } from "lucide-react";
+import toast from "react-hot-toast";
 import { useAuth } from "../lib/AuthContext";
 import { useBranding } from "../lib/useBranding";
+
+const DEFAULT_GENERAL_SETTINGS = {
+  dateFormat: "dd/MM/yyyy",
+  timezone: "America/Argentina/Buenos_Aires",
+  language: "es-AR",
+  compactTables: false,
+  enableSounds: false,
+};
 
 const BrandingTab = ({ currentBranding, onSave, onReset, isLoading, localLogoStorageKey }) => {
   const [formData, setFormData] = useState({
@@ -16,7 +25,7 @@ const BrandingTab = ({ currentBranding, onSave, onReset, isLoading, localLogoSto
     const file = event.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      alert("Selecciona un archivo de imagen válido.");
+      toast.error("Selecciona un archivo de imagen válido.");
       return;
     }
 
@@ -29,10 +38,10 @@ const BrandingTab = ({ currentBranding, onSave, onReset, isLoading, localLogoSto
         reader.readAsDataURL(file);
       });
       window.localStorage.setItem(localLogoStorageKey, String(dataUrl));
-      alert("Logo local aplicado en este usuario/equipo.");
+      toast.success("Logo local aplicado en este usuario/equipo.");
     } catch (error) {
       console.error("Error al cargar logo local:", error);
-      alert("No se pudo cargar el logo local.");
+      toast.error("No se pudo cargar el logo local.");
     } finally {
       setIsUploadingLocalLogo(false);
       event.target.value = "";
@@ -42,7 +51,7 @@ const BrandingTab = ({ currentBranding, onSave, onReset, isLoading, localLogoSto
   const handleClearLocalLogo = () => {
     window.localStorage.removeItem(localLogoStorageKey);
     window.localStorage.removeItem("formaflow_local_logo_data_url");
-    alert("Logo local eliminado. Se usará el logo por URL o el predeterminado.");
+    toast.success("Logo local eliminado. Se usará el logo por URL o el predeterminado.");
   };
 
   return (
@@ -183,6 +192,15 @@ const Configuracion = () => {
   const { branding, saveLocalBranding, resetLocalBranding } = useBranding();
   const localUserIdentity = (claims?.email || user?.email || "anon").toLowerCase();
   const localLogoStorageKey = `formaflow_local_logo_data_url_${localUserIdentity}`;
+  const generalSettingsStorageKey = `formaflow_general_settings_${localUserIdentity}`;
+  const [generalSettings, setGeneralSettings] = useState(() => {
+    try {
+      const saved = window.localStorage.getItem(generalSettingsStorageKey);
+      return saved ? { ...DEFAULT_GENERAL_SETTINGS, ...JSON.parse(saved) } : DEFAULT_GENERAL_SETTINGS;
+    } catch {
+      return DEFAULT_GENERAL_SETTINGS;
+    }
+  });
   const displayName = claims?.full_name || user?.displayName || claims?.email?.split("@")[0] || "usuario";
 
   const handleSaveBranding = (formData) => {
@@ -192,10 +210,10 @@ const Configuracion = () => {
         logo_url: formData.logo_url,
         primary_color: formData.primary_color,
       });
-      alert("Personalización local guardada para tu usuario.");
+      toast.success("Personalización local guardada para tu usuario.");
     } catch (err) {
       console.error("Error saving local branding:", err);
-      alert("Error al guardar personalización local");
+      toast.error("Error al guardar personalización local");
     }
   };
 
@@ -203,7 +221,26 @@ const Configuracion = () => {
     resetLocalBranding();
     window.localStorage.removeItem(localLogoStorageKey);
     window.localStorage.removeItem("formaflow_local_logo_data_url");
-    alert("Personalización local restablecida para tu usuario.");
+    toast.success("Personalización local restablecida para tu usuario.");
+  };
+
+  const handleSaveGeneralSettings = () => {
+    try {
+      window.localStorage.setItem(generalSettingsStorageKey, JSON.stringify(generalSettings));
+      toast.success("Configuración general local guardada.");
+    } catch {
+      toast.error("No se pudo guardar la configuración general.");
+    }
+  };
+
+  const handleResetGeneralSettings = () => {
+    setGeneralSettings(DEFAULT_GENERAL_SETTINGS);
+    try {
+      window.localStorage.removeItem(generalSettingsStorageKey);
+      toast.success("Configuración general restablecida.");
+    } catch {
+      toast.error("No se pudo restablecer la configuración general.");
+    }
   };
   
   return (
@@ -246,7 +283,83 @@ const Configuracion = () => {
                 <p className="text-slate-500 text-sm">Personaliza la experiencia visual del administrador.</p>
               </div>
             </div>
-            <div className="text-slate-400 italic">Próximamente más opciones de configuración general...</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Idioma de interfaz</label>
+                <select
+                  value={generalSettings.language}
+                  onChange={(e) => setGeneralSettings({ ...generalSettings, language: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#10b981]"
+                >
+                  <option value="es-AR">Español (Argentina)</option>
+                  <option value="es-CL">Español (Chile)</option>
+                  <option value="es-ES">Español (España)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Zona horaria</label>
+                <select
+                  value={generalSettings.timezone}
+                  onChange={(e) => setGeneralSettings({ ...generalSettings, timezone: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#10b981]"
+                >
+                  <option value="America/Argentina/Buenos_Aires">Argentina (Buenos Aires)</option>
+                  <option value="America/Santiago">Chile (Santiago)</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Formato de fecha</label>
+                <select
+                  value={generalSettings.dateFormat}
+                  onChange={(e) => setGeneralSettings({ ...generalSettings, dateFormat: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-[#10b981]"
+                >
+                  <option value="dd/MM/yyyy">dd/MM/yyyy</option>
+                  <option value="MM/dd/yyyy">MM/dd/yyyy</option>
+                  <option value="yyyy-MM-dd">yyyy-MM-dd</option>
+                </select>
+              </div>
+              <div className="space-y-3">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2 px-1">Preferencias de vista</label>
+                <label className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-200">
+                  <span>Tablas compactas</span>
+                  <input
+                    type="checkbox"
+                    checked={generalSettings.compactTables}
+                    onChange={(e) => setGeneralSettings({ ...generalSettings, compactTables: e.target.checked })}
+                    className="accent-emerald-500"
+                  />
+                </label>
+                <label className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-200">
+                  <span>Sonidos de notificación</span>
+                  <input
+                    type="checkbox"
+                    checked={generalSettings.enableSounds}
+                    onChange={(e) => setGeneralSettings({ ...generalSettings, enableSounds: e.target.checked })}
+                    className="accent-emerald-500"
+                  />
+                </label>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <button
+                type="button"
+                onClick={handleResetGeneralSettings}
+                className="flex items-center space-x-2 px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all border border-slate-700 text-slate-300 hover:border-slate-500"
+              >
+                <Trash2 size={16} />
+                <span>Restablecer</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveGeneralSettings}
+                className="group flex items-center space-x-2 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-xl active:scale-95 bg-[#10b981] hover:bg-[#10b981]/80 text-[#0a101b] shadow-[#10b981]/20"
+              >
+                <Save size={18} className="group-hover:scale-110 transition-transform" />
+                <span>Guardar configuración</span>
+              </button>
+            </div>
           </div>
         )}
 

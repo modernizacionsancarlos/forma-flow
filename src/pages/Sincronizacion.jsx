@@ -3,6 +3,7 @@ import { Search, RefreshCw, AlertTriangle, ArrowUpCircle, CheckCircle2, Server, 
 import { useSubmissions } from "../api/useSubmissions";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import toast from "react-hot-toast";
 
 const Sincronizacion = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,7 +33,7 @@ const Sincronizacion = () => {
 
   const handleManualSync = async () => {
     if (!isOnline) {
-       alert("No tienes conexión a internet.");
+       toast.error("No tienes conexión a internet.");
        return;
     }
     await syncQueue();
@@ -42,6 +43,19 @@ const Sincronizacion = () => {
     item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (item.schema_id && item.schema_id.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const idCounts = offlineQueue.reduce((acc, item) => {
+    acc[item.id] = (acc[item.id] || 0) + 1;
+    return acc;
+  }, {});
+
+  const conflictItems = offlineQueue.filter((item) => {
+    const hasDuplicateId = idCounts[item.id] > 1;
+    const missingSchema = !item.schema_id;
+    return hasDuplicateId || missingSchema;
+  });
+
+  const conflictCount = conflictItems.length;
 
   return (
     <div className="min-h-screen bg-slate-950 text-white animate-in fade-in duration-500">
@@ -119,8 +133,10 @@ const Sincronizacion = () => {
                <AlertTriangle size={24} className="text-red-500" />
             </div>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-2">Conflictos</p>
-            <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">0<span className="text-base sm:text-lg text-slate-500 ml-2">errores</span></h3>
-            <p className="text-slate-500 text-xs font-medium">Sistema operando normalmente</p>
+            <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">{conflictCount}<span className="text-base sm:text-lg text-slate-500 ml-2">detectados</span></h3>
+            <p className="text-slate-500 text-xs font-medium">
+              {conflictCount > 0 ? "Revisa registros con ID duplicado o sin formulario." : "Sin conflictos detectados en cola local."}
+            </p>
           </div>
         </div>
       </div>
@@ -168,14 +184,16 @@ const Sincronizacion = () => {
                           </div>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-white truncate">Subida {item.schema_id || "Desconocida"}</p>
-                            <span className="inline-block sm:hidden mt-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase text-amber-400 bg-amber-400/10 border border-amber-400/20">Pendiente</span>
+                            <span className={`inline-block sm:hidden mt-1 px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border ${conflictItems.some((c) => c.id === item.id) ? "text-red-400 bg-red-400/10 border-red-400/20" : "text-amber-400 bg-amber-400/10 border-amber-400/20"}`}>
+                              {conflictItems.some((c) => c.id === item.id) ? "Conflicto" : "Pendiente"}
+                            </span>
                             <p className="text-[10px] font-mono text-slate-600 truncate max-w-[220px] mt-0.5 sm:mt-0">{item.id}</p>
                           </div>
                         </div>
                       </td>
                       <td className="py-3 sm:py-4 hidden sm:table-cell align-middle">
-                         <span className="px-2 py-0.5 rounded text-[9px] font-bold uppercase border text-amber-400 bg-amber-400/10 border-amber-400/20">
-                           Pendiente
+                         <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase border ${conflictItems.some((c) => c.id === item.id) ? "text-red-400 bg-red-400/10 border-red-400/20" : "text-amber-400 bg-amber-400/10 border-amber-400/20"}`}>
+                           {conflictItems.some((c) => c.id === item.id) ? "Conflicto" : "Pendiente"}
                          </span>
                       </td>
                       <td className="py-3 sm:py-4 align-middle">

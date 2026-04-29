@@ -72,7 +72,7 @@ export default function Usuarios() {
         try {
             await updateUser.mutateAsync({ id: u.id, status: newStatus });
         } catch (err) {
-            alert("Error: " + err.message);
+            toast.error(err?.message || "No se pudo actualizar el estado del usuario.");
         }
     };
 
@@ -89,11 +89,11 @@ export default function Usuarios() {
                 const tenantName = tenants.find((t) => t.id === tenantId)?.name || tenantId;
 
                 if (!email) {
-                    alert("Indicá un correo electrónico válido.");
+                    toast.error("Indicá un correo electrónico válido.");
                     return;
                 }
                 if (!tenantId) {
-                    alert("Seleccioná una empresa.");
+                    toast.error("Seleccioná una empresa.");
                     return;
                 }
 
@@ -143,7 +143,7 @@ export default function Usuarios() {
                 toast.success("Usuario creado y correo preparado.");
             }
         } catch (err) {
-            alert("Error: " + err.message);
+            toast.error(err?.message || "No se pudo guardar el usuario.");
         }
     };
 

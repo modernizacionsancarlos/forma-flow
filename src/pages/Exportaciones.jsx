@@ -8,6 +8,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import * as XLSX from "xlsx";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
+import toast from "react-hot-toast";
 
 const Exportaciones = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -72,7 +73,7 @@ const Exportaciones = () => {
       });
 
       if (data.length === 0) {
-        alert("No se encontraron registros para el rango de fechas seleccionado.");
+        toast.error("No se encontraron registros para el rango de fechas seleccionado.");
         setIsExporting(false);
         return;
       }
@@ -92,6 +93,11 @@ const Exportaciones = () => {
          const jsonContent = JSON.stringify(cleanedData, null, 2);
          const blob = new Blob([jsonContent], { type: "application/json" });
          downloadUrl = await uploadAndGetUrl(blob, `${fileName}.json`);
+      } else if (newFormat === "CSV") {
+         const worksheet = XLSX.utils.json_to_sheet(cleanedData);
+         const csvContent = XLSX.utils.sheet_to_csv(worksheet);
+         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+         downloadUrl = await uploadAndGetUrl(blob, `${fileName}.csv`);
       } else {
          // XLSX Export logic
          const worksheet = XLSX.utils.json_to_sheet(cleanedData);
@@ -110,14 +116,16 @@ const Exportaciones = () => {
         size: `${(cleanedData.length)} filas`,
         downloadUrl,
         formId: selectedFormId,
-        formName: forms.find(f => f.id === selectedFormId)?.title || "Formulario"
+        formName: forms.find(f => f.id === selectedFormId)?.name || forms.find(f => f.id === selectedFormId)?.title || "Formulario"
       });
 
       setIsModalOpen(false);
       setNewName("");
       setSelectedFormId("");
+      toast.success("Exportación generada correctamente.");
     } catch (error) {
       console.error("Error creating export:", error);
+      toast.error("No se pudo generar la exportación.");
     } finally {
       setIsExporting(false);
     }
@@ -340,6 +348,7 @@ const Exportaciones = () => {
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-orange-500/50 transition-all font-medium appearance-none"
                 >
                   <option value="XLSX">Microsoft Excel (.xlsx)</option>
+                  <option value="CSV">CSV (.csv)</option>
                   <option value="JSON">Raw Data (.json)</option>
                 </select>
               </div>

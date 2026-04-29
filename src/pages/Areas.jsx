@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
     MapPin, Plus, Search, Edit3, Trash2,
     FileText, ChevronRight, User, X
@@ -67,7 +68,7 @@ export default function Areas() {
         try {
             await deleteArea.mutateAsync(id);
         } catch (err) {
-            alert("Error: " + err.message);
+            toast.error(err?.message || "No se pudo eliminar el área.");
         }
     };
 
@@ -82,7 +83,7 @@ export default function Areas() {
             setShowModal(false);
             setSelected(null);
         } catch (err) {
-            alert("Error al guardar área: " + err.message);
+            toast.error(err?.message || "No se pudo guardar el área.");
         }
     };
 

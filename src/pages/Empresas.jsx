@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 import {
     Building2, Plus, Search, CheckCircle, XCircle,
     Clock, Users, FileText, MapPin, X
@@ -59,7 +60,7 @@ export default function Empresas() {
         try {
             await updateTenant.mutateAsync({ id: t.id, status: newStatus });
         } catch (err) {
-            alert("Error: " + err.message);
+            toast.error(err?.message || "No se pudo actualizar el estado de la empresa.");
         }
     };
 
@@ -77,7 +78,7 @@ export default function Empresas() {
             setShowModal(false);
             setSelected(null);
         } catch (err) {
-            alert("Error al guardar empresa: " + err.message);
+            toast.error(err?.message || "Error al guardar empresa.");
         }
     };
 

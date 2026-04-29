@@ -123,7 +123,7 @@ export default function FormsList() {
             await updateDoc(doc(db, "FormSchemas", form.id), { status: "archived" });
             queryClient.invalidateQueries({ queryKey: ["forms"] });
         } catch (err) {
-            alert("Error: " + err.message);
+            toast.error(err?.message || "No se pudo archivar el formulario");
         }
     };
 
@@ -210,7 +210,7 @@ export default function FormsList() {
             await deleteDoc(doc(db, "FormSchemas", id));
             queryClient.invalidateQueries({ queryKey: ["forms"] });
         } catch (err) {
-            alert("Error: " + err.message);
+            toast.error(err?.message || "No se pudo eliminar el formulario");
         }
     };
 
