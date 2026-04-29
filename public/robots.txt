@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://formaflow-sancarlos.web.app/sitemap.xml
