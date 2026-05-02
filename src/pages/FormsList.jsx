@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
     Plus, Search, FileText, Edit3, Archive, Trash2,
-    Clock, FolderOpen, Link2, Copy, Globe, Lock, Sliders
+    Clock, FolderOpen, Link2, Copy, Globe, Lock, Sliders, Eye
 } from "lucide-react";
 import { useForms } from "../api/useForms";
 import { useTenants } from "../api/useTenants";
@@ -413,6 +413,16 @@ export default function FormsList() {
                                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
                                         >
                                             <Edit3 size={12} /> Editar
+                                        </button>
+
+                                        {/* Abre cómo verá la respuesta la persona (URL pública o vista interna). */}
+                                        <button
+                                            type="button"
+                                            onClick={() => window.open(copyUrl, "_blank", "noopener,noreferrer")}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-sky-300 hover:bg-slate-800 rounded-lg transition-colors"
+                                            title="Ver el formulario como lo verán quienes lo completan"
+                                        >
+                                            <Eye size={12} /> Vista previa
                                         </button>
 
                                         {form.status !== "archived" && (

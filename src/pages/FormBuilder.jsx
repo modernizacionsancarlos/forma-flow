@@ -480,6 +480,19 @@ const FormBuilder = () => {
     syncFields(rebuildFieldOrders(formState.fields, roots, sectionChildrenMap));
   };
 
+  /** Vista previa: abre la URL de respuesta; refleja lo guardado en el servidor hasta el último guardado. */
+  const handlePreview = () => {
+    if (!formState.id) {
+      toast.error("Guardá el formulario al menos una vez para poder ver la vista previa.");
+      return;
+    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const previewUrl = formState.is_public
+      ? `${origin}/public-form/${formState.id}`
+      : `${origin}/view/${formState.id}`;
+    window.open(previewUrl, "_blank", "noopener,noreferrer");
+  };
+
   const handleSave = async ({ navigateToList = false } = {}) => {
     setSaveStatus("saving");
 
@@ -554,6 +567,8 @@ const FormBuilder = () => {
         }}
         onSave={() => handleSave({ navigateToList: false })}
         onSaveAndExit={() => handleSave({ navigateToList: true })}
+        onPreview={handlePreview}
+        previewDisabled={saveStatus === "saving"}
         saveStatus={saveStatus}
       />
 

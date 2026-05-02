@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Copy, ExternalLink, Infinity as InfinityIcon, Save, Settings2 } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, Eye, Infinity as InfinityIcon, Save, Settings2 } from "lucide-react";
 
 const Toggle = ({ checked, onChange, label }) => (
   <button type="button" onClick={onChange} className="flex items-center gap-2 text-xs text-slate-300">
@@ -36,6 +36,8 @@ const BuilderHeader = ({
   onCopyPublicUrl,
   onSave,
   onSaveAndExit,
+  onPreview,
+  previewDisabled,
   saveStatus,
 }) => {
   return (
@@ -65,6 +67,16 @@ const BuilderHeader = ({
         <div className="flex items-center gap-3">
           <button className="rounded-lg border border-slate-700 bg-slate-800 p-2 text-slate-400 transition-colors hover:text-white">
             <Settings2 size={14} />
+          </button>
+          <button
+            type="button"
+            onClick={onPreview}
+            disabled={previewDisabled}
+            title="Abre cómo queda el formulario al responderlo (última versión guardada)"
+            className="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Eye size={14} />
+            Vista previa
           </button>
           <button
             onClick={onSave}
