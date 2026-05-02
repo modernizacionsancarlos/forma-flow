@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import BuilderHeader from "../components/forms/builder/BuilderHeader";
 import CustomFieldModal from "../components/forms/builder/CustomFieldModal";
 import ResponseLimitModal from "../components/forms/ResponseLimitModal";
+import FormPreviewModal from "../components/forms/FormPreviewModal";
 import FieldItem from "../components/forms/builder/FieldItem";
 import FieldPalette from "../components/forms/builder/FieldPalette";
 import PropertyPanel from "../components/forms/builder/PropertyPanel";
@@ -30,6 +31,8 @@ const EMPTY_FORM = {
   accepts_responses: true,
   is_public: false,
   response_limit: null,
+  opens_at: null,
+  closes_at: null,
   version: 1,
   fields: [],
 };
@@ -207,6 +210,7 @@ const FormBuilder = () => {
   const [isLoading, setIsLoading] = useState(!!formId);
   const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [isResponseLimitOpen, setIsResponseLimitOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
 
   /** Registro de nodos Droppable de cada sección (para corregir destino al soltar desde la paleta). */
   const sectionDroppableRegistryRef = useRef(new Map());
@@ -269,6 +273,8 @@ const FormBuilder = () => {
           accepts_responses: normalized.accepts_responses,
           is_public: normalized.is_public,
           response_limit: normalized.response_limit,
+          opens_at: normalized.opens_at ?? null,
+          closes_at: normalized.closes_at ?? null,
           version: normalized.version,
           fields: normalized.fields,
         });
@@ -480,17 +486,13 @@ const FormBuilder = () => {
     syncFields(rebuildFieldOrders(formState.fields, roots, sectionChildrenMap));
   };
 
-  /** Vista previa: abre la URL de respuesta; refleja lo guardado en el servidor hasta el último guardado. */
+  /** Vista previa en modal embebido (iframe con ?preview=1). Solo refleja la última versión guardada. */
   const handlePreview = () => {
     if (!formState.id) {
       toast.error("Guardá el formulario al menos una vez para poder ver la vista previa.");
       return;
     }
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
-    const previewUrl = formState.is_public
-      ? `${origin}/public-form/${formState.id}`
-      : `${origin}/view/${formState.id}`;
-    window.open(previewUrl, "_blank", "noopener,noreferrer");
+    setPreviewOpen(true);
   };
 
   const handleSave = async ({ navigateToList = false } = {}) => {
@@ -558,6 +560,8 @@ const FormBuilder = () => {
           }))
         }
         responseLimit={formState.response_limit}
+        opensAt={formState.opens_at}
+        closesAt={formState.closes_at}
         onOpenResponseLimit={() => setIsResponseLimitOpen(true)}
         publicUrl={publicUrl}
         onCopyPublicUrl={() => {
@@ -706,12 +710,28 @@ const FormBuilder = () => {
 
       <ResponseLimitModal
         isOpen={isResponseLimitOpen}
-        value={formState.response_limit}
+        value={{
+          response_limit: formState.response_limit,
+          opens_at: formState.opens_at,
+          closes_at: formState.closes_at,
+        }}
         onClose={() => setIsResponseLimitOpen(false)}
-        onSave={(responseLimit) => {
-          setFormState((current) => ({ ...current, response_limit: responseLimit }));
+        onSave={(payload) => {
+          setFormState((current) => ({
+            ...current,
+            response_limit: payload.response_limit ?? null,
+            opens_at: payload.opens_at ?? null,
+            closes_at: payload.closes_at ?? null,
+          }));
           setIsResponseLimitOpen(false);
         }}
+      />
+
+      <FormPreviewModal
+        formId={formState.id || ""}
+        basePath={formState.is_public ? "/public-form" : "/view"}
+        isOpen={previewOpen}
+        onClose={() => setPreviewOpen(false)}
       />
     </div>
   );

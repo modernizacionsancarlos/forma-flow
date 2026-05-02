@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { format } from "date-fns";
+import { formatGpsSubmissionDisplay } from "../lib/gpsValue";
 import {
     ClipboardList, Filter, Search, Trash2, X, FileText, RefreshCw
 } from "lucide-react";
@@ -675,7 +676,11 @@ function renderSubmissionFieldValue(field, value) {
         return <img src={value} className="max-h-24 bg-white rounded p-1" alt="Firma" />;
     }
     if (t === "gps" || t === "location") {
-        return <p className="text-sm text-slate-300 font-mono break-all">{String(value)}</p>;
+        return (
+            <p className="whitespace-pre-wrap break-words text-sm text-slate-300">
+                {formatGpsSubmissionDisplay(value) || String(value)}
+            </p>
+        );
     }
     if (t === "boolean" || t === "yesno") {
         return (

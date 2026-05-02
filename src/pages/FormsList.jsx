@@ -11,6 +11,8 @@ import { db } from "../lib/firebase";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
 import ResponseLimitModal from "../components/forms/ResponseLimitModal";
+import FormPreviewModal from "../components/forms/FormPreviewModal";
+import { formatScheduleBrief } from "../lib/formSchedule";
 
 /* ── Constants ────────────────────────────────────────────────────── */
 const STATUS_BADGE = {
@@ -94,6 +96,7 @@ export default function FormsList() {
     const [savingFormId, setSavingFormId] = useState(null);
     /** Formulario cuyo límite de respuestas se está editando (id). */
     const [responseLimitFormId, setResponseLimitFormId] = useState(null);
+    const [previewTarget, setPreviewTarget] = useState(null);
 
     const { forms } = useForms();
     const { tenants = [] } = useTenants();
@@ -160,20 +163,21 @@ export default function FormsList() {
         ? formsList.find((f) => f.id === responseLimitFormId)
         : null;
 
-    const normalizedResponseLimitForModal = (() => {
-        const rl = formForResponseLimit?.response_limit;
-        if (!rl || rl.type === "none") return { type: "none" };
-        if (rl.type === "count") return { type: "count", count: rl.count || 1 };
-        return { type: "none" };
-    })();
+    const schedulingModalValue = formForResponseLimit
+        ? {
+              response_limit: formForResponseLimit.response_limit ?? null,
+              opens_at: formForResponseLimit.opens_at ?? null,
+              closes_at: formForResponseLimit.closes_at ?? null,
+          }
+        : null;
 
-    const handleResponseLimitSave = (rl) => {
+    const handleResponseLimitSave = (payload) => {
         if (!formForResponseLimit) return;
-        let next = rl;
-        if (rl?.type === "count") {
-            next = { type: "count", count: Math.max(1, Number(rl.count) || 1) };
-        }
-        patchFormFields(formForResponseLimit, { response_limit: next });
+        patchFormFields(formForResponseLimit, {
+            response_limit: payload.response_limit ?? null,
+            opens_at: payload.opens_at ?? null,
+            closes_at: payload.closes_at ?? null,
+        });
         setResponseLimitFormId(null);
     };
 
@@ -398,9 +402,12 @@ export default function FormsList() {
                                                 className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-800/30 px-2 py-1.5 text-left text-[11px] text-slate-300 hover:border-slate-600 disabled:opacity-50"
                                             >
                                                 <span className="text-slate-400">Límite de respuestas</span>
-                                                <span className="flex items-center gap-1 truncate text-slate-200">
+                                                <span className="flex items-center gap-1 truncate text-slate-200" title={[formatResponseLimit(form.response_limit), formatScheduleBrief(form.opens_at, form.closes_at)].filter(Boolean).join(" · ")}>
                                                     <Sliders size={12} className="shrink-0" />
                                                     {formatResponseLimit(form.response_limit)}
+                                                    {formatScheduleBrief(form.opens_at, form.closes_at)
+                                                        ? ` · ${formatScheduleBrief(form.opens_at, form.closes_at)}`
+                                                        : ""}
                                                 </span>
                                             </button>
                                         </div>
@@ -418,9 +425,14 @@ export default function FormsList() {
                                         {/* Abre cómo verá la respuesta la persona (URL pública o vista interna). */}
                                         <button
                                             type="button"
-                                            onClick={() => window.open(copyUrl, "_blank", "noopener,noreferrer")}
+                                            onClick={() =>
+                                                setPreviewTarget({
+                                                    id: form.id,
+                                                    publicRoute: !!isPublic,
+                                                })
+                                            }
                                             className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 hover:text-sky-300 hover:bg-slate-800 rounded-lg transition-colors"
-                                            title="Ver el formulario como lo verán quienes lo completan"
+                                            title="Ver el formulario como lo verán quienes lo completan (sin envío)"
                                         >
                                             <Eye size={12} /> Vista previa
                                         </button>
@@ -452,9 +464,22 @@ export default function FormsList() {
 
             <ResponseLimitModal
                 isOpen={!!formForResponseLimit}
-                value={normalizedResponseLimitForModal}
+                value={
+                    schedulingModalValue || {
+                        response_limit: null,
+                        opens_at: null,
+                        closes_at: null,
+                    }
+                }
                 onClose={() => setResponseLimitFormId(null)}
                 onSave={handleResponseLimitSave}
+            />
+
+            <FormPreviewModal
+                formId={previewTarget?.id}
+                basePath={previewTarget?.publicRoute ? "/public-form" : "/view"}
+                isOpen={!!previewTarget}
+                onClose={() => setPreviewTarget(null)}
             />
         </div>
     );

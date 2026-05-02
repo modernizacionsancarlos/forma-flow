@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Copy, ExternalLink, Eye, Infinity as InfinityIcon, Save, Settings2 } from "lucide-react";
+import { formatScheduleBrief } from "../../../lib/formSchedule";
 
 const Toggle = ({ checked, onChange, label }) => (
   <button type="button" onClick={onChange} className="flex items-center gap-2 text-xs text-slate-300">
@@ -31,6 +32,8 @@ const BuilderHeader = ({
   isPublic,
   setIsPublic,
   responseLimit,
+  opensAt,
+  closesAt,
   onOpenResponseLimit,
   publicUrl,
   onCopyPublicUrl,
@@ -106,6 +109,14 @@ const BuilderHeader = ({
           <InfinityIcon size={14} className="text-slate-500" />
           <span>Límite de respuestas:</span>
           <span className="text-white">{formatResponseLimit(responseLimit)}</span>
+          {formatScheduleBrief(opensAt, closesAt) && (
+            <>
+              <span className="text-slate-600">·</span>
+              <span className="max-w-[28rem] truncate text-sky-300/95" title={formatScheduleBrief(opensAt, closesAt)}>
+                {formatScheduleBrief(opensAt, closesAt)}
+              </span>
+            </>
+          )}
         </button>
 
         <Toggle checked={acceptsResponses} onChange={() => setAcceptsResponses((prev) => !prev)} label="Acepta Respuestas" />

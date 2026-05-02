@@ -231,6 +231,8 @@ export function normalizeFormDocument(form) {
     is_public: !!form?.is_public,
     version: form?.version || 1,
     response_limit: form?.response_limit ?? null,
+    opens_at: form?.opens_at ?? null,
+    closes_at: form?.closes_at ?? null,
     fields,
   };
 }
@@ -253,6 +255,8 @@ export function serializeFormDocument(formState) {
     accepts_responses: formState.accepts_responses,
     is_public: formState.is_public,
     response_limit: formState.response_limit,
+    opens_at: formState.opens_at ?? null,
+    closes_at: formState.closes_at ?? null,
     version: formState.version || 1,
     fields_schema: JSON.stringify(sortedFields),
   };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useForms } from "../api/useForms";
 import { useSubmissions } from "../api/useSubmissions";
@@ -26,9 +26,80 @@ import { QRCodeSVG } from "qrcode.react";
 import { toast } from "react-hot-toast";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { hexToRgb, hexToHsl } from "../lib/colorUtils";
 import { getRootFields, getSectionChildren, normalizeFormDocument } from "../lib/formBuilder";
+import { parseScheduleInstant } from "../lib/formSchedule";
+import { parseGpsFormValue } from "../lib/gpsValue";
+import GpsMapField from "../components/forms/GpsMapField";
 
+
+/** Pantalla de espera antes de opens_at — cuenta atrás hasta la apertura programada. */
+function ScheduledWaitScreen({ opensAt, branding }) {
+  const [clockMs, setClockMs] = useState(null);
+
+  useLayoutEffect(() => {
+    const tick = () => setClockMs(Date.now());
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, [opensAt]);
+
+  if (clockMs === null) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 font-inter">
+        <Loader2 className="h-12 w-12 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
+
+  const ms = Math.max(0, opensAt.getTime() - clockMs);
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hrs = Math.floor((totalSec % 86400) / 3600);
+  const min = Math.floor((totalSec % 3600) / 60);
+  const sec = totalSec % 60;
+
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center bg-slate-950 p-8 text-center font-inter">
+      <Clock size={72} className="mb-8 text-emerald-500/70" />
+      <h1 className="mb-4 text-3xl font-black uppercase italic tracking-tight text-white md:text-4xl">
+        Formulario aún no disponible
+      </h1>
+      <p className="mb-10 max-w-md text-sm font-bold uppercase tracking-[0.2em] text-slate-500">
+        Se habilitará el{" "}
+        <span className="text-white">{format(opensAt, "d MMMM yyyy 'a las' HH:mm", { locale: es })}</span>
+      </p>
+
+      <div className="mb-16 grid grid-cols-4 gap-3 text-white md:gap-6">
+        {[
+          ["Días", days],
+          ["Hs", hrs],
+          ["Min", min],
+          ["Seg", sec],
+        ].map(([lbl, val]) => (
+          <div
+            key={lbl}
+            className="rounded-2xl border border-slate-800 bg-slate-900/80 px-4 py-6 shadow-xl md:min-w-[5.5rem]"
+          >
+            <p className="font-mono text-3xl font-black tabular-nums text-emerald-400 md:text-4xl">
+              {String(val).padStart(2, "0")}
+            </p>
+            <p className="mt-2 text-[9px] font-black uppercase tracking-widest text-slate-500">{lbl}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600">
+        Podés cerrar esta ventana — el mismo enlace abrirá el formulario cuando llegue la hora.
+      </p>
+      {branding?.name && (
+        <p className="mt-8 text-[9px] font-black uppercase tracking-[0.3em] text-slate-700">{branding.name}</p>
+      )}
+    </div>
+  );
+}
 
 // --- Sub-components for Form Fields ---
 
@@ -138,58 +209,12 @@ const FileField = ({ fieldId, onChange, label, error, value, disabled }) => {
   );
 };
 
-const GPSField = ({ value, onChange, label, error, disabled }) => {
-  const [locating, setLocating] = useState(false);
-
-  const captureGPS = () => {
-    if (disabled) return;
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        onChange(`${pos.coords.latitude}, ${pos.coords.longitude}`);
-        setLocating(false);
-      },
-      () => {
-        alert("No se pudo obtener la ubicación. Verifique permisos.");
-        setLocating(false);
-      }
-    );
-  };
-
-  return (
-    <div className={`space-y-4 ${disabled ? 'opacity-60' : ''}`}>
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{label}</label>
-      <div className={`p-8 border-2 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 transition-all ${disabled ? 'bg-slate-900/10 border-slate-800' : value ? 'bg-primary/5 border-primary/30 shadow-lg shadow-primary/5' : 'bg-slate-950/50 border-slate-800'}`}>
-         <div className="flex items-center space-x-6">
-            <div className={`p-5 rounded-2xl border transition-all ${disabled ? 'bg-slate-900 border-slate-800 text-slate-700' : value ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-slate-900 border-slate-800 text-slate-600'}`}>
-               <MapPin size={24} className={locating ? "animate-bounce" : ""} />
-            </div>
-            <div>
-               <p className="text-[10px] font-black text-white uppercase tracking-widest">{value ? "Coordenadas Capturadas" : "Captura de Ubicación"}</p>
-               <p className="text-[11px] font-mono font-black text-primary group-hover:text-primary transition-colors uppercase tracking-tight">
-                  {locating ? "Obteniendo datos satelitales..." : value || "No se ha capturado ubicación"}
-               </p>
-            </div>
-         </div>
-         <button 
-           type="button"
-           onClick={captureGPS}
-           disabled={locating || disabled}
-           className="px-8 py-4 bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 shadow-xl disabled:opacity-50"
-         >
-           {value ? "Recapturar" : "Capturar Ubicación"}
-         </button>
-      </div>
-      {error && <p className="text-red-500 text-[10px] font-black uppercase flex items-center space-x-2"><AlertCircle size={14} /><span>{error}</span></p>}
-    </div>
-  );
-};
-
 // --- Main Public Form Component ---
 
 const PublicFormView = () => {
   const { formId: formIdParam } = useParams();
   const [searchParams] = useSearchParams();
+  const previewMode = searchParams.get("preview") === "1";
   const formId = formIdParam || searchParams.get("id");
   const { getFormById } = useForms();
   const { submitForm } = useSubmissions();
@@ -264,21 +289,81 @@ const PublicFormView = () => {
           setStatus("error");
           return;
         }
+
+        const now = Date.now();
+        const opensAt = parseScheduleInstant(schema.opens_at);
+        const closesAt = parseScheduleInstant(schema.closes_at);
+
+        /* Vista previa (modal): muestra el formulario aunque fuese programado/cerrado, sin poder enviar. */
+        if (!previewMode && opensAt && now < opensAt.getTime()) {
+          setFormSchema(schema);
+          setStatus("scheduled");
+          return;
+        }
+        if (!previewMode && closesAt && now > closesAt.getTime()) {
+          setFormSchema(schema);
+          setStatus("deadline_closed");
+          return;
+        }
+
         if (schema.is_public && schema.accepts_responses === false) {
           setStatus("closed");
           return;
         }
+
         const normalized = normalizeFormDocument(schema);
         setFormSchema(schema);
         setStatus("ready");
-        const initialData = normalized.fields.reduce((acc, f) => ({ ...acc, [f.id]: f.type === "boolean" ? false : "" }), {});
+
+        const initialData = normalized.fields.reduce((acc, f) => {
+          if (f.type === "boolean") return { ...acc, [f.id]: false };
+          if (f.type === "multiselect") return { ...acc, [f.id]: [] };
+          if (f.type === "gps") return { ...acc, [f.id]: null };
+          return { ...acc, [f.id]: "" };
+        }, {});
         setFormData(initialData);
       } catch {
         setStatus("error");
       }
     };
     fetchForm();
-  }, [formId, getFormById]);
+  }, [formId, getFormById, previewMode]);
+
+  /* Cuando llega opens_at desde la vista de espera, habilitamos el mismo flujo normal. */
+  useEffect(() => {
+    if (status !== "scheduled" || !formSchema) return;
+    const opensAt = parseScheduleInstant(formSchema.opens_at);
+    if (!opensAt) return;
+
+    const handleTick = () => {
+      const now = Date.now();
+      if (now < opensAt.getTime()) return;
+
+      const closesAt = parseScheduleInstant(formSchema.closes_at);
+      if (closesAt && now > closesAt.getTime()) {
+        setStatus("deadline_closed");
+        return;
+      }
+      if (formSchema.is_public && formSchema.accepts_responses === false) {
+        setStatus("closed");
+        return;
+      }
+
+      const normalized = normalizeFormDocument(formSchema);
+      const initialData = normalized.fields.reduce((acc, f) => {
+        if (f.type === "boolean") return { ...acc, [f.id]: false };
+        if (f.type === "multiselect") return { ...acc, [f.id]: [] };
+        if (f.type === "gps") return { ...acc, [f.id]: null };
+        return { ...acc, [f.id]: "" };
+      }, {});
+      setFormData(initialData);
+      setStatus("ready");
+    };
+
+    handleTick();
+    const id = window.setInterval(handleTick, 800);
+    return () => window.clearInterval(id);
+  }, [status, formSchema]);
 
   const evaluateLogic = (field, currentData = formData) => {
     if (!field.logic || field.logic.length === 0) return null; // No logic defined
@@ -450,7 +535,13 @@ const PublicFormView = () => {
       const isRequired = isFieldRequired(field);
 
       // 1. Required Check
-      if (isRequired && (!value || value === "")) {
+      if (field.type === "gps" && isRequired) {
+        const g = parseGpsFormValue(value);
+        if (!g || typeof g.lat !== "number" || typeof g.lng !== "number") {
+          newErrors[field.id] = "Seleccioná una ubicación en el mapa";
+          return;
+        }
+      } else if (isRequired && (!value || value === "")) {
         newErrors[field.id] = "Este campo es obligatorio";
         return;
       }
@@ -549,6 +640,16 @@ const PublicFormView = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (previewMode) return;
+
+    if (!previewMode) {
+      const c = parseScheduleInstant(formSchema?.closes_at);
+      if (c && Date.now() > c.getTime()) {
+        toast.error("El período de respuestas ya cerró (fecha límite).");
+        return;
+      }
+    }
+
     if (submitLockRef.current || status === "submitting") return;
     if (!validateForm()) return;
 
@@ -620,6 +721,23 @@ const PublicFormView = () => {
       <p className="text-slate-500 max-w-sm">Este formulario no acepta respuestas en este momento.</p>
     </div>
   );
+
+  if (status === "deadline_closed") return (
+    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
+      <Calendar size={64} className="mb-6 text-amber-500/50" />
+      <h1 className="text-2xl font-bold text-white mb-2 tracking-tight">Tiempo de respuestas finalizado</h1>
+      <p className="text-slate-500 max-w-sm">
+        La fecha u hora límite configurada para este formulario ya pasó. No se pueden enviar nuevas respuestas.
+      </p>
+    </div>
+  );
+
+  if (status === "scheduled" && formSchema) {
+    const opensAt = parseScheduleInstant(formSchema.opens_at);
+    if (opensAt) {
+      return <ScheduledWaitScreen opensAt={opensAt} branding={branding} />;
+    }
+  }
 
   if (status === "success" || status === "success_offline") return (
     <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center font-inter">
@@ -895,7 +1013,7 @@ const PublicFormView = () => {
         case "image":
         case "file": return <FileField fieldId={field.id} value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
         case "signature": return <SignatureField value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
-        case "gps": return <GPSField value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
+        case "gps": return <GpsMapField value={formData[field.id]} label={field.label} onChange={(v) => !isDisabled && handleInputChange(field.id, v)} error={errors[field.id]} disabled={isDisabled} />;
         default: return <div className="text-rose-500 font-black italic uppercase text-[10px]">Tipo de campo incompleto: {field.type}</div>;
       }
     };
@@ -942,6 +1060,13 @@ const PublicFormView = () => {
           </div>
         </header>
 
+        {previewMode && (
+          <div className="mb-8 rounded-2xl border border-sky-500/30 bg-sky-500/10 px-5 py-4 text-center">
+            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-sky-400">Vista previa</p>
+            <p className="mt-1 text-sm text-sky-200/90">Este es un adelanto del formulario. No se pueden enviar respuestas desde aquí.</p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-28">
           <div className="grid grid-cols-1 gap-10">
             {rootFields.map((field) => {
@@ -966,34 +1091,36 @@ const PublicFormView = () => {
             })}
           </div>
 
-           <div className="pt-24 relative">
-              <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
-              <button 
-                type="submit" 
-                disabled={status === "submitting"}
-                className="w-full group bg-emerald-600 hover:bg-emerald-500 text-white py-10 rounded-[3.5rem] font-black text-2xl uppercase tracking-[0.3em] flex items-center justify-center space-x-6 transition-all shadow-[0_30px_70px_rgba(16,185,129,0.2)] disabled:opacity-50 active:scale-[0.98] relative overflow-hidden"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]"></div>
-                {status === "submitting" ? (
+           {!previewMode && (
+             <div className="pt-24 relative">
+               <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-emerald-500/20 to-transparent"></div>
+               <button
+                 type="submit"
+                 disabled={status === "submitting"}
+                 className="w-full group bg-emerald-600 hover:bg-emerald-500 text-white py-10 rounded-[3.5rem] font-black text-2xl uppercase tracking-[0.3em] flex items-center justify-center space-x-6 transition-all shadow-[0_30px_70px_rgba(16,185,129,0.2)] disabled:opacity-50 active:scale-[0.98] relative overflow-hidden"
+               >
+                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_2s_infinite]"></div>
+                 {status === "submitting" ? (
                    <Loader2 className="h-10 w-10 text-white animate-spin" />
-                ) : (
-                  <>
-                    <span>Enviar Respuesta</span>
-                    <ArrowRight size={36} className="group-hover:translate-x-4 transition-transform duration-700 ease-out" />
-                  </>
-                )}
-              </button>
-              <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 opacity-40">
-                 <div className="flex items-center space-x-3">
-                    <ShieldCheck size={16} className="text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Protección Bancaria</span>
-                 </div>
-                 <div className="flex items-center space-x-3">
-                    <MapPin size={16} className="text-primary" />
-                    <span className="text-[9px] font-black uppercase tracking-widest">Geolocalización Auditada</span>
-                 </div>
-              </div>
-           </div>
+                 ) : (
+                   <>
+                     <span>Enviar Respuesta</span>
+                     <ArrowRight size={36} className="group-hover:translate-x-4 transition-transform duration-700 ease-out" />
+                   </>
+                 )}
+               </button>
+               <div className="mt-12 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 opacity-40">
+                  <div className="flex items-center space-x-3">
+                     <ShieldCheck size={16} className="text-primary" />
+                     <span className="text-[9px] font-black uppercase tracking-widest">Protección Bancaria</span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                     <MapPin size={16} className="text-primary" />
+                     <span className="text-[9px] font-black uppercase tracking-widest">Geolocalización Auditada</span>
+                  </div>
+               </div>
+             </div>
+           )}
         </form>
 
         <footer className="mt-48 pt-20 border-t border-slate-900/50 flex flex-col md:flex-row justify-between items-center gap-12 opacity-20 hover:opacity-100 transition-all duration-1000">
