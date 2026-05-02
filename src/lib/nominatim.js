@@ -11,6 +11,8 @@ export async function reverseGeocodeLatLng(lat, lng) {
   url.searchParams.set("lat", String(lat));
   url.searchParams.set("lon", String(lng));
   url.searchParams.set("accept-language", "es");
+  /* zoom 18 = máximo detalle en dirección (calle/número cuando exista en OSM). */
+  url.searchParams.set("zoom", "18");
 
   const res = await fetch(url.toString(), {
     headers: {

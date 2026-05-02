@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState, useCallback } from "react";
 import L from "leaflet";
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import {
+  Circle,
+  LayersControl,
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import { MapPin, Loader2 } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { reverseGeocodeLatLng } from "../../lib/nominatim";
@@ -49,6 +57,8 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
   const [geocoding, setGeocoding] = useState(false);
   const [geoError, setGeoError] = useState("");
   const [locatingBrowser, setLocatingBrowser] = useState(false);
+  /** Radio en metros del último fix GPS (HTML5); null si el punto lo fijó el usuario en el mapa. */
+  const [accuracyRadiusM, setAccuracyRadiusM] = useState(null);
 
   useEffect(() => {
     if (parsed?.lat != null && parsed?.lng != null) {
@@ -57,8 +67,15 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
   }, [parsed?.lat, parsed?.lng]);
 
   const emitPoint = useCallback(
-    async (lat, lng) => {
+    async (lat, lng, opts = {}) => {
       if (disabled) return;
+      const acc = opts.accuracyM;
+      if (typeof acc === "number" && Number.isFinite(acc)) {
+        setAccuracyRadiusM(Math.min(Math.max(acc, 6), 1500));
+      } else {
+        setAccuracyRadiusM(null);
+      }
+
       setGeoError("");
       setGeocoding(true);
       try {
@@ -68,12 +85,19 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
           lng,
           display: enriched.display,
           address: enriched.address,
+          ...(typeof acc === "number" && Number.isFinite(acc) ? { accuracy_m: Math.round(acc) } : {}),
         });
         setCenter({ lat, lng });
       } catch (err) {
         console.warn("Reverse geocode:", err);
         setGeoError("No se pudo obtener la dirección. Coordenadas guardadas.");
-        onChange({ lat, lng, display: `${lat.toFixed(6)}, ${lng.toFixed(6)}`, address: {} });
+        onChange({
+          lat,
+          lng,
+          display: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+          address: {},
+          ...(typeof acc === "number" && Number.isFinite(acc) ? { accuracy_m: Math.round(acc) } : {}),
+        });
         setCenter({ lat, lng });
       } finally {
         setGeocoding(false);
@@ -90,11 +114,18 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
     setLocatingBrowser(true);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        void emitPoint(pos.coords.latitude, pos.coords.longitude).finally(() => setLocatingBrowser(false));
+        void emitPoint(pos.coords.latitude, pos.coords.longitude, {
+          accuracyM: pos.coords.accuracy ?? undefined,
+        }).finally(() => setLocatingBrowser(false));
       },
       () => {
         alert("No se pudo obtener la ubicación. Verifique permisos.");
         setLocatingBrowser(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 25000,
+        maximumAge: 0,
       }
     );
   };
@@ -108,26 +139,58 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
       <div className="overflow-hidden rounded-2xl border-2 border-slate-800 bg-slate-950 shadow-inner ring-1 ring-white/5">
         <MapContainer
           center={[center.lat, center.lng]}
-          zoom={15}
-          className="forma-flow-gps-map z-0 h-64 w-full"
+          zoom={17}
+          className="forma-flow-gps-map z-0 h-72 w-full"
           scrollWheelZoom={!disabled}
           dragging={!disabled}
           doubleClickZoom={!disabled}
         >
-          {/* Capa oscura acorde al panel municipal (Carto Dark Matter — OSM attribution). */}
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            subdomains="abcd"
+          <LayersControl position="topright">
+            {/* Imagen aérea: permite ver manzanas, techos y orientarse (Esri World Imagery). */}
+            <LayersControl.BaseLayer checked name="Satélite (edificios)">
+              <TileLayer
+                attribution='Tiles &copy; Esri &mdash; Source: Esri, Maxar, Earthstar Geographics'
+                url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              />
+            </LayersControl.BaseLayer>
+            <LayersControl.BaseLayer name="Mapa oscuro (calles)">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                subdomains="abcd"
+              />
+            </LayersControl.BaseLayer>
+          </LayersControl>
+
+          <ClickToPlace disabled={disabled} onPick={(la, ln) => emitPoint(la, ln)} />
+          <MapFitCenter lat={center.lat} lng={center.lng} accuracyM={accuracyRadiusM} />
+
+          {accuracyRadiusM != null && accuracyRadiusM > 0 && (
+            <Circle
+              center={[center.lat, center.lng]}
+              radius={accuracyRadiusM}
+              pathOptions={{
+                color: "#34d399",
+                weight: 2,
+                fillColor: "#10b981",
+                fillOpacity: 0.12,
+                dashArray: "6 8",
+                interactive: false,
+              }}
+            />
+          )}
+
+          <Marker
+            position={[center.lat, center.lng]}
+            icon={gpsDivIcon}
+            draggable={!disabled}
+            eventHandlers={{
+              dragend: (e) => {
+                const { lat: la, lng: ln } = e.target.getLatLng();
+                emitPoint(la, ln);
+              },
+            }}
           />
-          <ClickToPlace disabled={disabled} onPick={emitPoint} />
-          <MapFitCenter lat={center.lat} lng={center.lng} />
-          <Marker position={[center.lat, center.lng]} icon={gpsDivIcon} draggable={!disabled} eventHandlers={{
-            dragend: (e) => {
-              const { lat: la, lng: ln } = e.target.getLatLng();
-              emitPoint(la, ln);
-            },
-          }} />
         </MapContainer>
       </div>
 
@@ -174,9 +237,12 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
 
       {geoError && <p className="text-[10px] font-bold uppercase text-amber-500/90">{geoError}</p>}
       {!disabled && (
-        <p className="text-[9px] font-bold uppercase tracking-tight text-slate-600">
-          Toca el mapa o arrastra el punto. La dirección se consulta en OpenStreetMap (Nominatim).
-        </p>
+        <div className="space-y-1 text-[9px] font-bold uppercase tracking-tight text-slate-600">
+          <p>
+            El GPS del navegador puede desviarse varias cuadras (sobre todo en PC con Wi‑Fi). Si ves el círculo verde, tu posición probable está dentro de ese radio: tocá el mapa en satélite o arrastrá el punto hasta tu ubicación exacta.
+          </p>
+          <p>La dirección se consulta en OpenStreetMap (Nominatim) según las coordenadas del punto.</p>
+        </div>
       )}
 
       {error && (
