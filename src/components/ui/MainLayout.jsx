@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -100,12 +100,14 @@ const MainLayout = ({ children }) => {
   });
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Cerrar sidebar cuando cambia la ruta (solo en móvil)
+  /** Solo cerrar al navegar — NO al abrir el drawer (antes el efecto dependía de isSidebarOpen y lo cerraba al instante). */
+  const prevPathRef = useRef(location.pathname);
   useEffect(() => {
-    if (!isSidebarOpen) return;
-    const timer = setTimeout(() => setIsSidebarOpen(false), 0);
-    return () => clearTimeout(timer);
-  }, [location.pathname, isSidebarOpen]);
+    if (prevPathRef.current !== location.pathname) {
+      prevPathRef.current = location.pathname;
+      setIsSidebarOpen(false);
+    }
+  }, [location.pathname]);
 
   // Activa las notificaciones en tiempo real para el administrador
   useSubmissionNotifications();
@@ -256,7 +258,7 @@ const MainLayout = ({ children }) => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={toggleSidebar}
+              onClick={() => setIsSidebarOpen(false)}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
             />
             <MotionAside
@@ -264,6 +266,7 @@ const MainLayout = ({ children }) => {
               initial="closed"
               animate="open"
               exit="closed"
+              onClick={(e) => e.stopPropagation()}
               className="fixed inset-y-0 left-0 w-[280px] bg-slate-900 z-50 lg:hidden flex flex-col shadow-2xl overflow-hidden"
             >
               <div className="p-6 flex items-center justify-between border-b border-slate-800/50">

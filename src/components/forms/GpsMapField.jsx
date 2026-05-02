@@ -24,13 +24,20 @@ const gpsDivIcon = L.divIcon({
 
 const DEFAULT_LATLNG = { lat: -34.6037, lng: -58.3816 };
 
-function MapFitCenter({ lat, lng }) {
+/** Centra el mapa y ajusta zoom según precisión del GPS (radio más pequeño → más zoom). */
+function MapFitCenter({ lat, lng, accuracyM }) {
   const map = useMap();
   useEffect(() => {
-    if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      map.setView([lat, lng], map.getZoom() < 13 ? 15 : map.getZoom());
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+    let zoom = 17;
+    if (accuracyM != null && Number.isFinite(accuracyM)) {
+      if (accuracyM <= 15) zoom = 19;
+      else if (accuracyM <= 35) zoom = 18;
+      else if (accuracyM <= 80) zoom = 17;
+      else zoom = 16;
     }
-  }, [lat, lng, map]);
+    map.setView([lat, lng], zoom);
+  }, [lat, lng, accuracyM, map]);
   return null;
 }
 
@@ -106,28 +113,73 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
     [disabled, onChange]
   );
 
+  /**
+   * Varías lecturas GPS con watchPosition y nos quedamos con la de mejor precisión (menor radio).
+   * Una sola llamada a getCurrentPosition suele dar ~50–200 m en desktop; esto reduce el error típico.
+   */
   const locateBrowser = () => {
     if (disabled || typeof navigator === "undefined" || !navigator.geolocation) {
       alert("Geolocalización no disponible en este dispositivo.");
       return;
     }
+
     setLocatingBrowser(true);
-    navigator.geolocation.getCurrentPosition(
+    setGeoError("");
+
+    let best = null;
+    let watchId = null;
+    let timeoutId = null;
+    let settled = false;
+    const started = Date.now();
+    const MAX_MS = 22000;
+    /** Si llegamos a este radio (metros), podemos cortar antes (GPS real en teléfono). */
+    const GOOD_ENOUGH_M = 22;
+    const MIN_MS_BEFORE_EARLY_EXIT = 2800;
+
+    const cleanupWatch = () => {
+      if (watchId != null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+      }
+    };
+
+    const done = async (reading) => {
+      if (settled) return;
+      settled = true;
+      if (timeoutId != null) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      cleanupWatch();
+      if (!reading) {
+        setLocatingBrowser(false);
+        setGeoError("No se obtuvo ubicación. Revisá permisos o marcá el punto en el mapa.");
+        return;
+      }
+      await emitPoint(reading.lat, reading.lng, { accuracyM: reading.accuracy });
+      setLocatingBrowser(false);
+    };
+
+    watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        void emitPoint(pos.coords.latitude, pos.coords.longitude, {
-          accuracyM: pos.coords.accuracy ?? undefined,
-        }).finally(() => setLocatingBrowser(false));
+        const acc = pos.coords.accuracy ?? 99999;
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        if (!best || acc < best.accuracy) {
+          best = { lat, lng, accuracy: acc };
+        }
+        const elapsed = Date.now() - started;
+        if (acc <= GOOD_ENOUGH_M && elapsed >= MIN_MS_BEFORE_EARLY_EXIT) {
+          void done(best);
+        }
       },
       () => {
-        alert("No se pudo obtener la ubicación. Verifique permisos.");
-        setLocatingBrowser(false);
+        void done(best);
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 25000,
-        maximumAge: 0,
-      }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 28000 }
     );
+
+    timeoutId = window.setTimeout(() => void done(best), MAX_MS);
   };
 
   const { road, house_number, suburb, locality, municipality, province, country } = parsed?.address || {};
@@ -158,6 +210,13 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>'
                 url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
                 subdomains="abcd"
+              />
+            </LayersControl.BaseLayer>
+            {/* Calles OSM estándar: suele alinearse mejor con coordenadas GPS que fotos aéreas antiguas/desplazadas. */}
+            <LayersControl.BaseLayer name="Calles OSM (referencia GPS)">
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
             </LayersControl.BaseLayer>
           </LayersControl>
@@ -239,9 +298,13 @@ export default function GpsMapField({ value, onChange, label, error, disabled })
       {!disabled && (
         <div className="space-y-1 text-[9px] font-bold uppercase tracking-tight text-slate-600">
           <p>
-            El GPS del navegador puede desviarse varias cuadras (sobre todo en PC con Wi‑Fi). Si ves el círculo verde, tu posición probable está dentro de ese radio: tocá el mapa en satélite o arrastrá el punto hasta tu ubicación exacta.
+            Esperamos unos segundos para tomar la lectura más precisa. Si el pin sigue corrido respecto al satélite, probá la capa{" "}
+            <span className="text-slate-400">«Calles OSM (referencia GPS)»</span>: a veces la foto aérea está desfasada respecto al GPS real.
           </p>
-          <p>La dirección se consulta en OpenStreetMap (Nominatim) según las coordenadas del punto.</p>
+          <p>
+            Arrastrá el punto hasta tu entrada si hace falta: las coordenadas guardadas son las del pin, no una estimación automática.
+          </p>
+          <p>La dirección se obtiene por Nominatim según esas coordenadas.</p>
         </div>
       )}
 
