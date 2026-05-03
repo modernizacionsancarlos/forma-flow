@@ -28,6 +28,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Log local de pasadas de QA (scripts/qa-smoke.mjs)
+QA-SMOKE-LOG.txt
+
 # Logo municipal local (privado, no versionar)
 public/local-assets/municipal-logo.*
 
