@@ -270,12 +270,12 @@ const MainLayout = ({ children }) => {
               className="fixed inset-y-0 left-0 w-[280px] bg-slate-900 z-50 lg:hidden flex flex-col shadow-2xl overflow-hidden"
             >
               <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
-                <div className="flex items-center space-x-3">
+                <div className="flex min-w-0 flex-1 items-center pr-2">
                   {isUsingLocalMunicipalLogo ? (
                     <img
                       src={brandLogoSrc}
                       alt="Logo Municipalidad de San Carlos"
-                      className="h-8 w-24 object-contain object-left select-none"
+                      className="h-9 max-w-[200px] object-contain object-left select-none"
                       style={{ filter: municipalLogoFilter, mixBlendMode: "screen" }}
                     />
                   ) : (
@@ -295,7 +295,6 @@ const MainLayout = ({ children }) => {
                       )}
                     </div>
                   )}
-                  <span className="font-bold">FormaFlow</span>
                 </div>
                 <button onClick={toggleSidebar} className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
                   <X size={20} />
