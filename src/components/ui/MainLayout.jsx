@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -99,13 +99,9 @@ const MainLayout = ({ children }) => {
   });
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  /** Solo cerrar al navegar — NO al abrir el drawer (antes el efecto dependía de isSidebarOpen y lo cerraba al instante). */
-  const prevPathRef = useRef(location.pathname);
+  /** Cierra el drawer móvil al cambiar de ruta. `queueMicrotask` evita setState síncrono en el cuerpo del effect (regla react-hooks). */
   useEffect(() => {
-    if (prevPathRef.current !== location.pathname) {
-      prevPathRef.current = location.pathname;
-      setIsSidebarOpen(false);
-    }
+    queueMicrotask(() => setIsSidebarOpen(false));
   }, [location.pathname]);
 
   // Activa las notificaciones en tiempo real para el administrador

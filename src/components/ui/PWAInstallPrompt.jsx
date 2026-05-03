@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-
-const Motion = motion;
 import { Download, X, AppWindow, Smartphone, Share2, PlusSquare } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
+
+/** Alias para cumplir ESLint (uso de `motion` en JSX miembro). */
+const Motion = motion;
 
 const ENTER_DELAY_MS = 1400;
 
