@@ -26,7 +26,6 @@ import Guard from "../auth/Guard";
 import NotificationCenter from "./NotificationCenter";
 import AnimatedPage from "./AnimatedPage";
 import NotificationPrompt from "./NotificationPrompt";
-import PWAInstallPrompt from "./PWAInstallPrompt";
 import AssistantWidget from "./AssistantWidget";
 import { PERMISSIONS } from "../../lib/permissions";
 import { useSubmissionNotifications } from "../../api/useSubmissionNotifications";
@@ -205,8 +204,6 @@ const MainLayout = ({ children }) => {
 
   return (
     <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden">
-      <PWAInstallPrompt />
-      
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
         <div className="px-2 pt-2 pb-1">

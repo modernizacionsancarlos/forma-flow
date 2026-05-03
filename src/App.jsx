@@ -57,6 +57,7 @@ import MainLayout from './components/ui/MainLayout'
 import JoinOrganization from './components/auth/JoinOrganization'
 import ReloadPrompt from './components/ui/ReloadPrompt'
 import PremiumSplash from './components/ui/PremiumSplash'
+import PWAInstallPrompt from './components/ui/PWAInstallPrompt'
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -283,6 +284,7 @@ function App() {
           />
           <BrandingProvider>
             <ReloadPrompt />
+            <PWAInstallPrompt />
             <JoinOrganization />
             <RouteErrorBoundary>
               <Suspense fallback={<PremiumSplash isLoading={true} />}>
