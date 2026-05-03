@@ -267,36 +267,43 @@ const MainLayout = ({ children }) => {
               animate="open"
               exit="closed"
               onClick={(e) => e.stopPropagation()}
-              className="fixed inset-y-0 left-0 w-[280px] bg-slate-900 z-50 lg:hidden flex flex-col shadow-2xl overflow-hidden"
+              className="fixed inset-y-0 left-0 z-50 flex w-[min(100vw-1.25rem,320px)] max-w-[100vw] flex-col overflow-hidden bg-slate-900 shadow-2xl lg:hidden sm:w-[min(100vw-1.5rem,340px)]"
             >
-              <div className="p-6 flex items-center justify-between border-b border-slate-800/50">
-                <div className="flex min-w-0 flex-1 items-center pr-2">
+              {/* Columnas iguales a cada lado del logo para mantener el centro; padding según alto de pantalla */}
+              <div className="grid grid-cols-[2.75rem_minmax(0,1fr)_2.75rem] items-center gap-x-2 border-b border-slate-800/50 px-3 py-[clamp(1rem,3.5vmin,1.85rem)] min-[420px]:px-5 min-[420px]:py-7">
+                <span className="inline-block w-11 shrink-0" aria-hidden />
+                <div className="flex min-h-[clamp(4rem,18vmin,6.75rem)] min-w-0 items-center justify-center">
                   {isUsingLocalMunicipalLogo ? (
                     <img
                       src={brandLogoSrc}
                       alt="Logo Municipalidad de San Carlos"
-                      className="h-9 max-w-[200px] object-contain object-left select-none"
+                      className="h-auto w-full max-w-[min(292px,calc(100vw-5.75rem))] object-contain object-center select-none [max-height:clamp(4.25rem,24vmin,7.75rem)] min-[420px]:[max-height:clamp(5rem,22vmin,8.75rem)]"
                       style={{ filter: municipalLogoFilter, mixBlendMode: "screen" }}
                     />
                   ) : (
                     <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
+                      className="flex h-[clamp(2.85rem,12vmin,3.85rem)] w-[clamp(2.85rem,12vmin,3.85rem)] shrink-0 items-center justify-center rounded-xl"
                       style={{ backgroundColor: branding.primary_color }}
                     >
                       {brandLogoSrc ? (
                         <img
                           src={brandLogoSrc}
                           alt="Logo institucional"
-                          className="w-5 h-5 object-contain"
+                          className="h-[clamp(1.35rem,5.8vmin,1.85rem)] w-[clamp(1.35rem,5.8vmin,1.85rem)] object-contain"
                           style={!branding.logo_url && municipalLogoFilter !== "none" ? { filter: municipalLogoFilter } : undefined}
                         />
                       ) : (
-                        <LayoutDashboard size={18} className="text-white" />
+                        <LayoutDashboard size={26} className="text-white" strokeWidth={2} />
                       )}
                     </div>
                   )}
                 </div>
-                <button onClick={toggleSidebar} className="p-2 hover:bg-slate-800 rounded-lg transition-colors">
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-slate-800 hover:text-white"
+                  aria-label="Cerrar menú"
+                >
                   <X size={20} />
                 </button>
               </div>
