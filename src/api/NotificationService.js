@@ -86,7 +86,11 @@ class NotificationService {
   /**
    * Envío de correo (HTML + texto) con registro y webhook opcional.
    */
-  static async sendEmailSimulation(to, { subject, body, htmlBody = null, tenantId = "global" }) {
+  /**
+   * @param {object} opts
+   * @param {boolean} [opts.skipExternalWebhook] - Si true, no POST a VITE_EMAIL_WEBHOOK_URL (evita doble correo cuando ya envió Firebase Auth).
+   */
+  static async sendEmailSimulation(to, { subject, body, htmlBody = null, tenantId = "global", skipExternalWebhook = false }) {
     console.group("%c 📧 FormaFlow — notificación por correo", "color: #10b981; font-weight: bold;");
     console.log(`Para: ${to}`);
     console.log(`Asunto: ${subject}`);
@@ -101,16 +105,19 @@ class NotificationService {
       emailHtml: htmlBody,
     });
 
-    await this.postEmailWebhook({
-      to,
-      subject,
-      textBody: body,
-      htmlBody: htmlBody || body,
-    });
+    if (!skipExternalWebhook) {
+      await this.postEmailWebhook({
+        to,
+        subject,
+        textBody: body,
+        htmlBody: htmlBody || body,
+      });
+    }
   }
 
   /** Invitación: enlace al login con aviso de invitación pendiente */
-  static async sendInvitationEmail(to, meta) {
+  /** @param {{ skipExternalWebhook?: boolean }} [sendOpts] */
+  static async sendInvitationEmail(to, meta, sendOpts = {}) {
     const { buildInvitationEmailHtml, roleLabelFromId } = await import("../lib/emailTemplates.js");
     const acceptUrl = `${getPublicSiteUrl()}/login?invitacion=pendiente`;
     const html = buildInvitationEmailHtml({
@@ -131,11 +138,13 @@ class NotificationService {
       body: text,
       htmlBody: html,
       tenantId: meta.tenantId || "global",
+      skipExternalWebhook: Boolean(sendOpts.skipExternalWebhook),
     });
   }
 
   /** Usuario creado directamente en userProfiles */
-  static async sendUserCreatedEmail(to, meta) {
+  /** @param {{ skipExternalWebhook?: boolean }} [sendOpts] */
+  static async sendUserCreatedEmail(to, meta, sendOpts = {}) {
     const { buildUserCreatedEmailHtml, roleLabelFromId } = await import("../lib/emailTemplates.js");
     const loginUrl = `${getPublicSiteUrl()}/login`;
     const html = buildUserCreatedEmailHtml({
@@ -155,6 +164,7 @@ class NotificationService {
       body: text,
       htmlBody: html,
       tenantId: meta.tenantId || "global",
+      skipExternalWebhook: Boolean(sendOpts.skipExternalWebhook),
     });
   }
 

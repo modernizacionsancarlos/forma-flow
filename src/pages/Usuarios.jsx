@@ -7,7 +7,6 @@ import { useTenants } from "../api/useTenants";
 import { useAreas } from "../api/useAreas";
 import { useInvitations } from "../api/useInvitations";
 import { useAuth } from "../lib/AuthContext";
-import NotificationService from "../api/NotificationService";
 import Guard from "../components/auth/Guard";
 import { PERMISSIONS } from "../lib/permissions";
 import { hasPermission } from "../lib/permissions";
@@ -33,7 +32,7 @@ export default function Usuarios() {
     const [searchParams] = useSearchParams();
     const tenantParam = searchParams.get("tenant");
 
-    const { user: authUser, claims } = useAuth();
+    const { claims } = useAuth();
     const canManageUsers = hasPermission(claims?.role, PERMISSIONS.MANAGE_TENANT_USERS);
     const { users, isLoading, createUser, updateUser } = useUsers();
     const { tenants = [] } = useTenants();
@@ -102,33 +101,21 @@ export default function Usuarios() {
                         email,
                         role: data.role || "operador",
                         tenantId,
+                        tenantName,
                         user_name: data.user_name || "",
                         phone: data.phone || "",
                         area_ids: data.area_ids || [],
-                    });
-                    await NotificationService.sendInvitationEmail(email, {
-                        recipientName: data.user_name || email.split("@")[0],
-                        role: data.role || "operador",
-                        tenantName,
-                        invitedBy: authUser?.email || "Administración",
-                        tenantId,
                     });
                 } else {
                     await createUser.mutateAsync({
                         email,
                         role: data.role || "operador",
                         tenantId,
+                        tenantDisplayName: tenantName,
                         user_name: data.user_name || "",
                         phone: data.phone || "",
                         status: data.status || "active",
                         area_ids: data.area_ids || [],
-                    });
-                    await NotificationService.sendUserCreatedEmail(email, {
-                        recipientName: data.user_name || email.split("@")[0],
-                        role: data.role || "operador",
-                        tenantName,
-                        createdBy: authUser?.email || "Administración",
-                        tenantId,
                     });
                 }
             }
@@ -138,9 +125,9 @@ export default function Usuarios() {
             if (wasEdit) {
                 toast.success("Usuario actualizado.");
             } else if (intentUsed === "invite") {
-                toast.success("Invitación registrada y correo preparado (revisá Observatorio o tu webhook).");
+                toast.success("Invitación registrada. Revisá la bandeja del correo (enlace de Firebase para definir contraseña).");
             } else {
-                toast.success("Usuario creado y correo preparado.");
+                toast.success("Usuario creado. Se envió un correo de Firebase para definir contraseña.");
             }
         } catch (err) {
             toast.error(err?.message || "No se pudo guardar el usuario.");
@@ -157,9 +144,14 @@ export default function Usuarios() {
 
     const formatDate = (ts) => {
         try {
-            const d = ts?.toDate?.() || new Date(ts);
+            if (ts?.toDate) return ts.toDate().toLocaleDateString("es-AR");
+            if (ts?.seconds != null) return new Date(ts.seconds * 1000).toLocaleDateString("es-AR");
+            const d = new Date(ts);
+            if (Number.isNaN(d.getTime())) return "—";
             return d.toLocaleDateString("es-AR");
-        } catch { return "—"; }
+        } catch {
+            return "—";
+        }
     };
 
     return (
@@ -420,8 +412,8 @@ function UserModal({ user, intent = "create", tenants, areas, onSave, onClose })
                             {user
                                 ? "Modifica los datos del usuario"
                                 : intent === "invite"
-                                    ? "Se enviará un correo con invitación y enlace para ingresar a FormaFlow"
-                                    : "Se creará el perfil y se notificará por correo electrónico"}
+                                    ? "Se enviará un correo de Firebase con enlace para definir contraseña y acceder al panel"
+                                    : "Se creará la cuenta en Firebase, el perfil en el sistema y el mismo correo de acceso"}
                         </p>
                     </div>
                     <button onClick={onClose} className="text-slate-400 hover:text-white p-1">

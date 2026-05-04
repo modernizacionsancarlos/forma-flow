@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getMessaging } from "firebase/messaging";
-import { getFunctions } from "firebase/functions";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -21,7 +21,14 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
-export const functions = getFunctions(app);
+
+/** Misma región que las Functions desplegadas (us-east1 en `functions/index.js`). */
+const functionsRegion = import.meta.env.VITE_FIREBASE_FUNCTIONS_REGION || "us-east1";
+export const functions = getFunctions(app, functionsRegion);
+
+if (import.meta.env.DEV && import.meta.env.VITE_USE_FUNCTIONS_EMULATOR === "true") {
+  connectFunctionsEmulator(functions, "127.0.0.1", 5001);
+}
 let messagingInstance = null;
 if (typeof window !== "undefined") {
   try {

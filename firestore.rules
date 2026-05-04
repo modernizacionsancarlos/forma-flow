@@ -116,10 +116,27 @@ service cloud.firestore {
       );
     }
 
+    // Alta de perfil por administradores del mismo tenant (o super_admin)
+    function userProfileCreatePayloadValid() {
+      return request.resource.data.keys().hasAll(['email', 'tenantId', 'role']) &&
+        request.resource.data.email is string &&
+        request.resource.data.email.lower() == email.lower();
+    }
+    function canStaffCreateOtherUserProfile() {
+      return isAuthenticated() && hasUserProfile() &&
+        userProfile().keys().hasAll(['role', 'tenantId']) &&
+        (userProfile().role == 'admin' || userProfile().role == 'admin_empresa') &&
+        userProfileCreatePayloadValid() &&
+        getUserTenantId() != null &&
+        getUserTenantId() == request.resource.data.tenantId;
+    }
+
     // Reglas para Perfiles de Usuario
     match /userProfiles/{email} {
       allow read: if isSuperAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email.lower());
-      allow create: if isAuthenticated() && request.auth.token.email.lower() == email.lower();
+      allow create: if (isSuperAdmin() && userProfileCreatePayloadValid()) ||
+        (isAuthenticated() && request.auth.token.email.lower() == email.lower()) ||
+        canStaffCreateOtherUserProfile();
       allow update: if isSuperAdmin() || (
         isAuthenticated() && 
         request.auth.token.email.lower() == email.lower() &&

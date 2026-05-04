@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, doc, getDoc, getDocs, Timestamp, query, where, deleteDoc, addDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
+import { callProvisionStaffAuthUser, sendFirebasePasswordSetupEmail } from "./staffAuthProvisioning";
+import NotificationService from "./NotificationService";
 
 /**
  * Hook para la gestión de invitaciones de usuarios.
@@ -60,6 +62,32 @@ export const useInvitations = () => {
             });
 
             const ref = await addDoc(collection(db, "invitations"), docData);
+
+            // Cuenta en Auth + correo de Firebase para definir contraseña (mismo flujo que "Crear usuario").
+            await callProvisionStaffAuthUser({
+                email: docData.email,
+                displayName: docData.user_name || "",
+                targetTenantId: docData.tenantId,
+            });
+            try {
+                await sendFirebasePasswordSetupEmail(docData.email);
+            } catch (e) {
+                console.warn("[useInvitations] sendFirebasePasswordSetupEmail:", e);
+            }
+
+            const tenantLabel = docData.tenantName || docData.tenantId;
+            await NotificationService.sendInvitationEmail(
+                docData.email,
+                {
+                    recipientName: docData.user_name || docData.email.split("@")[0],
+                    role: docData.role || "operador",
+                    tenantName: tenantLabel,
+                    invitedBy: docData.invitedBy || "Administración",
+                    tenantId: docData.tenantId,
+                },
+                { skipExternalWebhook: true }
+            );
+
             return { id: ref.id, ...docData };
         },
         onSuccess: () => {

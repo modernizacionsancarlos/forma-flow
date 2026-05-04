@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, doc, getDocs, Timestamp, runTransaction, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
+import { callProvisionStaffAuthUser, sendFirebasePasswordSetupEmail } from "./staffAuthProvisioning";
+import NotificationService from "./NotificationService";
 
 export const useUsers = () => {
     const { user: performer, claims } = useAuth();
@@ -29,8 +31,16 @@ export const useUsers = () => {
         mutationFn: async (userData) => {
             const tenantId = userData.tenantId || claims?.tenantId || 'Central_System';
             const userEmail = userData.email.toLowerCase();
+            const tenantDisplayName = userData.tenantDisplayName || tenantId;
             const userRef = doc(db, "userProfiles", userEmail); 
             const tenantRef = doc(db, "tenants", tenantId);
+
+            // 1) Cuenta en Firebase Auth (Admin SDK vía Cloud Function); sin esto no puede iniciar sesión.
+            await callProvisionStaffAuthUser({
+                email: userEmail,
+                displayName: userData.user_name || "",
+                targetTenantId: tenantId,
+            });
 
             // Firestore exige: en una transacción, todas las lecturas (get) antes de cualquier escritura.
             await runTransaction(db, async (transaction) => {
@@ -78,9 +88,13 @@ export const useUsers = () => {
                     });
                 }
 
+                // Campos persistidos (sin datos auxiliares solo para UI / correo).
                 transaction.set(userRef, {
-                    ...userData,
                     email: userEmail,
+                    user_name: userData.user_name || "",
+                    phone: userData.phone || "",
+                    status: userData.status || "active",
+                    area_ids: userData.area_ids || [],
                     createdAt: Timestamp.now(),
                     role: userData.role || "user",
                     tenantId: tenantId,
@@ -97,6 +111,25 @@ export const useUsers = () => {
                     timestamp: Timestamp.now(),
                 });
             });
+
+            // Correo oficial de Firebase para que defina contraseña (plantilla en Consola > Auth > Plantillas).
+            try {
+                await sendFirebasePasswordSetupEmail(userEmail);
+            } catch (e) {
+                console.warn("[useUsers] sendFirebasePasswordSetupEmail:", e);
+            }
+
+            await NotificationService.sendUserCreatedEmail(
+                userEmail,
+                {
+                    recipientName: userData.user_name || userEmail.split("@")[0],
+                    role: userData.role || "operador",
+                    tenantName: tenantDisplayName,
+                    createdBy: performer?.email || "Administración",
+                    tenantId,
+                },
+                { skipExternalWebhook: true }
+            );
         },
         onSuccess: () => {
             queryClient.invalidateQueries(["users-list"]);
