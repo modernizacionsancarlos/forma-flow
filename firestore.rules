@@ -116,17 +116,18 @@ service cloud.firestore {
       );
     }
 
-    // Alta de perfil por administradores del mismo tenant (o super_admin)
-    function userProfileCreatePayloadValid() {
+    // Alta de perfil por administradores del mismo tenant (o super_admin).
+    // docId es el ID del documento en userProfiles (mismo correo en minúsculas).
+    function userProfileCreatePayloadValid(docId) {
       return request.resource.data.keys().hasAll(['email', 'tenantId', 'role']) &&
         request.resource.data.email is string &&
-        request.resource.data.email.lower() == email.lower();
+        request.resource.data.email.lower() == docId.lower();
     }
-    function canStaffCreateOtherUserProfile() {
+    function canStaffCreateOtherUserProfile(docId) {
       return isAuthenticated() && hasUserProfile() &&
         userProfile().keys().hasAll(['role', 'tenantId']) &&
         (userProfile().role == 'admin' || userProfile().role == 'admin_empresa') &&
-        userProfileCreatePayloadValid() &&
+        userProfileCreatePayloadValid(docId) &&
         getUserTenantId() != null &&
         getUserTenantId() == request.resource.data.tenantId;
     }
@@ -134,9 +135,9 @@ service cloud.firestore {
     // Reglas para Perfiles de Usuario
     match /userProfiles/{email} {
       allow read: if isSuperAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email.lower());
-      allow create: if (isSuperAdmin() && userProfileCreatePayloadValid()) ||
+      allow create: if (isSuperAdmin() && userProfileCreatePayloadValid(email)) ||
         (isAuthenticated() && request.auth.token.email.lower() == email.lower()) ||
-        canStaffCreateOtherUserProfile();
+        canStaffCreateOtherUserProfile(email);
       allow update: if isSuperAdmin() || (
         isAuthenticated() && 
         request.auth.token.email.lower() == email.lower() &&
