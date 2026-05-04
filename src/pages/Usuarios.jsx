@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Users, UserPlus, UserCircle2, Search, X } from "lucide-react";
+import { Users, UserPlus, UserCircle2, Search, X, ShieldCheck, List } from "lucide-react";
 import { useUsers } from "../api/useUsers";
 import { useTenants } from "../api/useTenants";
 import { useAreas } from "../api/useAreas";
@@ -10,6 +10,7 @@ import { useAuth } from "../lib/AuthContext";
 import Guard from "../components/auth/Guard";
 import { PERMISSIONS } from "../lib/permissions";
 import { hasPermission } from "../lib/permissions";
+import PermissionsManager from "../components/usuarios/PermissionsManager";
 
 /* ── Roles config ─────────────────────────────────────────────────── */
 const ROLES = [
@@ -33,7 +34,9 @@ export default function Usuarios() {
     const tenantParam = searchParams.get("tenant");
 
     const { claims } = useAuth();
-    const canManageUsers = hasPermission(claims?.role, PERMISSIONS.MANAGE_TENANT_USERS);
+    const canManageUsers = hasPermission(claims, PERMISSIONS.MANAGE_TENANT_USERS);
+    const canManageMatrix = hasPermission(claims, PERMISSIONS.MANAGE_PERMISSION_MATRIX);
+    const [activeSection, setActiveSection] = useState("lista"); // lista | permisos
     const { users, isLoading, createUser, updateUser } = useUsers();
     const { tenants = [] } = useTenants();
     const { areas = [] } = useAreas();
@@ -196,7 +199,47 @@ export default function Usuarios() {
                 </Guard>
             </div>
 
+            {/* ─── SUB-SECCIÓN: lista / permisos (estilo Django) ─── */}
+            <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800 pb-2">
+                <button
+                    type="button"
+                    onClick={() => setActiveSection("lista")}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeSection === "lista"
+                            ? "bg-emerald-600 text-white"
+                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    }`}
+                >
+                    <List size={16} /> Lista de usuarios
+                </button>
+                <Guard permission={PERMISSIONS.MANAGE_PERMISSION_MATRIX} fallback={null}>
+                    <button
+                        type="button"
+                        onClick={() => setActiveSection("permisos")}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            activeSection === "permisos"
+                                ? "bg-emerald-600 text-white"
+                                : "text-slate-400 hover:text-white hover:bg-slate-800"
+                        }`}
+                    >
+                        <ShieldCheck size={16} /> Permisos
+                    </button>
+                </Guard>
+            </div>
+
+            {activeSection === "permisos" && canManageMatrix ? (
+                <div className="mb-10 rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+                    <h2 className="text-lg font-semibold text-white mb-2">Roles y permisos</h2>
+                    <p className="text-sm text-slate-400 mb-6">
+                        Asigná permisos por rol (plantilla global) o afiná por usuario (excepciones). Arrastrá entre
+                        listas o usá las flechas. <strong>Vista previa</strong> simula el menú sin guardar en Firebase.
+                    </p>
+                    <PermissionsManager users={usersList} />
+                </div>
+            ) : null}
+
             {/* ─── STATS ROW — 5 Roles ─────────────────────── */}
+            {activeSection === "lista" ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
                 {ROLES.map(role => (
                     <div key={role.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4 text-center">
@@ -207,8 +250,11 @@ export default function Usuarios() {
                     </div>
                 ))}
             </div>
+            ) : null}
 
             {/* ─── FILTERS ─────────────────────────────────── */}
+            {activeSection === "lista" ? (
+            <>
             <div className="flex flex-wrap gap-3 mb-6">
                 <div className="relative flex-1 min-w-[12rem]">
                     <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -345,6 +391,8 @@ export default function Usuarios() {
                     </div>
                 )}
             </div>
+            </>
+            ) : null}
 
             {/* ─── MODAL ───────────────────────────────────── */}
             {showModal && (

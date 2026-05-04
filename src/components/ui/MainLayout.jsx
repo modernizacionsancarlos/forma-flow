@@ -128,12 +128,18 @@ const MainLayout = ({ children }) => {
   const navLinks = (
     <nav className="flex-1 overflow-y-auto space-y-0 custom-scrollbar py-2">
       {/* 1 · Inicio */}
-      <SidebarLink to="/" icon={LayoutDashboard} activeColor={branding.primary_color}>Dashboard</SidebarLink>
+      <Guard permission={PERMISSIONS.ACCESS_DASHBOARD}>
+        <SidebarLink to="/" icon={LayoutDashboard} activeColor={branding.primary_color}>Dashboard</SidebarLink>
+      </Guard>
       <SidebarGroupSeparator />
 
       {/* 2 · Formularios y entregas */}
-      <SidebarLink to="/forms" icon={FileText} activeColor={branding.primary_color}>Formularios</SidebarLink>
-      <SidebarLink to="/submissions" icon={ClipboardList} activeColor={branding.primary_color}>Respuestas</SidebarLink>
+      <Guard permission={PERMISSIONS.ACCESS_FORMS}>
+        <SidebarLink to="/forms" icon={FileText} activeColor={branding.primary_color}>Formularios</SidebarLink>
+      </Guard>
+      <Guard permission={PERMISSIONS.VIEW_SUBMISSIONS}>
+        <SidebarLink to="/submissions" icon={ClipboardList} activeColor={branding.primary_color}>Respuestas</SidebarLink>
+      </Guard>
       <SidebarGroupSeparator />
 
       {/* 3 · Estructura: áreas, empresas, usuarios */}
@@ -149,8 +155,10 @@ const MainLayout = ({ children }) => {
       <SidebarGroupSeparator />
 
       {/* 4 · Plataforma */}
-      <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+      <Guard permission={PERMISSIONS.ACCESS_ADMIN_PANEL}>
         <SidebarLink to="/admin" icon={Shield} activeColor={branding.primary_color}>Admin Panel</SidebarLink>
+      </Guard>
+      <Guard permission={PERMISSIONS.ACCESS_OBSERVATORY}>
         <SidebarLink to="/observatorio" icon={Activity} activeColor={branding.primary_color}>Observatorio</SidebarLink>
       </Guard>
       <SidebarGroupSeparator />
@@ -159,17 +167,23 @@ const MainLayout = ({ children }) => {
       <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
         <SidebarLink to="/workflows" icon={GitMerge} activeColor={branding.primary_color}>Workflows</SidebarLink>
       </Guard>
-      <SidebarLink to="/exportaciones" icon={Download} activeColor={branding.primary_color}>Exportaciones</SidebarLink>
+      <Guard permission={PERMISSIONS.ACCESS_EXPORT}>
+        <SidebarLink to="/exportaciones" icon={Download} activeColor={branding.primary_color}>Exportaciones</SidebarLink>
+      </Guard>
       <SidebarGroupSeparator />
 
       {/* 6 · Cumplimiento y operaciones centrales */}
-      <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
+      <Guard permission={PERMISSIONS.VIEW_AUDIT_LOGS}>
         <SidebarLink to="/auditoria" icon={ShieldCheck} activeColor={branding.primary_color}>Auditoría</SidebarLink>
+      </Guard>
+      <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
         <SidebarLink to="/sincronizacion" icon={RefreshCw} activeColor={branding.primary_color}>Sincronización</SidebarLink>
       </Guard>
 
       <div className="pt-6 mt-2 border-t border-slate-800/50">
+         <Guard permission={PERMISSIONS.ACCESS_SETTINGS}>
          <SidebarLink to="/configuracion" icon={Settings} activeColor={branding.primary_color}>Configuración</SidebarLink>
+         </Guard>
          <button
            onClick={logout}
            className="w-full flex items-center space-x-3 px-6 py-3 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-[#0b1b1b]/50 border-l-2 border-transparent transition-colors"

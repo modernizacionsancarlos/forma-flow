@@ -1,6 +1,6 @@
 import React from 'react';
-import { useAuth } from '../../lib/AuthContext';
 import { hasPermission, hasAnyPermission } from '../../lib/permissions';
+import { useEffectiveClaims } from '../../context/PermissionPreviewContext';
 
 /**
  * Componente Guard para protección de UI basada en roles o permisos.
@@ -20,7 +20,7 @@ const Guard = ({
   fallback = null,
   disabled = false 
 }) => {
-  const { claims } = useAuth();
+  const { claims } = useEffectiveClaims();
   const userRole = claims?.role;
 
   let hasAccess = false;
@@ -31,11 +31,11 @@ const Guard = ({
   } 
   // 2. Verificar por Permiso único
   else if (permission) {
-    hasAccess = hasPermission(userRole, permission);
+    hasAccess = hasPermission(claims, permission);
   }
   // 3. Verificar por Múltiples Permisos (OR)
   else if (permissions.length > 0) {
-    hasAccess = hasAnyPermission(userRole, permissions);
+    hasAccess = hasAnyPermission(claims, permissions);
   }
 
   if (hasAccess) {

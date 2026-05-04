@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "./firebase";
+import { computeEffectivePermissions } from "./permissions";
 import Loader from "../components/ui/Loader";
 
 const AuthContext = createContext();
@@ -19,39 +20,71 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [claims, setClaims] = useState({});
+  /** Defaults por rol desde Firestore (`systemConfig/permissions`). */
+  const permissionRoleDefaultsRef = useRef({});
+  const initialClaimsRef = useRef({});
+
+  const recomputeEffective = React.useCallback((mergedProfile) => {
+    const eff = computeEffectivePermissions(mergedProfile, permissionRoleDefaultsRef.current);
+    setClaims((c) => ({
+      ...c,
+      ...mergedProfile,
+      effectivePermissions: eff,
+    }));
+  }, []);
 
   useEffect(() => {
     let unsubscribeProfile = null;
+    let unsubscribePermConfig = null;
+
+    const unsubPerm = onSnapshot(
+      doc(db, "systemConfig", "permissions"),
+      (snap) => {
+        permissionRoleDefaultsRef.current =
+          snap.exists() && snap.data()?.roleDefaults && typeof snap.data().roleDefaults === "object"
+            ? snap.data().roleDefaults
+            : {};
+        // Recalcular con último perfil conocido
+        setClaims((c) => {
+          if (!c?.role && !c?.email) return c;
+          const eff = computeEffectivePermissions(c, permissionRoleDefaultsRef.current);
+          return { ...c, effectivePermissions: eff };
+        });
+      },
+      () => {
+        permissionRoleDefaultsRef.current = {};
+      }
+    );
+    unsubscribePermConfig = unsubPerm;
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
-      // Limpiar suscripción previa si existe
       if (unsubscribeProfile) unsubscribeProfile();
 
       if (currentUser) {
         setUser(currentUser);
-        
-        // Carga inicial rápida de claims desde el token (si existen)
+
         const idTokenResult = await currentUser.getIdTokenResult();
         const c = idTokenResult.claims;
-        // Las reglas de Firestore usan tenant_id en el token; el perfil y algunos seed usan tenantId
         const tokenTenantId = c.tenantId ?? c.tenant_id ?? null;
         const isOverride = currentUser.email === "modernizacionsancarlos@gmail.com";
         const initialClaims = {
-            tenantId: tokenTenantId || (isOverride ? "Central_System" : null),
-            role: c.role || (isOverride ? "super_admin" : null),
+          tenantId: tokenTenantId || (isOverride ? "Central_System" : null),
+          role: c.role || (isOverride ? "super_admin" : null),
+          email: currentUser.email?.toLowerCase(),
         };
-        setClaims(initialClaims);
+        initialClaimsRef.current = initialClaims;
+        setClaims({ ...initialClaims, effectivePermissions: [] });
 
-        // Suscripción en tiempo real al perfil en Firestore
         unsubscribeProfile = onSnapshot(
-          doc(db, "userProfiles", currentUser.email.toLowerCase()), 
+          doc(db, "userProfiles", currentUser.email.toLowerCase()),
           (docSnap) => {
             if (docSnap.exists()) {
               const profileData = docSnap.data();
-              setClaims({
-                ...initialClaims,
-                ...profileData
-              });
+              const merged = { ...initialClaimsRef.current, ...profileData };
+              const eff = computeEffectivePermissions(merged, permissionRoleDefaultsRef.current);
+              setClaims({ ...merged, effectivePermissions: eff });
+            } else {
+              recomputeEffective({ ...initialClaimsRef.current });
             }
             setLoading(false);
           },
@@ -63,6 +96,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
         setClaims({});
+        initialClaimsRef.current = {};
         setLoading(false);
       }
     });
@@ -70,8 +104,9 @@ export const AuthProvider = ({ children }) => {
     return () => {
       unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
+      if (unsubscribePermConfig) unsubscribePermConfig();
     };
-  }, []);
+  }, [recomputeEffective]);
 
   const login = (email, password) => {
     return signInWithEmailAndPassword(auth, email, password);

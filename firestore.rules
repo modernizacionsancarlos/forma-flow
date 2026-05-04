@@ -106,6 +106,12 @@ service cloud.firestore {
       allow update, delete: if isSameTenant(resource.data);
     }
 
+    // Configuración global de la app (matriz de permisos por rol en cliente)
+    match /systemConfig/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isSuperAdmin();
+    }
+
     // Reglas para la configuración del Tenant (tenants)
     match /tenants/{tenantId} {
       allow read: if isAuthenticated() && (isSuperAdmin() || getUserTenantId() == tenantId);
@@ -132,6 +138,19 @@ service cloud.firestore {
         getUserTenantId() == request.resource.data.tenantId;
     }
 
+    /** Admin de tenant: ajustar solo excepciones de permisos en otro usuario del mismo tenant */
+    function tenantStaffCanOverridePermissions(targetEmail) {
+      return isAuthenticated() && hasUserProfile() &&
+        (userProfile().role == 'admin' || userProfile().role == 'admin_empresa') &&
+        exists(/databases/$(database)/documents/userProfiles/$(targetEmail)) &&
+        get(/databases/$(database)/documents/userProfiles/$(targetEmail)).data.tenantId == getUserTenantId();
+    }
+
+    function onlyPermissionOverrideKeysChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['permission_grant','permission_revoke']);
+    }
+
     // Reglas para Perfiles de Usuario
     match /userProfiles/{email} {
       allow read: if isSuperAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email.lower());
@@ -142,6 +161,8 @@ service cloud.firestore {
         isAuthenticated() && 
         request.auth.token.email.lower() == email.lower() &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenant_id', 'permissions'])
+      ) || (
+        tenantStaffCanOverridePermissions(email) && onlyPermissionOverrideKeysChanged()
       );
       allow delete: if isSuperAdmin();
     }

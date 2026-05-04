@@ -3,9 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AnimatePresence } from 'framer-motion'
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
 import toast, { Toaster } from 'react-hot-toast'
-import { AuthProvider, useAuth } from './lib/AuthContext'
+import { AuthProvider } from './lib/AuthContext'
 import { BrandingProvider } from './lib/BrandingProvider'
-import { hasPermission } from './lib/permissions'
+import { PermissionPreviewProvider, useEffectiveClaims } from './context/PermissionPreviewContext'
+import { hasPermission, hasAnyPermission } from './lib/permissions'
 import { PERMISSIONS } from './lib/permissions'
 import './index.css'
 
@@ -134,11 +135,12 @@ class RouteErrorBoundary extends React.Component {
   }
 }
 
-const ProtectedRoute = ({ children, role, permission }) => {
-  const { user, claims } = useAuth()
+const ProtectedRoute = ({ children, role, permission, anyPermissions }) => {
+  const { user, claims } = useEffectiveClaims()
   if (!user) return <Navigate to="/login" />
   if (role && claims.role !== role) return <Navigate to="/" />
-  if (permission && !hasPermission(claims?.role, permission)) return <Navigate to="/" />
+  if (permission && !hasPermission(claims, permission)) return <Navigate to="/" />
+  if (anyPermissions?.length && !hasAnyPermission(claims, anyPermissions)) return <Navigate to="/" />
   return children
 }
 
@@ -155,43 +157,43 @@ const AppRoutes = () => {
         <Route path="/portal" element={<CitizenPortal />} />
         
         <Route path="/" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.ACCESS_DASHBOARD}>
             <MainLayout><Dashboard /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/forms" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.ACCESS_FORMS}>
             <MainLayout><FormsList /></MainLayout>
           </ProtectedRoute>
         } />
         
         <Route path="/forms/new" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.ACCESS_FORMS}>
             <MainLayout><FormBuilder /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/submissions" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.VIEW_SUBMISSIONS}>
             <MainLayout><Submissions /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/admin" element={
-          <ProtectedRoute role="super_admin">
+          <ProtectedRoute permission={PERMISSIONS.ACCESS_ADMIN_PANEL}>
             <MainLayout><Admin /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/empresas" element={
-          <ProtectedRoute role="super_admin">
+          <ProtectedRoute permission={PERMISSIONS.MANAGE_TENANTS}>
             <MainLayout><Empresas /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/areas" element={
-          <ProtectedRoute role="super_admin">
+          <ProtectedRoute permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
             <MainLayout><Areas /></MainLayout>
           </ProtectedRoute>
         } />
@@ -209,19 +211,19 @@ const AppRoutes = () => {
         } />
 
         <Route path="/exportaciones" element={
-          <ProtectedRoute permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
+          <ProtectedRoute permission={PERMISSIONS.ACCESS_EXPORT}>
             <MainLayout><Exportaciones /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/auditoria" element={
-          <ProtectedRoute role="super_admin">
+          <ProtectedRoute permission={PERMISSIONS.VIEW_AUDIT_LOGS}>
             <MainLayout><Auditoria /></MainLayout>
           </ProtectedRoute>
         } />
 
         <Route path="/observatorio" element={
-          <ProtectedRoute role="super_admin">
+          <ProtectedRoute permission={PERMISSIONS.ACCESS_OBSERVATORY}>
             <MainLayout><GlobalMonitor /></MainLayout>
           </ProtectedRoute>
         } />
@@ -233,7 +235,7 @@ const AppRoutes = () => {
         } />
 
         <Route path="/configuracion" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission={PERMISSIONS.ACCESS_SETTINGS}>
             <MainLayout><Configuracion /></MainLayout>
           </ProtectedRoute>
         } />
@@ -273,6 +275,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <PermissionPreviewProvider>
         <Router>
           <Toaster 
             position="bottom-right" 
@@ -295,6 +298,7 @@ function App() {
             </RouteErrorBoundary>
           </BrandingProvider>
         </Router>
+        </PermissionPreviewProvider>
       </AuthProvider>
     </QueryClientProvider>
   )
