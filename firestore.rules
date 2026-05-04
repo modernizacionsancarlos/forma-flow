@@ -138,11 +138,13 @@ service cloud.firestore {
         getUserTenantId() == request.resource.data.tenantId;
     }
 
-    /** Admin de tenant: ajustar solo excepciones de permisos en otro usuario del mismo tenant */
+    /** Admin de tenant: mismo tenant que el documento objetivo (lectura / permisos / edición de ficha). */
     function tenantStaffCanOverridePermissions(targetEmail) {
       return isAuthenticated() && hasUserProfile() &&
         (userProfile().role == 'admin' || userProfile().role == 'admin_empresa') &&
+        getUserTenantId() != null &&
         exists(/databases/$(database)/documents/userProfiles/$(targetEmail)) &&
+        get(/databases/$(database)/documents/userProfiles/$(targetEmail)).data.keys().hasAll(['tenantId']) &&
         get(/databases/$(database)/documents/userProfiles/$(targetEmail)).data.tenantId == getUserTenantId();
     }
 
@@ -151,18 +153,56 @@ service cloud.firestore {
         .hasOnly(['permission_grant','permission_revoke']);
     }
 
+    /** Lista / getDoc de compañeros de empresa para matriz de permisos y gestión de usuarios. */
+    function canReadUserProfile(targetEmail) {
+      return isSuperAdmin() ||
+        (isAuthenticated() && request.auth.token.email.lower() == targetEmail.lower()) ||
+        tenantStaffCanOverridePermissions(targetEmail);
+    }
+
+    function isSelfUserProfile(targetEmail) {
+      return isAuthenticated() && request.auth.token.email.lower() == targetEmail.lower();
+    }
+
+    /**
+     * Autoedición de perfil o aceptación de invitación (rol/tenantId).
+     * No se permite auto-asignarse super_admin ni mutar permisos granulares (eso va por staff).
+     */
+    function selfUserProfileUpdateAllowed() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'user_name', 'phone', 'area_ids', 'status', 'updatedAt',
+        'role', 'tenantId', 'email', 'displayName',
+        'createdAt', 'performer_id'
+      ]) && (
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
+        request.resource.data.role != 'super_admin'
+      );
+    }
+
+    /** Admin de empresa: editar ficha de otro usuario (no tenantId/email doc; no permisos matriz aquí). */
+    function tenantStaffPeerProfileFieldsOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'user_name', 'phone', 'status', 'area_ids', 'role', 'updatedAt', 'performer_id'
+      ]);
+    }
+    function tenantStaffPeerRoleValid() {
+      return !request.resource.data.keys().hasAll(['role']) || request.resource.data.role != 'super_admin';
+    }
+
     // Reglas para Perfiles de Usuario
     match /userProfiles/{email} {
-      allow read: if isSuperAdmin() || (isAuthenticated() && request.auth.token.email.lower() == email.lower());
+      allow read: if canReadUserProfile(email);
       allow create: if (isSuperAdmin() && userProfileCreatePayloadValid(email)) ||
         (isAuthenticated() && request.auth.token.email.lower() == email.lower()) ||
         canStaffCreateOtherUserProfile(email);
       allow update: if isSuperAdmin() || (
-        isAuthenticated() && 
-        request.auth.token.email.lower() == email.lower() &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'tenant_id', 'permissions'])
+        isSelfUserProfile(email) && selfUserProfileUpdateAllowed()
       ) || (
         tenantStaffCanOverridePermissions(email) && onlyPermissionOverrideKeysChanged()
+      ) || (
+        tenantStaffCanOverridePermissions(email) &&
+        tenantStaffPeerProfileFieldsOnly() &&
+        tenantStaffPeerRoleValid()
       );
       allow delete: if isSuperAdmin();
     }

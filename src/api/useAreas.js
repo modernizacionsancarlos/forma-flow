@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, query, where, getDocs, addDoc, updateDoc, doc, Timestamp, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
+import { auditTenantId } from "../lib/auditTenantId";
 
 export const useAreas = () => {
     const { claims, user } = useAuth();
@@ -37,6 +38,7 @@ export const useAreas = () => {
                 action: "create_area",
                 area_name: newArea.name,
                 area_id: docRef.id,
+                tenant_id: auditTenantId(claims),
                 performer_id: user?.uid || "system",
                 performer_name: user?.email || "system",
                 timestamp: Timestamp.now()
@@ -61,6 +63,7 @@ export const useAreas = () => {
             await addDoc(collection(db, "AuditLogs"), {
                 action: "update_area",
                 area_id: id,
+                tenant_id: auditTenantId(claims),
                 performer_id: user?.uid || "system",
                 performer_name: user?.email || "system",
                 timestamp: Timestamp.now()
@@ -82,6 +85,7 @@ export const useAreas = () => {
             await addDoc(collection(db, "AuditLogs"), {
                 action: "delete_area",
                 area_id: id,
+                tenant_id: auditTenantId(claims),
                 performer_id: user?.uid || "system",
                 performer_name: user?.email || "system",
                 timestamp: Timestamp.now()

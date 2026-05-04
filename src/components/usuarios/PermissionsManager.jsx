@@ -51,7 +51,10 @@ export default function PermissionsManager({ users = [] }) {
   const [dirty, setDirty] = useState(false);
   const [loadingUser, setLoadingUser] = useState(false);
 
-  const roleDefaults = config?.roleDefaults || {};
+  const roleDefaults = useMemo(() => {
+    const rd = config?.roleDefaults;
+    return rd && typeof rd === "object" ? rd : {};
+  }, [config?.roleDefaults]);
 
   const available = useMemo(() => {
     const a = new Set(assigned);

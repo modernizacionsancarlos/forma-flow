@@ -1,7 +1,5 @@
-import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
-import { useAuth } from "../lib/AuthContext";
-
-const PermissionPreviewContext = createContext(null);
+import React, { useCallback, useContext, useMemo, useState } from "react";
+import { PermissionPreviewContext } from "./permissionPreviewRootContext";
 
 /**
  * Simula permisos de un rol o usuario sin guardar (vista previa del panel).
@@ -40,26 +38,3 @@ export function PermissionPreviewProvider({ children }) {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const usePermissionPreview = () => useContext(PermissionPreviewContext);
-
-/**
- * Claims efectivos: si hay vista previa activa, usa permisos simulados (sin tocar Firebase).
- */
-export function useEffectiveClaims() {
-  const auth = useAuth();
-  const ctx = useContext(PermissionPreviewContext);
-
-  return useMemo(() => {
-    if (ctx?.preview?.active && Array.isArray(ctx.preview.simulatedPermissions)) {
-      return {
-        ...auth,
-        claims: {
-          ...auth.claims,
-          role: ctx.preview.simulatedRole || auth.claims?.role,
-          effectivePermissions: ctx.preview.simulatedPermissions,
-          _previewMode: true,
-        },
-      };
-    }
-    return auth;
-  }, [auth, ctx?.preview]);
-}

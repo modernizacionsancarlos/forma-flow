@@ -37,28 +37,11 @@ export const AuthProvider = ({ children }) => {
     let unsubscribeProfile = null;
     let unsubscribePermConfig = null;
 
-    const unsubPerm = onSnapshot(
-      doc(db, "systemConfig", "permissions"),
-      (snap) => {
-        permissionRoleDefaultsRef.current =
-          snap.exists() && snap.data()?.roleDefaults && typeof snap.data().roleDefaults === "object"
-            ? snap.data().roleDefaults
-            : {};
-        // Recalcular con último perfil conocido
-        setClaims((c) => {
-          if (!c?.role && !c?.email) return c;
-          const eff = computeEffectivePermissions(c, permissionRoleDefaultsRef.current);
-          return { ...c, effectivePermissions: eff };
-        });
-      },
-      () => {
-        permissionRoleDefaultsRef.current = {};
-      }
-    );
-    unsubscribePermConfig = unsubPerm;
-
     const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
       if (unsubscribeProfile) unsubscribeProfile();
+      if (unsubscribePermConfig) unsubscribePermConfig();
+      unsubscribeProfile = null;
+      unsubscribePermConfig = null;
 
       if (currentUser) {
         setUser(currentUser);
@@ -74,6 +57,25 @@ export const AuthProvider = ({ children }) => {
         };
         initialClaimsRef.current = initialClaims;
         setClaims({ ...initialClaims, effectivePermissions: [] });
+
+        // Tras claims iniciales: listener solo con sesión (evita permission-denied en pantalla de login).
+        unsubscribePermConfig = onSnapshot(
+          doc(db, "systemConfig", "permissions"),
+          (snap) => {
+            permissionRoleDefaultsRef.current =
+              snap.exists() && snap.data()?.roleDefaults && typeof snap.data().roleDefaults === "object"
+                ? snap.data().roleDefaults
+                : {};
+            setClaims((prev) => {
+              if (!prev?.email) return prev;
+              const eff = computeEffectivePermissions(prev, permissionRoleDefaultsRef.current);
+              return { ...prev, effectivePermissions: eff };
+            });
+          },
+          () => {
+            permissionRoleDefaultsRef.current = {};
+          }
+        );
 
         unsubscribeProfile = onSnapshot(
           doc(db, "userProfiles", currentUser.email.toLowerCase()),
@@ -97,6 +99,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setClaims({});
         initialClaimsRef.current = {};
+        permissionRoleDefaultsRef.current = {};
         setLoading(false);
       }
     });

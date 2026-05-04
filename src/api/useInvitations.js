@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, doc, getDoc, getDocs, Timestamp, query, where, deleteDoc, addDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
+import { auditTenantId } from "../lib/auditTenantId";
 import { callProvisionStaffAuthUser, sendFirebasePasswordSetupEmail } from "./staffAuthProvisioning";
 import NotificationService from "./NotificationService";
 
@@ -97,13 +98,19 @@ export const useInvitations = () => {
 
     const revokeInvitation = useMutation({
         mutationFn: async (id) => {
-            // Obtener info para auditoría antes de borrar (opcional, pero buena práctica)
-            await deleteDoc(doc(db, "invitations", id));
-            
+            const invRef = doc(db, "invitations", id);
+            const invSnap = await getDoc(invRef);
+            const invTenant =
+                invSnap.exists() && (invSnap.data().tenantId || invSnap.data().tenant_id)
+                    ? invSnap.data().tenantId || invSnap.data().tenant_id
+                    : auditTenantId(claims, "global");
+
+            await deleteDoc(invRef);
+
             await addDoc(collection(db, "AuditLogs"), {
                 action: "revoke_invite",
                 invite_id: id,
-                tenant_id: claims?.tenantId || "global",
+                tenant_id: invTenant,
                 performer_id: performer?.uid || "system",
                 performer_name: performer?.email || "system",
                 timestamp: Timestamp.now()

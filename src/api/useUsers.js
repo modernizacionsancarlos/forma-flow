@@ -4,6 +4,23 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { callProvisionStaffAuthUser, sendFirebasePasswordSetupEmail } from "./staffAuthProvisioning";
 import NotificationService from "./NotificationService";
+import { auditTenantId } from "../lib/auditTenantId";
+
+/** Campos que admin de empresa puede persistir en otro perfil (alineado con firestore.rules). */
+function buildProfileUpdatePayload(raw, claims) {
+    const isSuper = claims?.role === "super_admin";
+    const out = {};
+    if (raw.user_name !== undefined) out.user_name = raw.user_name;
+    if (raw.phone !== undefined) out.phone = raw.phone;
+    if (raw.status !== undefined) out.status = raw.status;
+    if (raw.area_ids !== undefined) out.area_ids = raw.area_ids;
+    if (raw.role !== undefined) out.role = raw.role;
+    if (isSuper) {
+        const tid = raw.tenantId ?? raw.tenant_id;
+        if (tid !== undefined && tid !== "") out.tenantId = tid;
+    }
+    return out;
+}
 
 export const useUsers = () => {
     const { user: performer, claims } = useAuth();
@@ -105,6 +122,7 @@ export const useUsers = () => {
                     action: "link_user_profile",
                     user_email: userEmail,
                     target_tenant: tenantId,
+                    tenant_id: tenantId,
                     assigned_role: userData.role || "lector",
                     performer_id: performer?.uid || "system",
                     performer_name: performer?.email || "system",
@@ -144,18 +162,26 @@ export const useUsers = () => {
                 const userSnap = await transaction.get(userRef);
                 if (!userSnap.exists()) throw new Error("Usuario no encontrado");
 
+                const payload = buildProfileUpdatePayload(data, claims);
+                if (Object.keys(payload).length === 0) {
+                    throw new Error("No hay cambios válidos para guardar.");
+                }
+
                 transaction.update(userRef, {
-                    ...data,
+                    ...payload,
                     updatedAt: Timestamp.now(),
                     performer_id: performer?.uid
                 });
 
-                // Auditoría
+                const tenantForAudit =
+                    auditTenantId(claims, userSnap.data()?.tenantId || "Central_System");
+
                 const auditRef = doc(collection(db, "AuditLogs"));
                 transaction.set(auditRef, {
                     action: "update_user_profile",
                     target_user: id,
-                    changes: data,
+                    tenant_id: tenantForAudit,
+                    changes: payload,
                     performer_id: performer?.uid,
                     timestamp: Timestamp.now()
                 });
@@ -194,6 +220,7 @@ export const useUsers = () => {
                 transaction.set(auditRef, {
                     action: "unlink_user",
                     user_id: id,
+                    tenant_id: tenantId && tenantId !== "Central_System" ? tenantId : auditTenantId(claims),
                     performer_id: performer?.uid || "system",
                     performer_name: performer?.email || "system",
                     timestamp: Timestamp.now()

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, query, where, getDocs, addDoc, doc, Timestamp, deleteDoc } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
+import { auditTenantId } from "../lib/auditTenantId";
 
 export const useExports = () => {
     const { claims, user } = useAuth();
@@ -37,6 +38,7 @@ export const useExports = () => {
                 action: "create_export",
                 export_name: newExport.name,
                 export_id: docRef.id,
+                tenant_id: auditTenantId(claims),
                 performer_id: user?.uid || "system",
                 performer_name: user?.email || "system",
                 timestamp: Timestamp.now()
@@ -58,6 +60,7 @@ export const useExports = () => {
             await addDoc(collection(db, "AuditLogs"), {
                 action: "delete_export",
                 export_id: id,
+                tenant_id: auditTenantId(claims),
                 performer_id: user?.uid || "system",
                 performer_name: user?.email || "system",
                 timestamp: Timestamp.now()

@@ -1,6 +1,6 @@
 import React from 'react';
 import { hasPermission, hasAnyPermission } from '../../lib/permissions';
-import { useEffectiveClaims } from '../../context/PermissionPreviewContext';
+import { useEffectiveClaims } from '../../context/useEffectiveClaims';
 
 /**
  * Componente Guard para protección de UI basada en roles o permisos.

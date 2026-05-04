@@ -9,7 +9,7 @@ export const useTenants = () => {
 
     const fetchTenants = async () => {
         // Super admin: lista completa. Resto: el tenant vive en el ID del documento (p. ej. Central_System), no en un campo "id".
-        if (claims.role === "super_admin") {
+        if (claims?.role === "super_admin") {
             const querySnapshot = await getDocs(query(collection(db, "tenants")));
             return querySnapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
         }
@@ -25,7 +25,7 @@ export const useTenants = () => {
     const fetchQuery = useQuery({
         queryKey: ["tenants", claims.tenantId],
         queryFn: fetchTenants,
-        enabled: !!claims.tenantId || claims.role === 'super_admin',
+        enabled: !!claims?.tenantId || claims?.role === "super_admin",
     });
 
     const createTenant = useMutation({
