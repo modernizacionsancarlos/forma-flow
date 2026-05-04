@@ -53,6 +53,15 @@ import PremiumSplash from './components/ui/PremiumSplash'
 import PWAInstallPrompt from './components/ui/PWAInstallPrompt'
 
 const queryClient = new QueryClient({
+  /** Menos refetch automático = menos lecturas Firestore y menos ancho de banda (Blaze). */
+  defaultOptions: {
+    queries: {
+      staleTime: 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
   queryCache: new QueryCache({
     onError: (error) => toast.error(error.message || 'Error al cargar los datos')
   }),

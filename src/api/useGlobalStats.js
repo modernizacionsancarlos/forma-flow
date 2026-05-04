@@ -142,7 +142,10 @@ export const useGlobalStats = (tenantId = null) => {
                     .slice(0, 5) // Top 5
             };
         },
-        refetchInterval: 60000 // Refresh every minute
+        staleTime: 2 * 60 * 1000,
+        /** Panel admin: consultas pesadas; refresco cada 3 min y pausa en pestaña oculta. */
+        refetchInterval: () =>
+            typeof document !== "undefined" && document.visibilityState === "hidden" ? false : 180000,
     });
 };
 

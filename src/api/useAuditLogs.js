@@ -34,6 +34,9 @@ export const useAuditLogs = () => {
     queryKey: ["auditLogs", claims?.tenantId, claims?.role],
     queryFn: fetchAuditLogs,
     enabled: !!claims,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    staleTime: 90 * 1000,
+    /** Sin sondeo agresivo: 2 min, y pausa si la pestaña está oculta (ahorra lecturas). */
+    refetchInterval: () =>
+      typeof document !== "undefined" && document.visibilityState === "hidden" ? false : 120000,
   });
 };

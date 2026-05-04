@@ -12,7 +12,14 @@ if (!getApps().length) {
   initializeApp();
 }
 
-setGlobalOptions({ region: "us-east1", maxInstances: 10 });
+// Costos Blaze: tope bajo de instancias, memoria mínima y sin minInstances (no cron ni tráfico fantasma).
+setGlobalOptions({
+  region: "us-east1",
+  maxInstances: 3,
+  minInstances: 0,
+  memory: "256MiB",
+  timeoutSeconds: 60,
+});
 
 const STAFF_ROLES = new Set(["super_admin", "admin", "admin_empresa"]);
 
@@ -34,7 +41,13 @@ async function resolveCallerAccess(callerEmailRaw) {
  * Callable: crea usuario en Firebase Auth si no existe (sin contraseña; el cliente envía reset por correo).
  * Requiere rol staff en userProfiles y que el tenant objetivo coincida (salvo super_admin).
  */
-export const provisionStaffAuthUser = onCall(async (request) => {
+export const provisionStaffAuthUser = onCall(
+  {
+    maxInstances: 3,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+  },
+  async (request) => {
   if (!request.auth?.token?.email) {
     throw new HttpsError("unauthenticated", "Tenés que iniciar sesión para aprovisionar usuarios.");
   }
@@ -97,4 +110,5 @@ export const provisionStaffAuthUser = onCall(async (request) => {
     const msg = e?.message || "No se pudo crear el usuario en Auth.";
     throw new HttpsError("internal", msg);
   }
-});
+}
+);

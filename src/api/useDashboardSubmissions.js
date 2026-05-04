@@ -29,7 +29,9 @@ export const useDashboardSubmissions = (tenantId = null) => {
             const snap = await getDocs(q);
             return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         },
-        refetchInterval: 60000, // Refresh every minute
+        staleTime: 90 * 1000,
+        refetchInterval: () =>
+            typeof document !== "undefined" && document.visibilityState === "hidden" ? false : 120000,
     });
 
     return {

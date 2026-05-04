@@ -107,9 +107,11 @@ const MainLayout = ({ children }) => {
   // Activa las notificaciones en tiempo real para el administrador
   useSubmissionNotifications();
 
-  // Actualiza el saludo dinámico según la hora local
+  // Reloj del encabezado: actualización por minuto (evita re-renders cada segundo en todo el layout).
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    const tick = () => setCurrentTime(new Date());
+    tick();
+    const timer = setInterval(tick, 60 * 1000);
     return () => clearInterval(timer);
   }, []);
 

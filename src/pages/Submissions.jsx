@@ -182,11 +182,22 @@ export default function Submissions() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [claims.tenantId]);
 
+    // Recarga periódica suave; con pestaña oculta no se ejecuta (menos lecturas Firestore).
     useEffect(() => {
-        const timer = setInterval(() => {
-            fetchSubmissions();
-        }, 30000);
-        return () => clearInterval(timer);
+        const pollMs = 120000;
+        const tick = () => {
+            if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+            fetchSubmissions({ silent: true, quiet: true });
+        };
+        const timer = setInterval(tick, pollMs);
+        const onVis = () => {
+            if (document.visibilityState === "visible") fetchSubmissions({ silent: true, quiet: true });
+        };
+        document.addEventListener("visibilitychange", onVis);
+        return () => {
+            clearInterval(timer);
+            document.removeEventListener("visibilitychange", onVis);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [claims.tenantId, claims.role]);
 
