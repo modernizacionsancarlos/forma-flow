@@ -493,7 +493,7 @@ export default function Usuarios() {
                                                                     }`}>
                                                                     {u.status === "active" ? "Desactivar" : "Activar"}
                                                                 </button>
-                                                                {u.status === "inactive" ? (
+                                                                {["inactive", "disabled"].includes(String(u.status || "").toLowerCase()) ? (
                                                                     <button
                                                                         onClick={() => handleArchive(u)}
                                                                         className="text-xs text-violet-400 hover:text-violet-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"

@@ -315,3 +315,36 @@ export const setStaffAuthUserStateHttp = onRequest(
     }
   }
 );
+
+async function listAuthUsersCore({ callerEmail, tokenRole }) {
+  const role = tokenRole || (callerEmail === "modernizacionsancarlos@gmail.com" ? "super_admin" : null);
+  if (role !== "super_admin") {
+    throw new HttpsError("permission-denied", "Solo Super Admin puede listar usuarios de Firebase Auth.");
+  }
+  const out = [];
+  let nextPageToken = undefined;
+  do {
+    const res = await getAuth().listUsers(1000, nextPageToken);
+    res.users.forEach((u) => {
+      out.push({
+        uid: u.uid,
+        email: String(u.email || "").toLowerCase(),
+        displayName: u.displayName || "",
+        disabled: Boolean(u.disabled),
+      });
+    });
+    nextPageToken = res.pageToken;
+  } while (nextPageToken);
+  return { users: out };
+}
+
+export const listStaffAuthUsers = onCall(
+  { invoker: "public", maxInstances: 2, timeoutSeconds: 60 },
+  async (request) => {
+    if (!request.auth?.token?.email) throw new HttpsError("unauthenticated", "Sin sesión.");
+    return listAuthUsersCore({
+      callerEmail: request.auth.token.email.toLowerCase(),
+      tokenRole: request.auth.token.role || null,
+    });
+  }
+);

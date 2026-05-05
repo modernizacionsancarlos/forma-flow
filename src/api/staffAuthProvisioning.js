@@ -127,3 +127,9 @@ export async function syncStaffAuthUserState({
     return data;
   }
 }
+
+export async function listStaffAuthUsers() {
+  const fn = httpsCallable(functions, "listStaffAuthUsers");
+  const { data } = await fn({});
+  return Array.isArray(data?.users) ? data.users : [];
+}

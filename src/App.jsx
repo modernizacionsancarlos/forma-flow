@@ -3,12 +3,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AnimatePresence } from 'framer-motion'
 import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from '@tanstack/react-query'
 import toast, { Toaster } from 'react-hot-toast'
+import { addDoc, collection, Timestamp } from "firebase/firestore"
 import { AuthProvider } from './lib/AuthContext'
 import { BrandingProvider } from './lib/BrandingProvider'
 import { PermissionPreviewProvider } from './context/PermissionPreviewContext'
 import { useEffectiveClaims } from './context/useEffectiveClaims'
 import { hasPermission, hasAnyPermission } from './lib/permissions'
 import { PERMISSIONS } from './lib/permissions'
+import { db } from "./lib/firebase"
 import './index.css'
 
 const lazyWithRetry = (factory, retries = 1, delayMs = 350) =>
@@ -137,13 +139,93 @@ class RouteErrorBoundary extends React.Component {
 }
 
 const ProtectedRoute = ({ children, role, permission, anyPermissions }) => {
-  const { user, claims } = useEffectiveClaims()
+  const { user, claims, logout } = useEffectiveClaims()
   if (!user) return <Navigate to="/login" />
+  const status = String(claims?.status || "").toLowerCase();
+  if (status === "inactive" || status === "archived" || status === "disabled") {
+    return (
+      <AccessStateScreen
+        title={status === "archived" ? "Tu cuenta está archivada" : "Tu cuenta está desactivada"}
+        message="Tu usuario existe, pero está sin acceso operativo en este momento."
+        requestType="activation"
+        claims={claims}
+        user={user}
+        logout={logout}
+      />
+    );
+  }
   if (role && claims.role !== role) return <Navigate to="/" />
-  if (permission && !hasPermission(claims, permission)) return <Navigate to="/" />
-  if (anyPermissions?.length && !hasAnyPermission(claims, anyPermissions)) return <Navigate to="/" />
+  if (permission && !hasPermission(claims, permission)) {
+    return (
+      <AccessStateScreen
+        title="No tenés permisos para esta cuenta"
+        message="Tu sesión está activa, pero no tenés permisos suficientes para operar en el sistema."
+        requestType="permissions"
+        claims={claims}
+        user={user}
+        logout={logout}
+      />
+    );
+  }
+  if (anyPermissions?.length && !hasAnyPermission(claims, anyPermissions)) {
+    return (
+      <AccessStateScreen
+        title="No tenés permisos para esta vista"
+        message="Solicitá permisos a un Admin o Super Admin para habilitar este módulo."
+        requestType="permissions"
+        claims={claims}
+        user={user}
+        logout={logout}
+      />
+    );
+  }
   return children
 }
+
+const AccessStateScreen = ({ title, message, requestType, claims, user, logout }) => {
+  const requestAccess = async () => {
+    const tenantId = claims?.tenantId || claims?.tenant_id || "global";
+    const requesterEmail = (user?.email || claims?.email || "sin-correo").toLowerCase();
+    await addDoc(collection(db, "Notifications"), {
+      title: requestType === "activation" ? "Solicitud de activación de cuenta" : "Solicitud de permisos",
+      message:
+        requestType === "activation"
+          ? `${requesterEmail} solicita activar su cuenta.`
+          : `${requesterEmail} solicita permisos o rol para acceder al sistema.`,
+      type: "system",
+      read: false,
+      tenant_id: tenantId,
+      requestedBy: requesterEmail,
+      requestType,
+      target: "admins",
+      timestamp: Timestamp.now(),
+    });
+    toast.success("Solicitud enviada a Admin/Super Admin.");
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-6">
+      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-6 text-center">
+        <h2 className="text-xl font-semibold text-white">{title}</h2>
+        <p className="mt-2 text-sm text-slate-400">{message}</p>
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={requestAccess}
+            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
+          >
+            Solicitar permisos
+          </button>
+          <button
+            onClick={logout}
+            className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 hover:bg-slate-800"
+          >
+            Cerrar sesión
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const AppRoutes = () => {
   const location = useLocation();

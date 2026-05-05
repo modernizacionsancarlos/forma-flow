@@ -6,6 +6,7 @@ import {
     callProvisionStaffAuthUser,
     sendFirebasePasswordSetupEmail,
     syncStaffAuthUserState,
+    listStaffAuthUsers,
 } from "./staffAuthProvisioning";
 import NotificationService from "./NotificationService";
 import { auditTenantId } from "../lib/auditTenantId";
@@ -75,6 +76,30 @@ export const useUsers = () => {
                 });
             }
         });
+
+        if (claims?.role === "super_admin") {
+            try {
+                const authUsers = await listStaffAuthUsers();
+                authUsers.forEach((au) => {
+                    const email = String(au.email || "").toLowerCase();
+                    if (!email) return;
+                    if (!byEmail.has(email)) {
+                        byEmail.set(email, {
+                            id: email,
+                            email,
+                            user_name: au.displayName || "",
+                            role: "visualizador",
+                            status: au.disabled ? "inactive" : "active",
+                            area_ids: [],
+                            tenantId: null,
+                            source: "auth_only",
+                        });
+                    }
+                });
+            } catch (e) {
+                console.warn("[useUsers] listStaffAuthUsers:", e?.message || e);
+            }
+        }
 
         return [...byEmail.values()];
     };
@@ -201,8 +226,17 @@ export const useUsers = () => {
             let tenantForAuth = claims?.tenantId || "";
             await runTransaction(db, async (transaction) => {
                 const userSnap = await transaction.get(userRef);
-                if (!userSnap.exists()) throw new Error("Usuario no encontrado");
-                const current = userSnap.data();
+                const current = userSnap.exists()
+                    ? userSnap.data()
+                    : {
+                        email: id,
+                        tenantId: data.tenantId || data.tenant_id || claims?.tenantId || "Central_System",
+                        role: data.role || "operador",
+                        status: "pending_invite",
+                        user_name: data.user_name || "",
+                        phone: data.phone || "",
+                        area_ids: data.area_ids || [],
+                    };
 
                 const payload = buildProfileUpdatePayload(data, claims);
                 if (Object.keys(payload).length === 0) {
@@ -210,11 +244,12 @@ export const useUsers = () => {
                 }
                 tenantForAuth = payload.tenantId || current.tenantId || claims?.tenantId || "";
 
-                transaction.update(userRef, {
+                transaction.set(userRef, {
+                    ...current,
                     ...payload,
                     updatedAt: Timestamp.now(),
                     performer_id: performer?.uid
-                });
+                }, { merge: true });
 
                 const tenantForAudit =
                     auditTenantId(claims, userSnap.data()?.tenantId || "Central_System");
