@@ -31,19 +31,26 @@ async function callProvisionStaffAuthUserHttp(payload) {
 
 /** Llama a la función callable que crea el usuario en Auth si aún no existe. */
 export async function callProvisionStaffAuthUser({ email, displayName, targetTenantId }) {
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const basicEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  if (!basicEmailPattern.test(normalizedEmail)) {
+    throw new Error("Correo electrónico inválido. Revisá el formato (ej: usuario@dominio.com).");
+  }
+
   const payload = {
-    email: String(email).trim().toLowerCase(),
+    email: normalizedEmail,
     displayName: displayName || "",
     targetTenantId: String(targetTenantId || "").trim(),
   };
 
+  // Primario por HTTP (CORS controlado explícitamente).
   try {
+    return await callProvisionStaffAuthUserHttp(payload);
+  } catch {
+    // Fallback callable para compatibilidad.
     const fn = httpsCallable(functions, "provisionStaffAuthUser");
     const { data } = await fn(payload);
     return data;
-  } catch {
-    // Fallback HTTP: evita bloqueos de CORS/preflight observados en algunos entornos locales.
-    return callProvisionStaffAuthUserHttp(payload);
   }
 }
 

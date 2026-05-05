@@ -89,6 +89,18 @@ async function provisionStaffAuthUserCore({
     return { created: true, existed: false, email: emailLower };
   } catch (e) {
     console.error("[provisionStaffAuthUser] createUser", e);
+    if (e?.code === "auth/invalid-email") {
+      throw new HttpsError("invalid-argument", "Correo electrónico inválido.");
+    }
+    if (e?.code === "auth/email-already-exists") {
+      return { created: false, existed: true, email: emailLower };
+    }
+    if (e?.code === "auth/insufficient-permission") {
+      throw new HttpsError(
+        "permission-denied",
+        "La cuenta de servicio de Functions no tiene permisos para gestionar usuarios de Auth."
+      );
+    }
     throw new HttpsError("internal", e?.message || "No se pudo crear el usuario en Auth.");
   }
 }
@@ -159,6 +171,11 @@ export const provisionStaffAuthUserHttp = onRequest(
       });
       res.status(200).json(result);
     } catch (e) {
+      console.error("[provisionStaffAuthUserHttp]", {
+        code: e?.code,
+        message: e?.message,
+        stack: e?.stack,
+      });
       const code = e?.code || "internal";
       const msg = e?.message || "Error interno en provisionStaffAuthUserHttp";
       const map = {
