@@ -21,6 +21,8 @@ import { useAuth } from "../lib/AuthContext";
 import { useForms } from "../api/useForms";
 import { useAreas } from "../api/useAreas";
 import { toast } from "react-hot-toast";
+import HelpInfoIcon from "@/components/ui/HelpInfoIcon";
+import { ActionWithTooltip } from "@/components/help/HelpPrimitives.jsx";
 
 /** Evita que la UI quede en "Eliminando…" para siempre si la red o Firestore no responden. */
 function withTimeout(promise, ms, message = "Tiempo de espera agotado. Reintenta.") {
@@ -359,12 +361,15 @@ export default function Submissions() {
         : getFormName(selectedFormId);
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white flex">
+        <div data-help-section="submissions" className="min-h-screen bg-slate-950 text-white flex">
 
             {/* ════════ SIDEBAR ════════ */}
-            <div className="w-64 bg-slate-900 border-r border-slate-800 flex-col hidden md:flex flex-shrink-0">
+            <div data-help-section="subs.sidebar" className="w-64 bg-slate-900 border-r border-slate-800 flex-col hidden md:flex flex-shrink-0">
                 <div className="p-4 border-b border-slate-800">
-                    <p className="text-xs text-slate-500 uppercase font-medium mb-3">Respuestas</p>
+                    <p className="mb-3 flex items-center gap-2 text-xs font-medium uppercase text-slate-500">
+                        Respuestas
+                        <HelpInfoIcon helpSection="subs.sidebar" className="text-slate-600" />
+                    </p>
                     <div className="relative">
                         <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                         <input
@@ -416,12 +421,17 @@ export default function Submissions() {
                 {/* ─── Header ─────────────────────────────────────── */}
                 <div className="bg-slate-900 border-b border-slate-800 px-6 py-4">
                     <div className="flex justify-between items-center gap-4">
-                        <div>
+                        <div className="flex min-w-0 items-start gap-2">
+                            <div className="min-w-0">
                             <h1 className="text-lg font-bold text-white">{selectedTitle}</h1>
                             <p className="text-slate-500 text-sm">{filtered.length} entradas</p>
+                            </div>
+                            <HelpInfoIcon helpSection="submissions" className="mt-0.5 shrink-0 text-slate-600" />
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <ActionWithTooltip section="subs.refresh">
                             <button
+                                type="button"
                                 onClick={() => fetchSubmissions({ source: "server" })}
                                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm bg-slate-800 text-slate-300 hover:text-white transition-colors"
                                 title="Recargar desde el servidor (datos actualizados)"
@@ -429,7 +439,11 @@ export default function Submissions() {
                                 <RefreshCw size={14} />
                                 Recargar
                             </button>
-                            <button onClick={() => setShowFilters(!showFilters)}
+                            </ActionWithTooltip>
+                            <ActionWithTooltip section="subs.filters">
+                            <button
+                                type="button"
+                                onClick={() => setShowFilters(!showFilters)}
                                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
                                     showFilters
                                         ? "bg-emerald-600/20 text-emerald-400 border border-emerald-700/50"
@@ -444,6 +458,7 @@ export default function Submissions() {
                                     </span>
                                 )}
                             </button>
+                            </ActionWithTooltip>
                         </div>
                     </div>
 

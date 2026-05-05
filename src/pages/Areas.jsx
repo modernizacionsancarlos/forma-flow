@@ -12,6 +12,8 @@ import { useForms } from "../api/useForms";
 import { useAuth } from "../lib/AuthContext";
 import Guard from "../components/auth/Guard";
 import { PERMISSIONS, hasPermission } from "../lib/permissions";
+import HelpInfoIcon from "@/components/ui/HelpInfoIcon";
+import { ActionWithTooltip } from "@/components/help/HelpPrimitives.jsx";
 
 /* ── Constants ────────────────────────────────────────────────────── */
 const STATUS_BADGE = {
@@ -96,23 +98,28 @@ export default function Areas() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white">
+        <div data-help-section="areas" className="min-h-screen bg-slate-950 text-white">
 
             {/* Cabecera alineada con Formularios / Respuestas */}
             <div className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-4 sm:py-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 items-start gap-2">
+                        <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                             <MapPin size={20} className="text-emerald-400 shrink-0" />
                             <h1 className="text-xl font-bold text-white">Áreas</h1>
+                            <HelpInfoIcon helpSection="areas" className="text-slate-600" />
                         </div>
                         <p className="text-slate-500 text-sm mt-0.5 pl-0 sm:pl-7">Aislamiento por unidades organizativas</p>
+                        </div>
                     </div>
                 <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES} fallback={null}>
+                    <ActionWithTooltip section="areas.new">
                     <button type="button" onClick={openNew}
                         className="flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
                         <Plus size={16} /> Nueva área
                     </button>
+                    </ActionWithTooltip>
                 </Guard>
                 </div>
 

@@ -55,6 +55,8 @@ import JoinOrganization from './components/auth/JoinOrganization'
 import ReloadPrompt from './components/ui/ReloadPrompt'
 import PremiumSplash from './components/ui/PremiumSplash'
 import PWAInstallPrompt from './components/ui/PWAInstallPrompt'
+import ContextHelpLayer from './components/ui/ContextHelpLayer'
+import { TooltipProvider } from './components/ui/tooltip'
 
 const queryClient = new QueryClient({
   /** Menos refetch automático = menos lecturas Firestore y menos ancho de banda (Blaze). */
@@ -361,6 +363,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <PermissionPreviewProvider>
+        <TooltipProvider delayDuration={200}>
+        <ContextHelpLayer>
         <Router>
           <Toaster 
             position="bottom-right" 
@@ -383,6 +387,8 @@ function App() {
             </RouteErrorBoundary>
           </BrandingProvider>
         </Router>
+        </ContextHelpLayer>
+        </TooltipProvider>
         </PermissionPreviewProvider>
       </AuthProvider>
     </QueryClientProvider>

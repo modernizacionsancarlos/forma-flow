@@ -13,6 +13,8 @@ import { toast } from "react-hot-toast";
 import ResponseLimitModal from "../components/forms/ResponseLimitModal";
 import FormPreviewModal from "../components/forms/FormPreviewModal";
 import { formatScheduleBrief } from "../lib/formSchedule";
+import HelpInfoIcon from "@/components/ui/HelpInfoIcon";
+import { ActionWithTooltip } from "@/components/help/HelpPrimitives.jsx";
 
 /* ── Constants ────────────────────────────────────────────────────── */
 const STATUS_BADGE = {
@@ -64,6 +66,7 @@ const formatResponseLimit = (responseLimit) => {
 const MiniToggle = ({ checked, onChange, label, disabled }) => (
     <button
         type="button"
+        data-help-section="forms.toggle"
         disabled={disabled}
         onClick={onChange}
         className="flex w-full items-center justify-between gap-2 rounded-lg border border-slate-800 bg-slate-800/30 px-2 py-1.5 text-left text-[11px] text-slate-300 hover:border-slate-600 disabled:opacity-50"
@@ -219,18 +222,22 @@ export default function FormsList() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white">
+        <div data-help-section="forms" className="min-h-screen bg-slate-950 text-white">
 
             {/* ─── HEADER ─────────────────────────────────────────── */}
             <div className="bg-slate-900 border-b border-slate-800 px-6 py-5">
                 {/* Top row */}
                 <div className="flex justify-between flex-wrap gap-4">
-                    <div>
+                    <div className="flex items-start gap-2 min-w-0">
+                        <div className="min-w-0">
                         <h1 className="text-xl font-bold text-white">Formularios</h1>
                         <p className="text-slate-500 text-sm mt-0.5">
                             {formsList.length} formularios en total
                         </p>
+                        </div>
+                        <HelpInfoIcon helpSection="forms" className="mt-1 shrink-0 text-slate-500" />
                     </div>
+                    <ActionWithTooltip section="forms.new" className="shrink-0">
                     <button
                         onMouseEnter={() => import("./FormBuilder")}
                         onFocus={() => import("./FormBuilder")}
@@ -238,10 +245,11 @@ export default function FormsList() {
                         className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
                         <Plus size={16} /> Nuevo Formulario
                     </button>
+                    </ActionWithTooltip>
                 </div>
 
                 {/* Filters row */}
-                <div className="flex flex-wrap gap-3 mt-4">
+                <div className="mt-4 flex flex-wrap items-center gap-3">
                     <div className="relative flex-1 min-w-[12rem]">
                         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                         <input
@@ -268,6 +276,9 @@ export default function FormsList() {
                             <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
                     </select>
+                    <span data-help-section="forms.filter" className="ml-auto inline-flex items-center gap-1">
+                        <HelpInfoIcon helpSection="forms.filter" className="text-slate-600" />
+                    </span>
                 </div>
             </div>
 
@@ -304,10 +315,14 @@ export default function FormsList() {
                             return (
                                 <div
                                     key={form.id}
-                                    className={`bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-all group ${
+                                    data-help-section="forms.row"
+                                    className={`relative bg-slate-900 border border-slate-800 rounded-xl p-4 pt-10 hover:border-slate-700 transition-all group ${
                                         rowBusy ? "opacity-80" : ""
                                     }`}
                                 >
+                                    <div className="absolute top-2 right-2 z-[1]">
+                                        <HelpInfoIcon helpSection="forms.row" />
+                                    </div>
                                     <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
                                         {/* Bloque principal: título, descripción, metadatos */}
                                         <div className="min-w-0 flex-1">
@@ -363,6 +378,7 @@ export default function FormsList() {
                                                 >
                                                     {isPublic ? "Público (anónimo)" : "Solo con sesión"}
                                                 </span>
+                                                <ActionWithTooltip section="forms.copyLink">
                                                 <button
                                                     type="button"
                                                     title="Copiar enlace"
@@ -372,6 +388,8 @@ export default function FormsList() {
                                                 >
                                                     <Copy size={12} />
                                                 </button>
+                                                </ActionWithTooltip>
+                                                <ActionWithTooltip section="forms.preview">
                                                 <a
                                                     href={copyUrl}
                                                     target="_blank"
@@ -381,6 +399,7 @@ export default function FormsList() {
                                                 >
                                                     <Link2 size={12} />
                                                 </a>
+                                                </ActionWithTooltip>
                                             </div>
 
                                             <MiniToggle
@@ -395,6 +414,7 @@ export default function FormsList() {
                                                 disabled={rowBusy}
                                                 onChange={() => patchFormFields(form, { is_public: !isPublic })}
                                             />
+                                            <ActionWithTooltip section="forms.responseLimit">
                                             <button
                                                 type="button"
                                                 disabled={rowBusy}
@@ -410,10 +430,12 @@ export default function FormsList() {
                                                         : ""}
                                                 </span>
                                             </button>
+                                            </ActionWithTooltip>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-1 mt-4 pt-3 border-t border-slate-800">
+                                    <div className="flex flex-wrap items-center gap-1 mt-4 pt-3 border-t border-slate-800">
+                                        <ActionWithTooltip section="forms.edit">
                                         <button
                                             type="button"
                                             onClick={() => navigate(`/forms/new?id=${form.id}`)}
@@ -421,8 +443,10 @@ export default function FormsList() {
                                         >
                                             <Edit3 size={12} /> Editar
                                         </button>
+                                        </ActionWithTooltip>
 
                                         {/* Abre cómo verá la respuesta la persona (URL pública o vista interna). */}
+                                        <ActionWithTooltip section="forms.preview">
                                         <button
                                             type="button"
                                             onClick={() =>
@@ -436,8 +460,10 @@ export default function FormsList() {
                                         >
                                             <Eye size={12} /> Vista previa
                                         </button>
+                                        </ActionWithTooltip>
 
                                         {form.status !== "archived" && (
+                                            <ActionWithTooltip section="forms.archive">
                                             <button
                                                 type="button"
                                                 onClick={() => archiveForm(form)}
@@ -445,15 +471,18 @@ export default function FormsList() {
                                             >
                                                 <Archive size={12} /> Archivar
                                             </button>
+                                            </ActionWithTooltip>
                                         )}
 
+                                        <ActionWithTooltip section="forms.delete" className="ml-auto">
                                         <button
                                             type="button"
                                             onClick={() => handleDelete(form.id)}
-                                            className="ml-auto p-1.5 text-slate-700 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
+                                            className="p-1.5 text-slate-700 hover:text-red-400 hover:bg-slate-800 rounded-lg transition-colors"
                                         >
                                             <Trash2 size={13} />
                                         </button>
+                                        </ActionWithTooltip>
                                     </div>
                                 </div>
                             );

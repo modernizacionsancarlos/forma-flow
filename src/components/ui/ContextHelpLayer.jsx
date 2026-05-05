@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { HelpCircle, Target, Wrench } from "lucide-react";
-import { NAV_HELP } from "@/lib/navHelpContent";
+import { resolveHelp } from "@/lib/appHelpRegistry";
 
 /**
  * Clic derecho en el layout: menú propio (no el del navegador) con entradas de ayuda.
@@ -13,8 +13,7 @@ export default function ContextHelpLayer({ children }) {
   const closeMenu = useCallback(() => setMenu(null), []);
 
   const openDialog = useCallback((sectionKey, mode) => {
-    const key = sectionKey && NAV_HELP[sectionKey] ? sectionKey : "general";
-    const copy = NAV_HELP[key];
+    const copy = resolveHelp(sectionKey);
     const titles = {
       what: "¿Qué es?",
       purpose: "¿Para qué sirve?",

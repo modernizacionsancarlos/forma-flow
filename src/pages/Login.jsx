@@ -2,6 +2,8 @@ import React, { useState, useMemo } from "react";
 import { useAuth } from "../lib/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { LogIn, ShieldAlert, FileText, CheckCircle2, Mail } from "lucide-react";
+import HelpInfoIcon from "@/components/ui/HelpInfoIcon";
+import { HelpAside } from "@/components/help/HelpPrimitives.jsx";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -32,19 +34,25 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#060b13] p-6 font-inter relative overflow-hidden">
+    <div
+      data-help-section="login"
+      className="min-h-screen flex items-center justify-center bg-[#060b13] p-6 font-inter relative overflow-hidden"
+    >
       {/* Dynamic Background Accents */}
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#10b981]/5 blur-[120px] rounded-full" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full" />
 
       <div className="max-w-md w-full relative z-10">
         <div className="bg-[#0a101b] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl backdrop-blur-3xl shadow-emerald-500/5">
-          <div className="text-center mb-10">
+          <div className="text-center mb-10 relative">
              <div className="inline-flex items-center justify-center p-3 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 mb-6 group transition-all duration-500 hover:scale-110">
                  <img src="/pwa-192x192.png" alt="Logo" className="w-12 h-12 grayscale-[0.5] group-hover:grayscale-0 transition-all" />
              </div>
              
-             <h1 className="text-3xl font-black text-white mb-2 uppercase tracking-tighter">FormFlow</h1>
+             <div className="flex items-center justify-center gap-2 mb-2">
+               <h1 className="text-3xl font-black text-white uppercase tracking-tighter">FormFlow</h1>
+               <HelpInfoIcon helpSection="login" className="text-slate-500 hover:text-emerald-400" />
+             </div>
              <div className="inline-flex items-center justify-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest px-4 py-1 bg-white/5 rounded-full mx-auto">
                 <span className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse"></span>
                 <span>Portal de Gestión Municipal</span>
@@ -70,8 +78,11 @@ export default function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Credencial de Acceso</label>
+            <div className="space-y-2" data-help-section="login.email">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 inline-flex items-center gap-1.5">
+                Credencial de Acceso
+                <HelpInfoIcon helpSection="login.email" className="text-slate-600" />
+              </label>
               <div className="relative group">
                 <input
                   type="email"
@@ -84,8 +95,11 @@ export default function Login() {
               </div>
             </div>
 
-            <div className="space-y-2">
-               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4">Contraseña Segura</label>
+            <div className="space-y-2" data-help-section="login.password">
+               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-4 inline-flex items-center gap-1.5">
+                 Contraseña Segura
+                 <HelpInfoIcon helpSection="login.password" className="text-slate-600" />
+               </label>
                <input
                  type="password"
                  value={password}
@@ -96,14 +110,16 @@ export default function Login() {
                />
             </div>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full flex items-center justify-center space-x-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-emerald-900/10 active:scale-[0.98]"
-            >
-              <LogIn size={18} />
-              <span>{isLoading ? "Validando..." : "Ingresar al Panel"}</span>
-            </button>
+            <HelpAside section="login.submit">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full flex items-center justify-center space-x-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white font-black text-xs uppercase tracking-[0.2em] py-5 rounded-2xl transition-all shadow-xl shadow-emerald-900/10 active:scale-[0.98]"
+              >
+                <LogIn size={18} />
+                <span>{isLoading ? "Validando..." : "Ingresar al Panel"}</span>
+              </button>
+            </HelpAside>
           </form>
 
           <div className="mt-10 pt-8 border-t border-white/5 flex flex-col items-center space-y-4">

@@ -30,10 +30,7 @@ import AssistantWidget from "./AssistantWidget";
 import { PERMISSIONS } from "../../lib/permissions";
 import { useSubmissionNotifications } from "../../api/useSubmissionNotifications";
 import { NotificationInboxProvider, useNotificationInbox } from "../../context/NotificationInboxContext";
-import { NAV_HELP } from "@/lib/navHelpContent";
 import HelpInfoIcon from "./HelpInfoIcon";
-import ContextHelpLayer from "./ContextHelpLayer";
-import { TooltipProvider } from "./tooltip";
 
 /**
  * Ítem del menú lateral con badge tipo Discord y ayuda rápida (ℹ️).
@@ -41,8 +38,6 @@ import { TooltipProvider } from "./tooltip";
 const SidebarLink = ({ to, icon, children, activeColor, onClick, badgeCount = 0, helpSection = "general" }) => {
   const location = useLocation();
   const isActive = location.pathname.startsWith(to) && (to !== '/' || location.pathname === '/');
-  const h = NAV_HELP[helpSection] || NAV_HELP.general;
-
   return (
     <Link
       to={to}
@@ -64,7 +59,7 @@ const SidebarLink = ({ to, icon, children, activeColor, onClick, badgeCount = 0,
         style: isActive ? { color: activeColor } : {},
       })}
       <span className="min-w-0 flex-1 text-sm font-medium truncate">{children}</span>
-      <HelpInfoIcon title="Ayuda rápida" content={h.tooltip} className="opacity-70 group-hover:opacity-100" />
+      <HelpInfoIcon helpSection={helpSection} className="opacity-70 group-hover:opacity-100" />
       {badgeCount > 0 ? (
         <span
           className="relative flex shrink-0 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white shadow-md ring-2 ring-slate-900"
@@ -239,7 +234,7 @@ const MainLayoutInner = ({ children }) => {
          >
            <LogOut size={18} className="text-slate-500 shrink-0 hover:text-red-400" />
            <span className="flex-1 min-w-0 text-left truncate">Cerrar sesión</span>
-           <HelpInfoIcon title={NAV_HELP.logout.tooltip} content={NAV_HELP.logout.what} />
+           <HelpInfoIcon helpSection="logout" />
          </button>
       </div>
     </nav>
@@ -265,8 +260,6 @@ const MainLayoutInner = ({ children }) => {
   });
 
   return (
-    <ContextHelpLayer>
-    <TooltipProvider delayDuration={200}>
     <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden" data-help-section="general">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
@@ -400,7 +393,7 @@ const MainLayoutInner = ({ children }) => {
           <div className="flex items-center space-x-3 md:space-x-6">
             <div className="flex items-center gap-1" data-help-section="notifications">
               <NotificationCenter />
-              <HelpInfoIcon title={NAV_HELP.notifications.tooltip} content={NAV_HELP.notifications.what} />
+              <HelpInfoIcon helpSection="notifications" />
             </div>
             
             <div className="h-10 w-[1px] bg-slate-800 hidden md:block"></div>
@@ -430,8 +423,6 @@ const MainLayoutInner = ({ children }) => {
 
       <AssistantWidget />
     </div>
-    </TooltipProvider>
-    </ContextHelpLayer>
   );
 };
 

@@ -9,6 +9,8 @@ import { useTenants } from "../api/useTenants";
 import { useUsers } from "../api/useUsers";
 import { useForms } from "../api/useForms";
 import { useAreas } from "../api/useAreas";
+import HelpInfoIcon from "@/components/ui/HelpInfoIcon";
+import { ActionWithTooltip } from "@/components/help/HelpPrimitives.jsx";
 
 /* ── Constants ────────────────────────────────────────────────────── */
 const PLAN_COLORS = {
@@ -88,21 +90,26 @@ export default function Empresas() {
     const suspendedTenants = tenants.filter(t => t.status === "suspended").length;
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white">
+        <div data-help-section="empresas" className="min-h-screen bg-slate-950 text-white">
 
             <div className="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-4 sm:py-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 items-start gap-2">
+                        <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <Building2 size={20} className="text-emerald-400 shrink-0" />
                             <h1 className="text-xl font-bold text-white">Empresas (tenants)</h1>
+                            <HelpInfoIcon helpSection="empresas" className="text-slate-600" />
                         </div>
                         <p className="text-slate-500 text-sm mt-0.5 pl-0 sm:pl-7">Gestión multi-tenant del sistema</p>
+                        </div>
                     </div>
+                <ActionWithTooltip section="empresas.new">
                 <button type="button" onClick={openNew}
                     className="flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition-colors">
                     <Plus size={16} /> Nueva empresa
                 </button>
+                </ActionWithTooltip>
                 </div>
                 <div className="relative mt-4">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />

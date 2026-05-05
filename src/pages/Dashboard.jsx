@@ -10,6 +10,8 @@ import { useTenants } from "@/api/useTenants";
 import { useForms } from "@/api/useForms";
 import { useUsers } from "@/api/useUsers";
 import { useDashboardSubmissions } from "@/api/useDashboardSubmissions";
+import HelpInfoIcon from "@/components/ui/HelpInfoIcon";
+import { ActionWithTooltip } from "@/components/help/HelpPrimitives.jsx";
 
 /* ── Status badge config ──────────────────────────────────────────── */
 const STATUS = {
@@ -47,7 +49,7 @@ export default function Dashboard() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center h-screen bg-slate-950">
+            <div data-help-section="dashboard" className="flex h-screen items-center justify-center bg-slate-950">
                 <div className="text-center space-y-3">
                     <div className="w-10 h-10 border-[3px] border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
                     <p className="text-slate-500 text-sm">Cargando dashboard...</p>
@@ -84,7 +86,7 @@ export default function Dashboard() {
     const trialTenants = tenants.filter(t => t.subscription_status === "trial").length;
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white">
+        <div data-help-section="dashboard" className="min-h-screen bg-slate-950 text-white">
             {/* ─── 1. GRID DE 4 KPI CARDS ─────────────────────────────── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 px-6 py-4">
                 <KpiCard
@@ -93,6 +95,7 @@ export default function Dashboard() {
                     icon={<Building2 size={18} />}
                     colorClass="text-emerald-400 border-emerald-800"
                     href="/empresas"
+                    helpSection="dash.kpi"
                 />
                 <KpiCard
                     title="Formularios activos"
@@ -100,6 +103,7 @@ export default function Dashboard() {
                     icon={<FileText size={18} />}
                     colorClass="text-blue-400 border-blue-800"
                     href="/forms"
+                    helpSection="dash.kpi"
                 />
                 <KpiCard
                     title="Respuestas hoy"
@@ -107,6 +111,7 @@ export default function Dashboard() {
                     icon={<ClipboardList size={18} />}
                     colorClass="text-violet-400 border-violet-800"
                     href="/submissions"
+                    helpSection="dash.kpi"
                 />
                 <KpiCard
                     title="En revisión"
@@ -115,6 +120,7 @@ export default function Dashboard() {
                     colorClass="text-amber-400 border-amber-800"
                     href="/submissions"
                     pulse={inReview > 0}
+                    helpSection="dash.kpi"
                 />
             </div>
 
@@ -123,15 +129,18 @@ export default function Dashboard() {
 
                 {/* ── LEFT: Respuestas Recientes (col-span-2) ──────── */}
                 <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl">
-                    <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-                        <div className="flex items-center gap-2">
-                            <Activity size={16} className="text-violet-400" />
-                            <h2 className="text-sm font-semibold text-white">Respuestas recientes</h2>
-                            <span className="text-xs bg-slate-800 text-slate-400 rounded-full px-2 py-0.5">{subsList.length}</span>
+                    <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-800">
+                        <div data-help-section="dash.recentSubs" className="flex min-w-0 items-center gap-2">
+                            <Activity size={16} className="text-violet-400 shrink-0" />
+                            <h2 className="text-sm font-semibold text-white truncate">Respuestas recientes</h2>
+                            <span className="text-xs bg-slate-800 text-slate-400 rounded-full px-2 py-0.5 shrink-0">{subsList.length}</span>
+                            <HelpInfoIcon helpSection="dash.recentSubs" className="shrink-0 text-slate-600" />
                         </div>
-                        <Link to="/submissions" className="text-xs text-slate-500 hover:text-emerald-400 transition-colors">
+                        <ActionWithTooltip section="submissions" className="shrink-0">
+                        <Link to="/submissions" className="text-xs text-slate-500 hover:text-emerald-400 transition-colors whitespace-nowrap">
                             Ver todas →
                         </Link>
+                        </ActionWithTooltip>
                     </div>
 
                     {subsList.length === 0 ? (
@@ -183,6 +192,7 @@ export default function Dashboard() {
                     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                         <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
                             <ClipboardList size={15} className="text-slate-400" /> Resumen del sistema
+                            <HelpInfoIcon helpSection="dashboard" className="text-slate-600" />
                         </h3>
                         <div className="space-y-3">
                             {[
@@ -206,6 +216,7 @@ export default function Dashboard() {
                     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                             <Zap size={15} className="text-amber-400" /> Acciones rápidas
+                            <HelpInfoIcon helpSection="dash.quick" className="text-slate-600" />
                         </h3>
                         <div className="grid grid-cols-2 gap-2">
                             {[
@@ -219,9 +230,13 @@ export default function Dashboard() {
                                 const Icon = item.icon;
                                 return (
                                     <Link key={item.href + item.label} to={item.href}
-                                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl text-xs font-medium hover:opacity-80 transition-opacity ${item.cls}`}>
+                                        data-help-section="dash.quick"
+                                        className={`relative flex flex-col items-center gap-1.5 p-3 pr-7 rounded-xl text-xs font-medium hover:opacity-80 transition-opacity ${item.cls}`}>
                                         <Icon size={18} />
-                                        <span>{item.label}</span>
+                                        <span className="text-center leading-tight">{item.label}</span>
+                                        <span className="absolute top-2 right-2">
+                                            <HelpInfoIcon helpSection="dash.quick" className="opacity-80" />
+                                        </span>
                                     </Link>
                                 );
                             })}
@@ -232,6 +247,7 @@ export default function Dashboard() {
                     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                         <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
                             <Activity size={15} className="text-violet-400" /> Actividad reciente
+                            <HelpInfoIcon helpSection="dash.activity" className="text-slate-600" />
                         </h3>
                         {logs.length === 0 ? (
                             <p className="text-xs text-slate-600 text-center py-4">Sin actividad reciente</p>
@@ -265,10 +281,11 @@ export default function Dashboard() {
                 <div className="px-6 pb-6">
                     <div className="bg-slate-900 border border-slate-800 rounded-xl">
                         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-                            <div className="flex items-center gap-2">
+                            <div data-help-section="dash.tenantTable" className="flex items-center gap-2">
                                 <Building2 size={16} className="text-emerald-400" />
                                 <h2 className="text-sm font-semibold text-white">Empresas registradas</h2>
                                 <span className="text-xs bg-slate-800 text-slate-400 rounded-full px-2 py-0.5">{tenants.length}</span>
+                                <HelpInfoIcon helpSection="dash.tenantTable" className="text-slate-600" />
                             </div>
                         </div>
                         <div className="overflow-x-auto">
@@ -338,12 +355,16 @@ export default function Dashboard() {
 }
 
 /* ── Sub-component: KPI Card ────────────────────────────────────── */
-function KpiCard({ title, value, icon, colorClass, href, pulse }) {
+function KpiCard({ title, value, icon, colorClass, href, pulse, helpSection = "dash.kpi" }) {
     const [borderColor] = colorClass.split(" ").filter(c => c.startsWith("border-"));
     const [textColor] = colorClass.split(" ").filter(c => c.startsWith("text-"));
     return (
         <Link to={href}
-            className={`bg-slate-900 border rounded-xl p-4 hover:border-opacity-60 transition-all ${borderColor}`}>
+            data-help-section={helpSection}
+            className={`relative block bg-slate-900 border rounded-xl p-4 pr-11 hover:border-opacity-60 transition-all ${borderColor}`}>
+            <span className="absolute right-3 top-3">
+                <HelpInfoIcon helpSection={helpSection} />
+            </span>
             <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-slate-500 uppercase">{title}</span>
                 <span className={textColor}>{icon}</span>

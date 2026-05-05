@@ -25,6 +25,8 @@ import { PERMISSIONS } from "../lib/permissions";
 import { hasPermission } from "../lib/permissions";
 import { isValidEmail } from "../lib/emailValidation";
 import PermissionsManager from "../components/usuarios/PermissionsManager";
+import HelpInfoIcon from "@/components/ui/HelpInfoIcon";
+import { ActionWithTooltip } from "@/components/help/HelpPrimitives.jsx";
 
 /* ── Roles config ─────────────────────────────────────────────────── */
 const ROLES = [
@@ -241,21 +243,25 @@ export default function Usuarios() {
     const currentRows = activeSection === "archivados" ? archivedFiltered : filtered;
 
     return (
-        <div className="min-h-screen bg-slate-950 text-white p-6">
+        <div data-help-section="usuarios" className="min-h-screen bg-slate-950 text-white p-6">
 
             {/* ─── HEADER ──────────────────────────────────── */}
             <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
-                <div>
-                    <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+                <div className="flex items-start gap-2 min-w-0">
+                    <div className="min-w-0">
+                    <h1 className="text-2xl font-bold text-white flex items-center gap-2 flex-wrap">
                         <Users size={22} className="text-emerald-400" />
                         Usuarios
                     </h1>
                     <p className="text-slate-400 text-sm mt-1">
                         Control de acceso y roles multi-tenant
                     </p>
+                    </div>
+                    <HelpInfoIcon helpSection="usuarios" className="mt-1 shrink-0 text-slate-600" />
                 </div>
                 <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS} fallback={null}>
                     <div className="flex flex-wrap gap-2">
+                        <ActionWithTooltip section="usuarios.invite">
                         <button
                             type="button"
                             onClick={() => {
@@ -267,6 +273,8 @@ export default function Usuarios() {
                         >
                             <UserPlus size={16} /> Invitar usuario
                         </button>
+                        </ActionWithTooltip>
+                        <ActionWithTooltip section="usuarios.create">
                         <button
                             type="button"
                             onClick={() => {
@@ -278,12 +286,15 @@ export default function Usuarios() {
                         >
                             <UserCircle2 size={16} /> Crear usuario
                         </button>
+                        </ActionWithTooltip>
                     </div>
                 </Guard>
             </div>
 
             {/* ─── SUB-SECCIÓN: lista / permisos (estilo Django) ─── */}
-            <div className="flex flex-wrap gap-2 mb-6 border-b border-slate-800 pb-2">
+            <div data-help-section="usuarios.tab" className="mb-6 flex flex-wrap gap-2 border-b border-slate-800 pb-2">
+                <HelpInfoIcon helpSection="usuarios.tab" className="my-auto mr-1 text-slate-600 self-center shrink-0" />
+                <ActionWithTooltip section="usuarios.tab.lista">
                 <button
                     type="button"
                     onClick={() => setActiveSection("lista")}
@@ -295,7 +306,9 @@ export default function Usuarios() {
                 >
                     <List size={16} /> Lista de usuarios
                 </button>
+                </ActionWithTooltip>
                 <Guard permission={PERMISSIONS.MANAGE_PERMISSION_MATRIX} fallback={null}>
+                    <ActionWithTooltip section="usuarios.tab.permisos">
                     <button
                         type="button"
                         onClick={() => setActiveSection("permisos")}
@@ -307,7 +320,9 @@ export default function Usuarios() {
                     >
                         <ShieldCheck size={16} /> Permisos
                     </button>
+                    </ActionWithTooltip>
                 </Guard>
+                <ActionWithTooltip section="usuarios.tab.archivados">
                 <button
                     type="button"
                     onClick={() => setActiveSection("archivados")}
@@ -319,10 +334,14 @@ export default function Usuarios() {
                 >
                     <Archive size={16} /> Archivados
                 </button>
+                </ActionWithTooltip>
             </div>
 
             {activeSection === "permisos" && canManageMatrix ? (
-                <div className="mb-10 rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
+                <div data-help-section="usuarios.permissionsIntro" className="relative mb-10 rounded-2xl border border-slate-800 bg-slate-900/40 p-6 pr-14">
+                    <div className="absolute right-5 top-5">
+                        <HelpInfoIcon helpSection="usuarios.permissionsIntro" />
+                    </div>
                     <h2 className="text-lg font-semibold text-white mb-2">Roles y permisos</h2>
                     <p className="text-sm text-slate-400 mb-6">
                         Asigná permisos por rol (plantilla global) o afiná por usuario (excepciones). Arrastrá entre
@@ -460,32 +479,41 @@ export default function Usuarios() {
 
                                             {/* Acciones */}
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center justify-end gap-2">
+                                                <div className="flex flex-wrap items-center justify-end gap-2">
                                                     <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS} fallback={null}>
+                                                        <ActionWithTooltip section="usuarios.row.view">
                                                         <button onClick={() => { setSelected(u); setShowModal(true); }}
                                                             className="text-xs text-slate-400 hover:text-white hover:bg-slate-800 px-2 py-1 rounded transition-colors">
                                                             <Eye size={12} className="inline mr-1" />
                                                             Ver/Editar
                                                         </button>
+                                                        </ActionWithTooltip>
                                                         {activeSection !== "archivados" ? (
                                                             <>
+                                                                <ActionWithTooltip section="usuarios.row.permissions">
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => openPermissionsFor(u)}
                                                                     className="text-xs text-cyan-400 hover:text-cyan-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
                                                                 >
                                                                     <Lock size={12} className="inline mr-1" />
                                                                     Permisos
                                                                 </button>
+                                                                </ActionWithTooltip>
                                                                 {u.status === "pending_invite" ? (
+                                                                    <ActionWithTooltip section="usuarios.row.resend">
                                                                     <button
+                                                                        type="button"
                                                                         onClick={() => handleResendInvite(u)}
                                                                         className="text-xs text-amber-400 hover:text-amber-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
                                                                     >
                                                                         <RefreshCcw size={12} className="inline mr-1" />
                                                                         Reenviar
                                                                     </button>
+                                                                    </ActionWithTooltip>
                                                                 ) : null}
-                                                                <button onClick={() => toggleStatus(u)}
+                                                                <ActionWithTooltip section="usuarios.row.toggle">
+                                                                <button type="button" onClick={() => toggleStatus(u)}
                                                                     className={`text-xs px-2 py-1 rounded transition-colors ${
                                                                         u.status === "active"
                                                                             ? "text-red-400 hover:text-red-300 hover:bg-slate-800"
@@ -493,31 +521,41 @@ export default function Usuarios() {
                                                                     }`}>
                                                                     {u.status === "active" ? "Desactivar" : "Activar"}
                                                                 </button>
+                                                                </ActionWithTooltip>
                                                                 {["inactive", "disabled"].includes(String(u.status || "").toLowerCase()) ? (
+                                                                    <ActionWithTooltip section="usuarios.row.archive">
                                                                     <button
+                                                                        type="button"
                                                                         onClick={() => handleArchive(u)}
                                                                         className="text-xs text-violet-400 hover:text-violet-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
                                                                     >
                                                                         <Archive size={12} className="inline mr-1" />
                                                                         Archivar
                                                                     </button>
+                                                                    </ActionWithTooltip>
                                                                 ) : null}
                                                             </>
                                                         ) : (
                                                             <>
+                                                                <ActionWithTooltip section="usuarios.row.restore">
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => toggleStatus({ ...u, status: "inactive" })}
                                                                     className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
                                                                 >
                                                                     Activar
                                                                 </button>
+                                                                </ActionWithTooltip>
+                                                                <ActionWithTooltip section="usuarios.row.delete">
                                                                 <button
+                                                                    type="button"
                                                                     onClick={() => handleDelete(u)}
                                                                     className="text-xs text-rose-400 hover:text-rose-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
                                                                 >
                                                                     <Trash2 size={12} className="inline mr-1" />
                                                                     Eliminar
                                                                 </button>
+                                                                </ActionWithTooltip>
                                                             </>
                                                         )}
                                                     </Guard>
@@ -586,12 +624,13 @@ function UserModal({ user, intent = "create", tenants, areas, onSave, onClose })
     );
 
     return (
-        <div className="fixed inset-0 bg-black/60 z-[200] flex items-center justify-center p-4" onClick={onClose}>
+        <div data-help-section="usuarios.modal" className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
             <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl relative z-[201]" onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-slate-800">
-                    <div>
+                    <div className="flex min-w-0 items-start gap-2 pr-2">
+                        <div className="min-w-0">
                         <h2 className="text-white font-semibold flex items-center gap-2">
                             <UserPlus size={16} className="text-emerald-400" />
                             {user ? "Editar usuario" : intent === "invite" ? "Invitar usuario" : "Crear usuario"}
@@ -603,10 +642,14 @@ function UserModal({ user, intent = "create", tenants, areas, onSave, onClose })
                                     ? "Se enviará un correo de Firebase con enlace para definir contraseña y acceder al panel"
                                     : "Se creará la cuenta en Firebase, el perfil en el sistema y el mismo correo de acceso"}
                         </p>
+                        </div>
+                        <HelpInfoIcon helpSection="usuarios.modal" className="mt-0.5 shrink-0 text-slate-600" />
                     </div>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
+                    <ActionWithTooltip section="usuarios.modal.close">
+                    <button type="button" onClick={onClose} className="text-slate-400 hover:text-white p-1 shrink-0">
                         <X size={16} />
                     </button>
+                    </ActionWithTooltip>
                 </div>
 
                 {/* Body */}
@@ -707,11 +750,14 @@ function UserModal({ user, intent = "create", tenants, areas, onSave, onClose })
 
                 {/* Footer */}
                 <div className="flex justify-end gap-3 p-5 border-t border-slate-800">
-                    <button onClick={onClose}
+                    <ActionWithTooltip section="usuarios.modal.cancel">
+                    <button type="button" onClick={onClose}
                         className="px-4 py-2 text-sm text-slate-400 hover:text-white border border-slate-700 rounded-lg transition-colors">
                         Cancelar
                     </button>
-                    <button onClick={() => onSave(data)}
+                    </ActionWithTooltip>
+                    <ActionWithTooltip section="usuarios.modal.save">
+                    <button type="button" onClick={() => onSave(data)}
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors">
                         {user ? (
                             "Guardar cambios"
@@ -727,6 +773,7 @@ function UserModal({ user, intent = "create", tenants, areas, onSave, onClose })
                             </>
                         )}
                     </button>
+                    </ActionWithTooltip>
                 </div>
             </div>
         </div>
