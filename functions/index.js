@@ -46,6 +46,7 @@ export const provisionStaffAuthUser = onCall(
     maxInstances: 3,
     memory: "256MiB",
     timeoutSeconds: 30,
+    invoker: "public",
   },
   async (request) => {
   if (!request.auth?.token?.email) {
