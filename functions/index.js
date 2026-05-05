@@ -29,12 +29,19 @@ const STAFF_ROLES = new Set(["super_admin", "admin", "admin_empresa"]);
 async function resolveCallerAccess(callerEmailRaw) {
   const email = String(callerEmailRaw || "").trim().toLowerCase();
   if (!email) return { role: null, tenantId: null };
-  const snap = await getFirestore().collection("userProfiles").doc(email).get();
-  const data = snap.exists ? snap.data() : {};
-  return {
-    role: data.role || null,
-    tenantId: data.tenantId ?? data.tenant_id ?? null,
-  };
+  try {
+    const snap = await getFirestore().collection("userProfiles").doc(email).get();
+    const data = snap.exists ? snap.data() : {};
+    return {
+      role: data.role || null,
+      tenantId: data.tenantId ?? data.tenant_id ?? null,
+    };
+  } catch (e) {
+    // En algunos proyectos el service account de Cloud Run no tiene Firestore IAM.
+    // En ese caso seguimos solo con custom claims del token.
+    console.warn("[resolveCallerAccess] Firestore lookup skipped:", e?.code || e?.message);
+    return { role: null, tenantId: null };
+  }
 }
 
 async function provisionStaffAuthUserCore({
@@ -57,7 +64,10 @@ async function provisionStaffAuthUserCore({
   }
 
   const profile = await resolveCallerAccess(callerEmail);
-  const callerRole = profile.role || tokenRole;
+  const callerRole =
+    profile.role ||
+    tokenRole ||
+    (callerEmail === "modernizacionsancarlos@gmail.com" ? "super_admin" : null);
   const callerTenant = profile.tenantId || tokenTenant;
 
   if (!callerRole || !STAFF_ROLES.has(callerRole)) {

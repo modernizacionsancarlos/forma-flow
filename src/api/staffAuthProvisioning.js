@@ -46,8 +46,12 @@ export async function callProvisionStaffAuthUser({ email, displayName, targetTen
   // Primario por HTTP (CORS controlado explícitamente).
   try {
     return await callProvisionStaffAuthUserHttp(payload);
-  } catch {
-    // Fallback callable para compatibilidad.
+  } catch (e) {
+    const msg = String(e?.message || "");
+    // Fallback callable SOLO para fallos de red; si el backend respondió error válido, se respeta.
+    if (!/failed to fetch|networkerror|load failed/i.test(msg)) {
+      throw e;
+    }
     const fn = httpsCallable(functions, "provisionStaffAuthUser");
     const { data } = await fn(payload);
     return data;
