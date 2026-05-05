@@ -32,6 +32,20 @@ export const useUsers = () => {
     const { user: performer, claims } = useAuth();
     const queryClient = useQueryClient();
 
+    const withTimeout = async (promise, ms, fallbackValue) => {
+        let timer = null;
+        try {
+            return await Promise.race([
+                promise,
+                new Promise((resolve) => {
+                    timer = setTimeout(() => resolve(fallbackValue), ms);
+                }),
+            ]);
+        } finally {
+            if (timer) clearTimeout(timer);
+        }
+    };
+
     const fetchUsers = async () => {
         let q = collection(db, "userProfiles");
         
@@ -40,18 +54,22 @@ export const useUsers = () => {
             q = query(collection(db, "userProfiles"), where("tenantId", "==", claims.tenantId));
         }
 
-        const profilesSnap = await getDocs(q);
-        const profiles = profilesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        const profilesSnap = await withTimeout(getDocs(q), 12000, null);
+        const profiles = profilesSnap
+            ? profilesSnap.docs.map((d) => ({ id: d.id, ...d.data() }))
+            : [];
 
         // Complemento para "usuarios reales": invitaciones pendientes aún sin perfil completo.
         let invQ = collection(db, "invitations");
         if (claims?.role !== "super_admin" && claims?.tenantId) {
             invQ = query(collection(db, "invitations"), where("tenantId", "==", claims.tenantId));
         }
-        const invitationsSnap = await getDocs(invQ);
-        const pendingInvites = invitationsSnap.docs
-            .map((d) => ({ id: d.id, ...d.data() }))
-            .filter((inv) => inv.status === "pending");
+        const invitationsSnap = await withTimeout(getDocs(invQ), 10000, null);
+        const pendingInvites = invitationsSnap
+            ? invitationsSnap.docs
+                .map((d) => ({ id: d.id, ...d.data() }))
+                .filter((inv) => inv.status === "pending")
+            : [];
 
         const byEmail = new Map(
             profiles.map((u) => [String(u.email || u.id || "").toLowerCase(), u])
@@ -79,7 +97,7 @@ export const useUsers = () => {
 
         if (claims?.role === "super_admin") {
             try {
-                const authUsers = await listStaffAuthUsers();
+                const authUsers = await withTimeout(listStaffAuthUsers(), 8000, []);
                 authUsers.forEach((au) => {
                     const email = String(au.email || "").toLowerCase();
                     if (!email) return;
@@ -101,6 +119,21 @@ export const useUsers = () => {
             }
         }
 
+        // Root admin visible siempre aunque falle cualquier fuente externa.
+        const rootEmail = "modernizacionsancarlos@gmail.com";
+        if (claims?.role === "super_admin" && !byEmail.has(rootEmail)) {
+            byEmail.set(rootEmail, {
+                id: rootEmail,
+                email: rootEmail,
+                user_name: "Administrador Central",
+                role: "super_admin",
+                status: "active",
+                tenantId: "Central_System",
+                area_ids: [],
+                source: "root_fallback",
+            });
+        }
+
         return [...byEmail.values()];
     };
 
@@ -108,6 +141,8 @@ export const useUsers = () => {
         queryKey: ["users-list", claims?.tenantId],
         queryFn: fetchUsers,
         enabled: !!claims?.role,
+        retry: 1,
+        staleTime: 60 * 1000,
     });
 
     const createUser = useMutation({
