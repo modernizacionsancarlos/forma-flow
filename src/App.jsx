@@ -198,6 +198,8 @@ const AccessStateScreen = ({ title, message, requestType, claims, user, logout }
       requestedBy: requesterEmail,
       requestType,
       target: "admins",
+      /** Sidebar / campana: agrupa esta alerta en “Usuarios” para admins. */
+      navKey: "usuarios",
       timestamp: Timestamp.now(),
     });
     toast.success("Solicitud enviada a Admin/Super Admin.");
@@ -213,7 +215,7 @@ const AccessStateScreen = ({ title, message, requestType, claims, user, logout }
             onClick={requestAccess}
             className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500"
           >
-            Solicitar permisos
+            {requestType === "activation" ? "Solicitar activación" : "Solicitar permisos"}
           </button>
           <button
             onClick={logout}

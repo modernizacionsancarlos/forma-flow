@@ -21,7 +21,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "tenant_id", "order": "ASCENDING" },
-        { "fieldPath": "created_time", "order": "DESCENDING" }
+        { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
     {

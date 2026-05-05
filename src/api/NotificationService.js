@@ -65,16 +65,19 @@ class NotificationService {
     }
   }
 
-  static async sendInApp(userId, { title, message, type = "info", metadata = {}, tenantId = "global" }) {
+  static async sendInApp(userId, { title, message, type = "info", metadata = {}, tenantId = "global", navKey = "bell" }) {
     try {
+      const normalizedId =
+        typeof userId === "string" && userId.includes("@") ? userId.toLowerCase().trim() : userId;
       await addDoc(collection(db, "Notifications"), {
-        userId,
+        userId: normalizedId,
         title,
         message,
         type,
         read: false,
         metadata,
         tenant_id: tenantId,
+        navKey,
         timestamp: serverTimestamp(),
       });
       console.debug(`[NotificationService] In-App sent to ${userId}: ${title}`);
@@ -195,6 +198,7 @@ class NotificationService {
         type: "status_change",
         metadata: { submissionId: id },
         tenantId: tId,
+        navKey: "submissions",
       });
     }
 

@@ -222,15 +222,42 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
+    // Notificación dirigida a staff del tenant (p. ej. solicitud de activación / permisos).
+    function isAdminBroadcastNotification() {
+      return resource.data.keys().hasAll(['target']) && resource.data.target == 'admins';
+    }
+
+    function notificationMatchesTenantRead() {
+      return resource.data.keys().hasAll(['tenant_id'])
+        && getUserTenantId() != null
+        && getUserTenantId() == resource.data.tenant_id;
+    }
+
+    function canTenantAdminManageNotification() {
+      return isAuthenticated() &&
+        isAdminBroadcastNotification() &&
+        notificationMatchesTenantRead() &&
+        hasUserProfile() &&
+        userProfile().keys().hasAll(['role']) &&
+        (userProfile().role == 'admin' || userProfile().role == 'super_admin');
+    }
+
     // Reglas para Notificaciones - NUEVO
     match /Notifications/{notifId} {
       allow read: if isAuthenticated() && (
-        isSuperAdmin() || 
-        request.auth.uid == resource.data.userId || 
-        getUserTenantId() == resource.data.tenant_id
+        isSuperAdmin() ||
+        (resource.data.keys().hasAll(['userId']) && request.auth.uid == resource.data.userId) ||
+        (resource.data.keys().hasAll(['userId']) &&
+          request.auth.token.keys().hasAll(['email']) &&
+          request.auth.token.email.lower() == resource.data.userId.lower()) ||
+        notificationMatchesTenantRead()
       );
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && (request.auth.uid == resource.data.userId || isSuperAdmin());
+      allow update: if isAuthenticated() && (
+        isSuperAdmin() ||
+        (resource.data.keys().hasAll(['userId']) && request.auth.uid == resource.data.userId) ||
+        canTenantAdminManageNotification()
+      );
       allow delete: if isSuperAdmin();
     }
 

@@ -29,31 +29,50 @@ import NotificationPrompt from "./NotificationPrompt";
 import AssistantWidget from "./AssistantWidget";
 import { PERMISSIONS } from "../../lib/permissions";
 import { useSubmissionNotifications } from "../../api/useSubmissionNotifications";
+import { NotificationInboxProvider, useNotificationInbox } from "../../context/NotificationInboxContext";
+import { NAV_HELP } from "@/lib/navHelpContent";
+import HelpInfoIcon from "./HelpInfoIcon";
+import ContextHelpLayer from "./ContextHelpLayer";
+import { TooltipProvider } from "./tooltip";
 
-const SidebarLink = ({ to, icon, children, activeColor, onClick }) => {
+/**
+ * Ítem del menú lateral con badge tipo Discord y ayuda rápida (ℹ️).
+ */
+const SidebarLink = ({ to, icon, children, activeColor, onClick, badgeCount = 0, helpSection = "general" }) => {
   const location = useLocation();
   const isActive = location.pathname.startsWith(to) && (to !== '/' || location.pathname === '/');
+  const h = NAV_HELP[helpSection] || NAV_HELP.general;
 
   return (
     <Link
       to={to}
       onClick={onClick}
-      className={`flex items-center space-x-3 px-6 py-3 transition-colors duration-200 ${
+      data-help-section={helpSection}
+      className={`group flex items-center gap-2 px-6 py-3 transition-colors duration-200 ${
         isActive
           ? "bg-slate-800 text-white border-l-2"
           : "text-slate-400 hover:bg-slate-800 hover:text-white border-l-2 border-transparent"
       }`}
-      style={{ 
-        borderLeftColor: isActive ? activeColor : 'transparent'
+      style={{
+        borderLeftColor: isActive ? activeColor : "transparent",
       }}
     >
-      {React.createElement(icon, { 
-        size: 18, 
-        strokeWidth: isActive ? 2.5 : 2, 
-        className: isActive ? "" : "text-slate-500 group-hover:text-white transition-colors",
-        style: isActive ? { color: activeColor } : {}
+      {React.createElement(icon, {
+        size: 18,
+        strokeWidth: isActive ? 2.5 : 2,
+        className: isActive ? "shrink-0" : "shrink-0 text-slate-500 group-hover:text-white transition-colors",
+        style: isActive ? { color: activeColor } : {},
       })}
-      <span className="text-sm font-medium">{children}</span>
+      <span className="min-w-0 flex-1 text-sm font-medium truncate">{children}</span>
+      <HelpInfoIcon title="Ayuda rápida" content={h.tooltip} className="opacity-70 group-hover:opacity-100" />
+      {badgeCount > 0 ? (
+        <span
+          className="relative flex shrink-0 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black leading-none text-white shadow-md ring-2 ring-slate-900"
+          aria-hidden
+        >
+          {badgeCount > 99 ? "99+" : badgeCount}
+        </span>
+      ) : null}
     </Link>
   );
 };
@@ -75,7 +94,7 @@ const getGreetingByHour = (hour) => {
   return { text: "Buen turno nocturno", emoji: "🌙" };
 };
 
-const MainLayout = ({ children }) => {
+const MainLayoutInner = ({ children }) => {
   const { logout, claims, user, currentProfile } = useAuth();
   const { branding } = useBranding();
   const location = useLocation();
@@ -104,7 +123,9 @@ const MainLayout = ({ children }) => {
     queueMicrotask(() => setIsSidebarOpen(false));
   }, [location.pathname]);
 
-  // Activa las notificaciones en tiempo real para el administrador
+  /** Campana del header + badges por ítem del menú (una sola suscripción vía NotificationInboxProvider). */
+  const { unreadByNavKey } = useNotificationInbox();
+  // Toast/hook en tiempo real al ingresar trámites nuevos (no recarga página).
   useSubmissionNotifications();
 
   // Reloj del encabezado: actualización por minuto (evita re-renders cada segundo en todo el layout).
@@ -129,67 +150,96 @@ const MainLayout = ({ children }) => {
     <nav className="flex-1 overflow-y-auto space-y-0 custom-scrollbar py-2">
       {/* 1 · Inicio */}
       <Guard permission={PERMISSIONS.ACCESS_DASHBOARD}>
-        <SidebarLink to="/" icon={LayoutDashboard} activeColor={branding.primary_color}>Dashboard</SidebarLink>
+        <SidebarLink to="/" icon={LayoutDashboard} activeColor={branding.primary_color} helpSection="dashboard" badgeCount={unreadByNavKey.dashboard || 0}>
+          Dashboard
+        </SidebarLink>
       </Guard>
       <SidebarGroupSeparator />
 
       {/* 2 · Formularios y entregas */}
       <Guard permission={PERMISSIONS.ACCESS_FORMS}>
-        <SidebarLink to="/forms" icon={FileText} activeColor={branding.primary_color}>Formularios</SidebarLink>
+        <SidebarLink to="/forms" icon={FileText} activeColor={branding.primary_color} helpSection="forms" badgeCount={unreadByNavKey.forms || 0}>
+          Formularios
+        </SidebarLink>
       </Guard>
       <Guard permission={PERMISSIONS.VIEW_SUBMISSIONS}>
-        <SidebarLink to="/submissions" icon={ClipboardList} activeColor={branding.primary_color}>Respuestas</SidebarLink>
+        <SidebarLink to="/submissions" icon={ClipboardList} activeColor={branding.primary_color} helpSection="submissions" badgeCount={unreadByNavKey.submissions || 0}>
+          Respuestas
+        </SidebarLink>
       </Guard>
       <SidebarGroupSeparator />
 
       {/* 3 · Estructura: áreas, empresas, usuarios */}
       <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
-        <SidebarLink to="/areas" icon={MapPin} activeColor={branding.primary_color}>Áreas</SidebarLink>
+        <SidebarLink to="/areas" icon={MapPin} activeColor={branding.primary_color} helpSection="areas" badgeCount={unreadByNavKey.areas || 0}>
+          Áreas
+        </SidebarLink>
       </Guard>
       <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
-        <SidebarLink to="/empresas" icon={Building2} activeColor={branding.primary_color}>Empresas</SidebarLink>
+        <SidebarLink to="/empresas" icon={Building2} activeColor={branding.primary_color} helpSection="empresas" badgeCount={unreadByNavKey.empresas || 0}>
+          Empresas
+        </SidebarLink>
       </Guard>
       <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS}>
-        <SidebarLink to="/usuarios" icon={Users} activeColor={branding.primary_color}>Usuarios</SidebarLink>
+        <SidebarLink to="/usuarios" icon={Users} activeColor={branding.primary_color} helpSection="usuarios" badgeCount={unreadByNavKey.usuarios || 0}>
+          Usuarios
+        </SidebarLink>
       </Guard>
       <SidebarGroupSeparator />
 
       {/* 4 · Plataforma */}
       <Guard permission={PERMISSIONS.ACCESS_ADMIN_PANEL}>
-        <SidebarLink to="/admin" icon={Shield} activeColor={branding.primary_color}>Admin Panel</SidebarLink>
+        <SidebarLink to="/admin" icon={Shield} activeColor={branding.primary_color} helpSection="admin_panel" badgeCount={unreadByNavKey.admin_panel || 0}>
+          Admin Panel
+        </SidebarLink>
       </Guard>
       <Guard permission={PERMISSIONS.ACCESS_OBSERVATORY}>
-        <SidebarLink to="/observatorio" icon={Activity} activeColor={branding.primary_color}>Observatorio</SidebarLink>
+        <SidebarLink to="/observatorio" icon={Activity} activeColor={branding.primary_color} helpSection="observatory" badgeCount={unreadByNavKey.observatory || 0}>
+          Observatorio
+        </SidebarLink>
       </Guard>
       <SidebarGroupSeparator />
 
       {/* 5 · Automatización y exportación */}
       <Guard permission={PERMISSIONS.MANAGE_TENANT_RESOURCES}>
-        <SidebarLink to="/workflows" icon={GitMerge} activeColor={branding.primary_color}>Workflows</SidebarLink>
+        <SidebarLink to="/workflows" icon={GitMerge} activeColor={branding.primary_color} helpSection="workflows" badgeCount={unreadByNavKey.workflows || 0}>
+          Workflows
+        </SidebarLink>
       </Guard>
       <Guard permission={PERMISSIONS.ACCESS_EXPORT}>
-        <SidebarLink to="/exportaciones" icon={Download} activeColor={branding.primary_color}>Exportaciones</SidebarLink>
+        <SidebarLink to="/exportaciones" icon={Download} activeColor={branding.primary_color} helpSection="exports" badgeCount={unreadByNavKey.exports || 0}>
+          Exportaciones
+        </SidebarLink>
       </Guard>
       <SidebarGroupSeparator />
 
       {/* 6 · Cumplimiento y operaciones centrales */}
       <Guard permission={PERMISSIONS.VIEW_AUDIT_LOGS}>
-        <SidebarLink to="/auditoria" icon={ShieldCheck} activeColor={branding.primary_color}>Auditoría</SidebarLink>
+        <SidebarLink to="/auditoria" icon={ShieldCheck} activeColor={branding.primary_color} helpSection="audit" badgeCount={unreadByNavKey.audit || 0}>
+          Auditoría
+        </SidebarLink>
       </Guard>
       <Guard permission={PERMISSIONS.MANAGE_TENANTS}>
-        <SidebarLink to="/sincronizacion" icon={RefreshCw} activeColor={branding.primary_color}>Sincronización</SidebarLink>
+        <SidebarLink to="/sincronizacion" icon={RefreshCw} activeColor={branding.primary_color} helpSection="sync" badgeCount={unreadByNavKey.sync || 0}>
+          Sincronización
+        </SidebarLink>
       </Guard>
 
       <div className="pt-6 mt-2 border-t border-slate-800/50">
          <Guard permission={PERMISSIONS.ACCESS_SETTINGS}>
-         <SidebarLink to="/configuracion" icon={Settings} activeColor={branding.primary_color}>Configuración</SidebarLink>
+         <SidebarLink to="/configuracion" icon={Settings} activeColor={branding.primary_color} helpSection="settings" badgeCount={unreadByNavKey.settings || 0}>
+           Configuración
+         </SidebarLink>
          </Guard>
          <button
+           type="button"
+           data-help-section="logout"
            onClick={logout}
-           className="w-full flex items-center space-x-3 px-6 py-3 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-[#0b1b1b]/50 border-l-2 border-transparent transition-colors"
+           className="w-full flex items-center gap-2 px-6 py-3 text-sm font-medium text-slate-400 hover:text-red-400 hover:bg-[#0b1b1b]/50 border-l-2 border-transparent transition-colors"
          >
-           <LogOut size={18} className="text-slate-500 hover:text-red-400" />
-           <span>Cerrar sesión</span>
+           <LogOut size={18} className="text-slate-500 shrink-0 hover:text-red-400" />
+           <span className="flex-1 min-w-0 text-left truncate">Cerrar sesión</span>
+           <HelpInfoIcon title={NAV_HELP.logout.tooltip} content={NAV_HELP.logout.what} />
          </button>
       </div>
     </nav>
@@ -215,7 +265,9 @@ const MainLayout = ({ children }) => {
   });
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden">
+    <ContextHelpLayer>
+    <TooltipProvider delayDuration={200}>
+    <div className="flex h-screen bg-slate-950 text-slate-50 font-inter overflow-hidden" data-help-section="general">
       {/* Sidebar - Desktop */}
       <aside className="hidden lg:flex w-[280px] bg-slate-900 border-r border-slate-800 flex-col shadow-2xl relative z-20">
         <div className="px-2 pt-2 pb-1">
@@ -346,7 +398,10 @@ const MainLayout = ({ children }) => {
           </div>
           
           <div className="flex items-center space-x-3 md:space-x-6">
-            <NotificationCenter primaryColor={branding.primary_color} />
+            <div className="flex items-center gap-1" data-help-section="notifications">
+              <NotificationCenter />
+              <HelpInfoIcon title={NAV_HELP.notifications.tooltip} content={NAV_HELP.notifications.what} />
+            </div>
             
             <div className="h-10 w-[1px] bg-slate-800 hidden md:block"></div>
             
@@ -375,7 +430,15 @@ const MainLayout = ({ children }) => {
 
       <AssistantWidget />
     </div>
+    </TooltipProvider>
+    </ContextHelpLayer>
   );
 };
+
+const MainLayout = ({ children }) => (
+  <NotificationInboxProvider>
+    <MainLayoutInner>{children}</MainLayoutInner>
+  </NotificationInboxProvider>
+);
 
 export default MainLayout;
