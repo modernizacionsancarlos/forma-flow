@@ -5,6 +5,7 @@ import { useAuth } from "../lib/AuthContext";
 import { auditTenantId } from "../lib/auditTenantId";
 import { callProvisionStaffAuthUser, sendFirebasePasswordSetupEmail } from "./staffAuthProvisioning";
 import NotificationService from "./NotificationService";
+import { isValidEmail } from "../lib/emailValidation";
 
 /**
  * Hook para la gestión de invitaciones de usuarios.
@@ -40,6 +41,9 @@ export const useInvitations = () => {
 
     const inviteUser = useMutation({
         mutationFn: async (inviteData) => {
+            if (!isValidEmail(inviteData.email)) {
+                throw new Error("Correo electrónico inválido. Revisá el formato (ej: usuario@dominio.com).");
+            }
             const docData = {
                 ...inviteData,
                 email: inviteData.email.toLowerCase(),

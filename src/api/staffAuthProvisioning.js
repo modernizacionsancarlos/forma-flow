@@ -6,6 +6,7 @@ import { httpsCallable } from "firebase/functions";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth, functions } from "../lib/firebase";
 import { getPublicSiteUrl } from "../lib/publicSiteUrl";
+import { isValidEmail } from "../lib/emailValidation";
 
 async function callProvisionStaffAuthUserHttp(payload) {
   const projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
@@ -32,8 +33,7 @@ async function callProvisionStaffAuthUserHttp(payload) {
 /** Llama a la función callable que crea el usuario en Auth si aún no existe. */
 export async function callProvisionStaffAuthUser({ email, displayName, targetTenantId }) {
   const normalizedEmail = String(email).trim().toLowerCase();
-  const basicEmailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-  if (!basicEmailPattern.test(normalizedEmail)) {
+  if (!isValidEmail(normalizedEmail)) {
     throw new Error("Correo electrónico inválido. Revisá el formato (ej: usuario@dominio.com).");
   }
 

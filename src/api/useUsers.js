@@ -5,6 +5,7 @@ import { useAuth } from "../lib/AuthContext";
 import { callProvisionStaffAuthUser, sendFirebasePasswordSetupEmail } from "./staffAuthProvisioning";
 import NotificationService from "./NotificationService";
 import { auditTenantId } from "../lib/auditTenantId";
+import { isValidEmail } from "../lib/emailValidation";
 
 /** Campos que admin de empresa puede persistir en otro perfil (alineado con firestore.rules). */
 function buildProfileUpdatePayload(raw, claims) {
@@ -48,6 +49,9 @@ export const useUsers = () => {
         mutationFn: async (userData) => {
             const tenantId = userData.tenantId || claims?.tenantId || 'Central_System';
             const userEmail = userData.email.toLowerCase();
+            if (!isValidEmail(userEmail)) {
+                throw new Error("Correo electrónico inválido. Revisá el formato (ej: usuario@dominio.com).");
+            }
             const tenantDisplayName = userData.tenantDisplayName || tenantId;
             const userRef = doc(db, "userProfiles", userEmail); 
             const tenantRef = doc(db, "tenants", tenantId);

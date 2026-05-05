@@ -10,6 +10,7 @@ import { useAuth } from "../lib/AuthContext";
 import Guard from "../components/auth/Guard";
 import { PERMISSIONS } from "../lib/permissions";
 import { hasPermission } from "../lib/permissions";
+import { isValidEmail } from "../lib/emailValidation";
 import PermissionsManager from "../components/usuarios/PermissionsManager";
 
 /* ── Roles config ─────────────────────────────────────────────────── */
@@ -92,6 +93,10 @@ export default function Usuarios() {
 
                 if (!email) {
                     toast.error("Indicá un correo electrónico válido.");
+                    return;
+                }
+                if (!isValidEmail(email)) {
+                    toast.error("Formato de correo inválido (ej: usuario@dominio.com).");
                     return;
                 }
                 if (!tenantId) {
