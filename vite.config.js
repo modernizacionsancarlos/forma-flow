@@ -14,11 +14,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // "prompt": no activa el nuevo SW solo; evita recargas de página mientras se escribe.
+      // La actualización ocurre cuando el usuario pulsa "Actualizar" en ReloadPrompt.
+      registerType: 'prompt',
       workbox: {
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+        // Hasta que el usuario confirme la actualización, el SW no toma el control de pestañas abiertas.
+        clientsClaim: false,
+        skipWaiting: false,
       },
       includeAssets: ['favicon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'og-image.png'],
       manifest: {

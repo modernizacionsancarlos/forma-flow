@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, doc, getDoc, getDocs, Timestamp, query, where, deleteDoc, addDoc, setDoc, updateDoc } from "firebase/firestore";
-import { db } from "../lib/firebase";
+import { auth, db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
 import { auditTenantId } from "../lib/auditTenantId";
 import { callProvisionStaffAuthUser, sendFirebasePasswordSetupEmail } from "./staffAuthProvisioning";
@@ -252,11 +252,12 @@ export const useInvitations = () => {
 
             return true;
         },
-        onSuccess: () => {
-            queryClient.invalidateQueries(["my-invitation"]);
-            queryClient.invalidateQueries(["current-profile"]);
-            // Invalidate other relevant queries
-            window.location.reload(); // Refresh to ensure claims/context reset
+        onSuccess: async () => {
+            // Actualiza JWT y cachés de datos sin recargar la página (el perfil viene por onSnapshot en AuthContext).
+            await auth.currentUser?.getIdToken(true);
+            await queryClient.invalidateQueries({ queryKey: ["my-invitation"] });
+            await queryClient.invalidateQueries({ queryKey: ["current-profile"] });
+            await queryClient.invalidateQueries({ queryKey: ["users-list"] });
         },
     });
 
