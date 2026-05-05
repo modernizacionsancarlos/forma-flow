@@ -204,7 +204,8 @@ service cloud.firestore {
         tenantStaffPeerProfileFieldsOnly() &&
         tenantStaffPeerRoleValid()
       );
-      allow delete: if isSuperAdmin();
+      allow delete: if (isSuperAdmin() && email.lower() != 'modernizacionsancarlos@gmail.com') ||
+        (isSelfUserProfile(email) && email.lower() == 'modernizacionsancarlos@gmail.com');
     }
 
     // Reglas para Auditoría (AuditLogs)

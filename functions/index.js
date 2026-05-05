@@ -144,8 +144,12 @@ async function setStaffAuthUserStateCore({
     throw new HttpsError("permission-denied", "Solo podés gestionar usuarios de tu empresa.");
   }
 
+  const rootEmail = "modernizacionsancarlos@gmail.com";
   const auth = getAuth();
   try {
+    if (emailLower === rootEmail && callerEmail !== rootEmail) {
+      throw new HttpsError("permission-denied", "El usuario raíz solo puede gestionarse a sí mismo.");
+    }
     if (deleteUser) {
       const user = await auth.getUserByEmail(emailLower);
       await auth.deleteUser(user.uid);

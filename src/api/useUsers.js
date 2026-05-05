@@ -281,6 +281,11 @@ export const useUsers = () => {
 
     const deleteUser = useMutation({
         mutationFn: async (id) => {
+            const rootEmail = "modernizacionsancarlos@gmail.com";
+            const actorEmail = String(performer?.email || "").toLowerCase();
+            if (String(id || "").toLowerCase() === rootEmail && actorEmail !== rootEmail) {
+                throw new Error("El usuario principal solo puede eliminarse a sí mismo.");
+            }
             const userRef = doc(db, "userProfiles", id);
             let tenantIdForAuth = claims?.tenantId || "";
             

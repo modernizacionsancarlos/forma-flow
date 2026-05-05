@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
+import { doc, onSnapshot, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "./firebase";
 import { computeEffectivePermissions } from "./permissions";
 import Loader from "../components/ui/Loader";
@@ -49,12 +49,29 @@ export const AuthProvider = ({ children }) => {
         const idTokenResult = await currentUser.getIdTokenResult();
         const c = idTokenResult.claims;
         const tokenTenantId = c.tenantId ?? c.tenant_id ?? null;
-        const isOverride = currentUser.email === "modernizacionsancarlos@gmail.com";
+        const rootEmail = "modernizacionsancarlos@gmail.com";
+        const isOverride = currentUser.email === rootEmail;
         const initialClaims = {
           tenantId: tokenTenantId || (isOverride ? "Central_System" : null),
           role: c.role || (isOverride ? "super_admin" : null),
           email: currentUser.email?.toLowerCase(),
         };
+
+        if (isOverride) {
+          // Perfil raíz garantizado: evita que el Super Admin principal desaparezca del sistema.
+          await setDoc(
+            doc(db, "userProfiles", rootEmail),
+            {
+              email: rootEmail,
+              role: "super_admin",
+              tenantId: "Central_System",
+              status: "active",
+              user_name: "Administrador Central",
+              updatedAt: serverTimestamp(),
+            },
+            { merge: true }
+          );
+        }
         initialClaimsRef.current = initialClaims;
         setClaims({ ...initialClaims, effectivePermissions: [] });
 
