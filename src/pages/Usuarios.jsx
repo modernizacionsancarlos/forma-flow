@@ -1,7 +1,20 @@
 import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { Users, UserPlus, UserCircle2, Search, X, ShieldCheck, List } from "lucide-react";
+import {
+    Users,
+    UserPlus,
+    UserCircle2,
+    Search,
+    X,
+    ShieldCheck,
+    List,
+    Archive,
+    Eye,
+    RefreshCcw,
+    Trash2,
+    Lock,
+} from "lucide-react";
 import { useUsers } from "../api/useUsers";
 import { useTenants } from "../api/useTenants";
 import { useAreas } from "../api/useAreas";
@@ -37,11 +50,12 @@ export default function Usuarios() {
     const { claims } = useAuth();
     const canManageUsers = hasPermission(claims, PERMISSIONS.MANAGE_TENANT_USERS);
     const canManageMatrix = hasPermission(claims, PERMISSIONS.MANAGE_PERMISSION_MATRIX);
-    const [activeSection, setActiveSection] = useState("lista"); // lista | permisos
-    const { users, isLoading, createUser, updateUser } = useUsers();
+    const [activeSection, setActiveSection] = useState("lista"); // lista | permisos | archivados
+    const [permissionTargetEmail, setPermissionTargetEmail] = useState("");
+    const { users, isLoading, createUser, updateUser, deleteUser, archiveUser } = useUsers();
     const { tenants = [] } = useTenants();
     const { areas = [] } = useAreas();
-    const { inviteUser } = useInvitations();
+    const { inviteUser, resendInvitation } = useInvitations();
 
     const [search, setSearch] = useState("");
     const [filterTenant, setFilterTenant] = useState(tenantParam || "all");
@@ -55,8 +69,17 @@ export default function Usuarios() {
     const tenantMap = Object.fromEntries(tenants.map(t => [t.id, t.name]));
 
     /* ── Filtering ────────────────────────────────────────────── */
+    const activeUsers = useMemo(
+        () => usersList.filter((u) => (u.status || "active") !== "archived"),
+        [usersList]
+    );
+    const archivedUsers = useMemo(
+        () => usersList.filter((u) => u.status === "archived"),
+        [usersList]
+    );
+
     const filtered = useMemo(() => {
-        return usersList.filter(u => {
+        return activeUsers.filter(u => {
             const name = u.user_name || u.displayName || u.email || "";
             const email = u.user_email || u.email || "";
             const matchSearch = !search ||
@@ -66,7 +89,20 @@ export default function Usuarios() {
             const matchRole = filterRole === "all" || u.role === filterRole;
             return matchSearch && matchTenant && matchRole;
         });
-    }, [usersList, search, filterTenant, filterRole]);
+    }, [activeUsers, search, filterTenant, filterRole]);
+
+    const archivedFiltered = useMemo(() => {
+        return archivedUsers.filter(u => {
+            const name = u.user_name || u.displayName || u.email || "";
+            const email = u.user_email || u.email || "";
+            const matchSearch = !search ||
+                name.toLowerCase().includes(search.toLowerCase()) ||
+                email.toLowerCase().includes(search.toLowerCase());
+            const matchTenant = filterTenant === "all" || u.tenant_id === filterTenant || u.tenantId === filterTenant;
+            const matchRole = filterRole === "all" || u.role === filterRole;
+            return matchSearch && matchTenant && matchRole;
+        });
+    }, [archivedUsers, search, filterTenant, filterRole]);
 
     /* ── Actions ──────────────────────────────────────────────── */
     const toggleStatus = async (u) => {
@@ -77,6 +113,44 @@ export default function Usuarios() {
         } catch (err) {
             toast.error(err?.message || "No se pudo actualizar el estado del usuario.");
         }
+    };
+
+    const handleArchive = async (u) => {
+        if (!canManageUsers) return;
+        try {
+            await archiveUser.mutateAsync({ id: u.id });
+            toast.success("Usuario archivado.");
+        } catch (err) {
+            toast.error(err?.message || "No se pudo archivar el usuario.");
+        }
+    };
+
+    const handleDelete = async (u) => {
+        if (!canManageUsers) return;
+        const ok = window.confirm(`¿Eliminar definitivamente a ${u.user_name || u.email}?`);
+        if (!ok) return;
+        try {
+            await deleteUser.mutateAsync(u.id);
+            toast.success("Usuario eliminado.");
+        } catch (err) {
+            toast.error(err?.message || "No se pudo eliminar el usuario.");
+        }
+    };
+
+    const handleResendInvite = async (u) => {
+        try {
+            await resendInvitation.mutateAsync({ email: u.email || u.user_email || u.id });
+            toast.success("Invitación reenviada.");
+        } catch (err) {
+            toast.error(err?.message || "No se pudo reenviar la invitación.");
+        }
+    };
+
+    const openPermissionsFor = (u) => {
+        const email = String(u?.email || u?.user_email || u?.id || "").toLowerCase();
+        if (!email) return;
+        setPermissionTargetEmail(email);
+        setActiveSection("permisos");
     };
 
     const handleSave = async (data) => {
@@ -148,7 +222,10 @@ export default function Usuarios() {
         return r || { label: role || "—", cls: "bg-slate-800 text-slate-400" };
     };
 
-    const getStatusInfo = (status) => STATUS_STYLES[status] || STATUS_STYLES.inactive;
+    const getStatusInfo = (status) =>
+        STATUS_STYLES[status] || (status === "archived"
+            ? { label: "Archivado", cls: "text-violet-400", dotCls: "bg-violet-400" }
+            : STATUS_STYLES.inactive);
 
     const formatDate = (ts) => {
         try {
@@ -161,6 +238,7 @@ export default function Usuarios() {
             return "—";
         }
     };
+    const currentRows = activeSection === "archivados" ? archivedFiltered : filtered;
 
     return (
         <div className="min-h-screen bg-slate-950 text-white p-6">
@@ -230,6 +308,17 @@ export default function Usuarios() {
                         <ShieldCheck size={16} /> Permisos
                     </button>
                 </Guard>
+                <button
+                    type="button"
+                    onClick={() => setActiveSection("archivados")}
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeSection === "archivados"
+                            ? "bg-emerald-600 text-white"
+                            : "text-slate-400 hover:text-white hover:bg-slate-800"
+                    }`}
+                >
+                    <Archive size={16} /> Archivados
+                </button>
             </div>
 
             {activeSection === "permisos" && canManageMatrix ? (
@@ -239,7 +328,7 @@ export default function Usuarios() {
                         Asigná permisos por rol (plantilla global) o afiná por usuario (excepciones). Arrastrá entre
                         listas o usá las flechas. <strong>Vista previa</strong> simula el menú sin guardar en Firebase.
                     </p>
-                    <PermissionsManager users={usersList} />
+                    <PermissionsManager users={usersList} initialSelectedEmail={permissionTargetEmail} />
                 </div>
             ) : null}
 
@@ -249,7 +338,7 @@ export default function Usuarios() {
                 {ROLES.map(role => (
                     <div key={role.id} className="bg-slate-900 border border-slate-800 rounded-lg p-4 text-center">
                         <p className={`text-2xl font-bold ${role.numCls}`}>
-                            {usersList.filter(u => u.role === role.id).length}
+                            {activeUsers.filter(u => u.role === role.id).length}
                         </p>
                         <p className="text-slate-500 text-xs mt-1">{role.label}</p>
                     </div>
@@ -258,7 +347,7 @@ export default function Usuarios() {
             ) : null}
 
             {/* ─── FILTERS ─────────────────────────────────── */}
-            {activeSection === "lista" ? (
+            {activeSection === "lista" || activeSection === "archivados" ? (
             <>
             <div className="flex flex-wrap gap-3 mb-6">
                 <div className="relative flex-1 min-w-[12rem]">
@@ -310,13 +399,13 @@ export default function Usuarios() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filtered.length === 0 ? (
+                                {currentRows.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="text-center py-12 text-slate-500">
-                                            No hay usuarios
+                                            {activeSection === "archivados" ? "No hay usuarios archivados" : "No hay usuarios"}
                                         </td>
                                     </tr>
-                                ) : filtered.map((u, i) => {
+                                ) : currentRows.map((u, i) => {
                                     const roleBadge = getRoleBadge(u.role);
                                     const statusInfo = getStatusInfo(u.status);
                                     const userName = u.user_name || u.displayName || "Sin nombre";
@@ -375,16 +464,62 @@ export default function Usuarios() {
                                                     <Guard permission={PERMISSIONS.MANAGE_TENANT_USERS} fallback={null}>
                                                         <button onClick={() => { setSelected(u); setShowModal(true); }}
                                                             className="text-xs text-slate-400 hover:text-white hover:bg-slate-800 px-2 py-1 rounded transition-colors">
-                                                            Editar
+                                                            <Eye size={12} className="inline mr-1" />
+                                                            Ver/Editar
                                                         </button>
-                                                        <button onClick={() => toggleStatus(u)}
-                                                            className={`text-xs px-2 py-1 rounded transition-colors ${
-                                                                u.status === "active"
-                                                                    ? "text-red-400 hover:text-red-300 hover:bg-slate-800"
-                                                                    : "text-emerald-400 hover:text-emerald-300 hover:bg-slate-800"
-                                                            }`}>
-                                                            {u.status === "active" ? "Desactivar" : "Activar"}
-                                                        </button>
+                                                        {activeSection !== "archivados" ? (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => openPermissionsFor(u)}
+                                                                    className="text-xs text-cyan-400 hover:text-cyan-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
+                                                                >
+                                                                    <Lock size={12} className="inline mr-1" />
+                                                                    Permisos
+                                                                </button>
+                                                                {u.status === "pending_invite" ? (
+                                                                    <button
+                                                                        onClick={() => handleResendInvite(u)}
+                                                                        className="text-xs text-amber-400 hover:text-amber-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
+                                                                    >
+                                                                        <RefreshCcw size={12} className="inline mr-1" />
+                                                                        Reenviar
+                                                                    </button>
+                                                                ) : null}
+                                                                <button onClick={() => toggleStatus(u)}
+                                                                    className={`text-xs px-2 py-1 rounded transition-colors ${
+                                                                        u.status === "active"
+                                                                            ? "text-red-400 hover:text-red-300 hover:bg-slate-800"
+                                                                            : "text-emerald-400 hover:text-emerald-300 hover:bg-slate-800"
+                                                                    }`}>
+                                                                    {u.status === "active" ? "Desactivar" : "Activar"}
+                                                                </button>
+                                                                {u.status === "inactive" ? (
+                                                                    <button
+                                                                        onClick={() => handleArchive(u)}
+                                                                        className="text-xs text-violet-400 hover:text-violet-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
+                                                                    >
+                                                                        <Archive size={12} className="inline mr-1" />
+                                                                        Archivar
+                                                                    </button>
+                                                                ) : null}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <button
+                                                                    onClick={() => toggleStatus({ ...u, status: "inactive" })}
+                                                                    className="text-xs text-emerald-400 hover:text-emerald-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
+                                                                >
+                                                                    Activar
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDelete(u)}
+                                                                    className="text-xs text-rose-400 hover:text-rose-300 hover:bg-slate-800 px-2 py-1 rounded transition-colors"
+                                                                >
+                                                                    <Trash2 size={12} className="inline mr-1" />
+                                                                    Eliminar
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </Guard>
                                                 </div>
                                             </td>

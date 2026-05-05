@@ -2,7 +2,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { collection, doc, getDocs, Timestamp, runTransaction, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../lib/AuthContext";
-import { callProvisionStaffAuthUser, sendFirebasePasswordSetupEmail } from "./staffAuthProvisioning";
+import {
+    callProvisionStaffAuthUser,
+    sendFirebasePasswordSetupEmail,
+    syncStaffAuthUserState,
+} from "./staffAuthProvisioning";
 import NotificationService from "./NotificationService";
 import { auditTenantId } from "../lib/auditTenantId";
 import { isValidEmail } from "../lib/emailValidation";
@@ -35,8 +39,44 @@ export const useUsers = () => {
             q = query(collection(db, "userProfiles"), where("tenantId", "==", claims.tenantId));
         }
 
-        const snap = await getDocs(q);
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const profilesSnap = await getDocs(q);
+        const profiles = profilesSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+        // Complemento para "usuarios reales": invitaciones pendientes aún sin perfil completo.
+        let invQ = collection(db, "invitations");
+        if (claims?.role !== "super_admin" && claims?.tenantId) {
+            invQ = query(collection(db, "invitations"), where("tenantId", "==", claims.tenantId));
+        }
+        const invitationsSnap = await getDocs(invQ);
+        const pendingInvites = invitationsSnap.docs
+            .map((d) => ({ id: d.id, ...d.data() }))
+            .filter((inv) => inv.status === "pending");
+
+        const byEmail = new Map(
+            profiles.map((u) => [String(u.email || u.id || "").toLowerCase(), u])
+        );
+
+        pendingInvites.forEach((inv) => {
+            const email = String(inv.email || "").toLowerCase();
+            if (!email) return;
+            if (!byEmail.has(email)) {
+                byEmail.set(email, {
+                    id: email,
+                    email,
+                    user_name: inv.user_name || "",
+                    phone: inv.phone || "",
+                    role: inv.role || "operador",
+                    tenantId: inv.tenantId || inv.tenant_id || null,
+                    area_ids: inv.area_ids || [],
+                    status: "pending_invite",
+                    createdAt: inv.createdAt || null,
+                    invitationId: inv.id,
+                    source: "invitation",
+                });
+            }
+        });
+
+        return [...byEmail.values()];
     };
 
     const { data: users, isLoading, error } = useQuery({
@@ -135,11 +175,7 @@ export const useUsers = () => {
             });
 
             // Correo oficial de Firebase para que defina contraseña (plantilla en Consola > Auth > Plantillas).
-            try {
-                await sendFirebasePasswordSetupEmail(userEmail);
-            } catch (e) {
-                console.warn("[useUsers] sendFirebasePasswordSetupEmail:", e);
-            }
+            await sendFirebasePasswordSetupEmail(userEmail);
 
             await NotificationService.sendUserCreatedEmail(
                 userEmail,
@@ -162,14 +198,17 @@ export const useUsers = () => {
     const updateUser = useMutation({
         mutationFn: async ({ id, ...data }) => {
             const userRef = doc(db, "userProfiles", id);
+            let tenantForAuth = claims?.tenantId || "";
             await runTransaction(db, async (transaction) => {
                 const userSnap = await transaction.get(userRef);
                 if (!userSnap.exists()) throw new Error("Usuario no encontrado");
+                const current = userSnap.data();
 
                 const payload = buildProfileUpdatePayload(data, claims);
                 if (Object.keys(payload).length === 0) {
                     throw new Error("No hay cambios válidos para guardar.");
                 }
+                tenantForAuth = payload.tenantId || current.tenantId || claims?.tenantId || "";
 
                 transaction.update(userRef, {
                     ...payload,
@@ -190,6 +229,14 @@ export const useUsers = () => {
                     timestamp: Timestamp.now()
                 });
             });
+
+            if (data.status === "active" || data.status === "inactive" || data.status === "archived") {
+                await syncStaffAuthUserState({
+                    targetEmail: id,
+                    targetTenantId: tenantForAuth,
+                    disabled: data.status !== "active",
+                });
+            }
         },
         onSuccess: () => {
             queryClient.invalidateQueries(["users-list"]);
@@ -200,12 +247,14 @@ export const useUsers = () => {
     const deleteUser = useMutation({
         mutationFn: async (id) => {
             const userRef = doc(db, "userProfiles", id);
+            let tenantIdForAuth = claims?.tenantId || "";
             
             await runTransaction(db, async (transaction) => {
                 const userSnap = await transaction.get(userRef);
                 if (!userSnap.exists()) return;
 
                 const tenantId = userSnap.data().tenantId;
+                tenantIdForAuth = tenantId || claims?.tenantId || "";
                 if (tenantId && tenantId !== 'Central_System') {
                     const tenantRef = doc(db, "tenants", tenantId);
                     const tenantSnap = await transaction.get(tenantRef);
@@ -230,6 +279,12 @@ export const useUsers = () => {
                     timestamp: Timestamp.now()
                 });
             });
+
+            await syncStaffAuthUserState({
+                targetEmail: id,
+                targetTenantId: tenantIdForAuth,
+                deleteUser: true,
+            });
         },
         onSuccess: () => {
             queryClient.invalidateQueries(["users-list"]);
@@ -237,5 +292,12 @@ export const useUsers = () => {
         },
     });
 
-    return { users, isLoading, error, createUser, updateUser, deleteUser };
+    const archiveUser = useMutation({
+        mutationFn: async ({ id }) => updateUser.mutateAsync({ id, status: "archived" }),
+        onSuccess: () => {
+            queryClient.invalidateQueries(["users-list"]);
+        },
+    });
+
+    return { users, isLoading, error, createUser, updateUser, deleteUser, archiveUser };
 };

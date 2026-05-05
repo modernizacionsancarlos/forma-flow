@@ -74,11 +74,26 @@ export const useInvitations = () => {
                 displayName: docData.user_name || "",
                 targetTenantId: docData.tenantId,
             });
-            try {
-                await sendFirebasePasswordSetupEmail(docData.email);
-            } catch (e) {
-                console.warn("[useInvitations] sendFirebasePasswordSetupEmail:", e);
-            }
+
+            // Perfil base inmediato: garantiza que permisos/rol apliquen al primer login (local y producción).
+            // Si ya existe, mergea sin perder datos previos.
+            const profileRef = doc(db, "userProfiles", docData.email);
+            await setDoc(
+                profileRef,
+                {
+                    email: docData.email,
+                    tenantId: docData.tenantId,
+                    role: docData.role || "operador",
+                    status: "pending_invite",
+                    user_name: docData.user_name || "",
+                    phone: docData.phone || "",
+                    area_ids: docData.area_ids || [],
+                    updatedAt: Timestamp.now(),
+                },
+                { merge: true }
+            );
+
+            await sendFirebasePasswordSetupEmail(docData.email);
 
             const tenantLabel = docData.tenantName || docData.tenantId;
             await NotificationService.sendInvitationEmail(
@@ -122,6 +137,46 @@ export const useInvitations = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries(["invitations-list"]);
+        },
+    });
+
+    const resendInvitation = useMutation({
+        mutationFn: async ({ email }) => {
+            const emailKey = String(email || "").trim().toLowerCase();
+            if (!isValidEmail(emailKey)) {
+                throw new Error("Correo electrónico inválido.");
+            }
+            const invQ = query(
+                collection(db, "invitations"),
+                where("email", "==", emailKey),
+                where("status", "==", "pending")
+            );
+            const invSnap = await getDocs(invQ);
+            if (invSnap.empty) {
+                throw new Error("No hay invitación pendiente para este correo.");
+            }
+            const inv = invSnap.docs[0].data();
+            await sendFirebasePasswordSetupEmail(emailKey);
+            await NotificationService.sendInvitationEmail(
+                emailKey,
+                {
+                    recipientName: inv.user_name || emailKey.split("@")[0],
+                    role: inv.role || "operador",
+                    tenantName: inv.tenantName || inv.tenantId || inv.tenant_id || "Municipalidad",
+                    invitedBy: performer?.email || "Administración",
+                    tenantId: inv.tenantId || inv.tenant_id || claims?.tenantId || "global",
+                },
+                { skipExternalWebhook: true }
+            );
+            await addDoc(collection(db, "AuditLogs"), {
+                action: "resend_invite",
+                invited_email: emailKey,
+                tenant_id: inv.tenantId || inv.tenant_id || claims?.tenantId || "global",
+                performer_id: performer?.uid || "system",
+                performer_name: performer?.email || "system",
+                timestamp: Timestamp.now(),
+            });
+            return true;
         },
     });
 
@@ -212,6 +267,7 @@ export const useInvitations = () => {
         error, 
         inviteUser, 
         revokeInvitation,
+        resendInvitation,
         acceptInvitation
     };
 };

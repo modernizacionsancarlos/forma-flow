@@ -34,7 +34,7 @@ function toUserGrantRevoke(effectiveSet, baseSet) {
 /**
  * Matriz de permisos estilo Django: por rol (Firestore global) o por usuario (grant/revoke).
  */
-export default function PermissionsManager({ users = [] }) {
+export default function PermissionsManager({ users = [], initialSelectedEmail = "" }) {
   const { claims, user: authUser } = useAuth();
   const { data: config, isLoading: loadingConfig } = usePermissionConfig();
   const saveRoleDefaults = useSavePermissionRoleDefaults();
@@ -104,6 +104,13 @@ export default function PermissionsManager({ users = [] }) {
   useEffect(() => {
     if (mode === "user" && selectedEmail) loadUserMatrix();
   }, [mode, selectedEmail, loadUserMatrix]);
+
+  useEffect(() => {
+    const next = String(initialSelectedEmail || "").trim().toLowerCase();
+    if (!next) return;
+    setMode("user");
+    setSelectedEmail(next);
+  }, [initialSelectedEmail]);
 
   const onDragEnd = (result) => {
     const { source, destination, draggableId } = result;

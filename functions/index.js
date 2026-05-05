@@ -105,6 +105,68 @@ async function provisionStaffAuthUserCore({
   }
 }
 
+async function resolveCallerRoleTenant({ callerEmail, tokenRole, tokenTenant }) {
+  const profile = await resolveCallerAccess(callerEmail);
+  return {
+    callerRole:
+      profile.role ||
+      tokenRole ||
+      (callerEmail === "modernizacionsancarlos@gmail.com" ? "super_admin" : null),
+    callerTenant: profile.tenantId || tokenTenant || null,
+  };
+}
+
+async function setStaffAuthUserStateCore({
+  callerEmail,
+  tokenRole,
+  tokenTenant,
+  targetEmail,
+  targetTenantId,
+  disabled,
+  deleteUser = false,
+}) {
+  const emailLower = String(targetEmail || "").trim().toLowerCase();
+  if (!emailLower || !emailLower.includes("@")) {
+    throw new HttpsError("invalid-argument", "Correo objetivo inválido.");
+  }
+
+  const { callerRole, callerTenant } = await resolveCallerRoleTenant({
+    callerEmail,
+    tokenRole,
+    tokenTenant,
+  });
+  if (!callerRole || !STAFF_ROLES.has(callerRole)) {
+    throw new HttpsError("permission-denied", "Sin permisos para gestionar usuarios.");
+  }
+
+  const tenantTarget = String(targetTenantId || "").trim();
+  if (callerRole !== "super_admin" && (!tenantTarget || tenantTarget !== callerTenant)) {
+    throw new HttpsError("permission-denied", "Solo podés gestionar usuarios de tu empresa.");
+  }
+
+  const auth = getAuth();
+  try {
+    if (deleteUser) {
+      const user = await auth.getUserByEmail(emailLower);
+      await auth.deleteUser(user.uid);
+      return { ok: true, deleted: true, email: emailLower };
+    }
+    await auth.updateUser(emailLower, { disabled: Boolean(disabled) });
+    return { ok: true, deleted: false, disabled: Boolean(disabled), email: emailLower };
+  } catch (e) {
+    if (e?.code === "auth/user-not-found") {
+      return { ok: true, deleted: false, missing: true, email: emailLower };
+    }
+    if (e?.code === "auth/insufficient-permission") {
+      throw new HttpsError(
+        "permission-denied",
+        "La cuenta de servicio de Functions no tiene permisos para gestionar usuarios de Auth."
+      );
+    }
+    throw new HttpsError("internal", e?.message || "No se pudo sincronizar estado en Firebase Auth.");
+  }
+}
+
 /**
  * Callable: crea usuario en Firebase Auth si no existe (sin contraseña; el cliente envía reset por correo).
  * Requiere rol staff en userProfiles y que el tenant objetivo coincida (salvo super_admin).
@@ -185,6 +247,71 @@ export const provisionStaffAuthUserHttp = onRequest(
         internal: 500,
       };
       res.status(map[code] || 500).json({ error: code, message: msg });
+    }
+  }
+);
+
+export const setStaffAuthUserState = onCall(
+  {
+    maxInstances: 3,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+    invoker: "public",
+  },
+  async (request) => {
+    if (!request.auth?.token?.email) {
+      throw new HttpsError("unauthenticated", "Tenés que iniciar sesión.");
+    }
+    return setStaffAuthUserStateCore({
+      callerEmail: request.auth.token.email.toLowerCase(),
+      tokenRole: request.auth.token.role || null,
+      tokenTenant: request.auth.token.tenant_id ?? request.auth.token.tenantId ?? null,
+      targetEmail: request.data?.targetEmail,
+      targetTenantId: request.data?.targetTenantId,
+      disabled: request.data?.disabled,
+      deleteUser: request.data?.deleteUser === true,
+    });
+  }
+);
+
+export const setStaffAuthUserStateHttp = onRequest(
+  {
+    cors: true,
+    invoker: "public",
+    maxInstances: 3,
+    memory: "256MiB",
+    timeoutSeconds: 30,
+  },
+  async (req, res) => {
+    if (req.method === "OPTIONS") return res.status(204).send("");
+    if (req.method !== "POST") return res.status(405).json({ error: "method-not-allowed" });
+    try {
+      const authHeader = String(req.headers.authorization || "");
+      if (!authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({ error: "unauthenticated", message: "Falta token de sesión." });
+      }
+      const idToken = authHeader.slice("Bearer ".length);
+      const decoded = await getAuth().verifyIdToken(idToken);
+      const result = await setStaffAuthUserStateCore({
+        callerEmail: String(decoded.email || "").toLowerCase(),
+        tokenRole: decoded.role || null,
+        tokenTenant: decoded.tenant_id ?? decoded.tenantId ?? null,
+        targetEmail: req.body?.targetEmail,
+        targetTenantId: req.body?.targetTenantId,
+        disabled: req.body?.disabled,
+        deleteUser: req.body?.deleteUser === true,
+      });
+      return res.status(200).json(result);
+    } catch (e) {
+      const code = e?.code || "internal";
+      const msg = e?.message || "Error interno en setStaffAuthUserStateHttp";
+      const map = {
+        "invalid-argument": 400,
+        unauthenticated: 401,
+        "permission-denied": 403,
+        internal: 500,
+      };
+      return res.status(map[code] || 500).json({ error: code, message: msg });
     }
   }
 );
