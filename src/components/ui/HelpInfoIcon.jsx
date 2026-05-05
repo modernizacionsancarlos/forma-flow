@@ -3,11 +3,16 @@ import { Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 import { cn } from "@/lib/utils";
 import { resolveHelp } from "@/lib/appHelpRegistry";
+import { useAuth } from "@/lib/AuthContext";
 
 /**
  * ℹ️ con tooltip; disparador tipo span para poder colocarlo junto a &lt;button&gt; sin anidar otro botón.
+ * La visibilidad puede apagarse por usuario (Firestore: showHelpIcons !== false), predeterminado activo.
  */
 export default function HelpInfoIcon({ helpSection, title, content, className }) {
+  const { claims } = useAuth();
+  if (claims?.showHelpIcons === false) return null;
+
   let tip = "";
   if (helpSection) {
     const h = resolveHelp(helpSection);

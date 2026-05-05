@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { HelpCircle, Target, Wrench } from "lucide-react";
 import { resolveHelp } from "@/lib/appHelpRegistry";
+import HelpGuideContent from "@/components/ui/HelpGuideContent";
 
 /**
  * Clic derecho en el layout: menú propio (no el del navegador) con entradas de ayuda.
@@ -95,11 +96,13 @@ export default function ContextHelpLayer({ children }) {
         onClick={() => setDialog(null)}
       >
         <div
-          className="max-w-md rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
+          className="max-h-[85vh] max-w-2xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <h3 className="text-base font-semibold text-white">{dialog.title}</h3>
-          <p className="mt-3 text-sm leading-relaxed text-slate-300">{dialog.body}</p>
+          <div className="mt-4">
+            <HelpGuideContent text={dialog.body} />
+          </div>
           <button
             type="button"
             className="mt-5 w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-medium text-white hover:bg-emerald-500"

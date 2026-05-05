@@ -3,6 +3,7 @@ import { Save, Layout, Palette, Loader2, Image as ImageIcon, Upload, Trash2 } fr
 import toast from "react-hot-toast";
 import { useAuth } from "../lib/AuthContext";
 import { useBranding } from "../lib/useBranding";
+import HelpInfoIcon from "@/components/ui/HelpInfoIcon";
 
 const DEFAULT_GENERAL_SETTINGS = {
   dateFormat: "dd/MM/yyyy",
@@ -188,7 +189,7 @@ const BrandingTab = ({ currentBranding, onSave, onReset, isLoading, localLogoSto
 
 const Configuracion = () => {
   const [activeTab, setActiveTab] = useState("general");
-  const { claims, user } = useAuth();
+  const { claims, user, persistShowHelpIcons } = useAuth();
   const { branding, saveLocalBranding, resetLocalBranding } = useBranding();
   const localUserIdentity = (claims?.email || user?.email || "anon").toLowerCase();
   const localLogoStorageKey = `formaflow_local_logo_data_url_${localUserIdentity}`;
@@ -202,6 +203,28 @@ const Configuracion = () => {
     }
   });
   const displayName = claims?.full_name || user?.displayName || claims?.email?.split("@")[0] || "usuario";
+
+  /** Preferencia en Firestore (userProfiles): íconos ℹ️ visibles salvo que el usuario los desactive explícitamente. */
+  const helpIconsVisible = claims?.showHelpIcons !== false;
+  const [savingHelpIcons, setSavingHelpIcons] = useState(false);
+
+  const handleHelpIconsChange = async (next) => {
+    if (!user?.email) return;
+    setSavingHelpIcons(true);
+    try {
+      await persistShowHelpIcons(next);
+      toast.success(
+        next
+          ? "Se volvieron a mostrar los íconos de ayuda en tu cuenta."
+          : "Íconos de ayuda desactivados para tu cuenta. Seguí usando el clic derecho sobre cada bloque para la guía detallada.",
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message || "No se pudo guardar la preferencia en tu perfil.");
+    } finally {
+      setSavingHelpIcons(false);
+    }
+  };
 
   const handleSaveBranding = (formData) => {
     try {
@@ -244,7 +267,7 @@ const Configuracion = () => {
   };
   
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20 p-8">
+    <div data-help-section="settings" className="space-y-8 animate-in fade-in duration-500 max-w-5xl mx-auto pb-20 p-8">
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-white tracking-tighter uppercase">Configuración</h1>
@@ -340,6 +363,37 @@ const Configuracion = () => {
                     className="accent-emerald-500"
                   />
                 </label>
+              </div>
+
+              <div
+                data-help-section="settings.helpIcons"
+                className="space-y-3 rounded-2xl border border-slate-800/90 bg-slate-950/80 p-5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-100">Íconos de ayuda contextual (ℹ️)</p>
+                    <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                      Activados por defecto para toda la cuenta. Si los desactivás, desaparecen los símbolos ℹ️ en
+                      botones y títulos, pero seguís pudiendo usar el{" "}
+                      <span className="text-slate-400">clic derecho</span> sobre el mismo bloque para abrir la guía.
+                      La preferencia se guarda en tu perfil de usuario (nube), no solo en este equipo.
+                    </p>
+                  </div>
+                  <HelpInfoIcon helpSection="settings.helpIcons" className="shrink-0 text-slate-600" />
+                </div>
+                <label className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-200">
+                  <span>Mostrar íconos ℹ️ en la aplicación</span>
+                  <input
+                    type="checkbox"
+                    checked={helpIconsVisible}
+                    disabled={!user?.email || savingHelpIcons}
+                    onChange={(e) => void handleHelpIconsChange(e.target.checked)}
+                    className="accent-emerald-500 disabled:opacity-50"
+                  />
+                </label>
+                {savingHelpIcons ? (
+                  <p className="text-[11px] text-slate-500">Guardando preferencia en tu perfil…</p>
+                ) : null}
               </div>
             </div>
             <div className="flex justify-end gap-3 pt-4">

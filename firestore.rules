@@ -172,10 +172,13 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'user_name', 'phone', 'area_ids', 'status', 'updatedAt',
         'role', 'tenantId', 'email', 'displayName',
-        'createdAt', 'performer_id'
+        'createdAt', 'performer_id', 'showHelpIcons'
       ]) && (
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']) ||
         request.resource.data.role != 'super_admin'
+      ) && (
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['showHelpIcons']) ||
+        request.resource.data.showHelpIcons is bool
       );
     }
 

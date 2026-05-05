@@ -136,6 +136,22 @@ export const AuthProvider = ({ children }) => {
     return signOut(auth);
   };
 
+  /**
+   * Preferencia por usuario (Firestore): mostrar u ocultar íconos ℹ️ en toda la app.
+   * `undefined` o `true` = visibles (predeterminado).
+   */
+  const persistShowHelpIcons = React.useCallback(
+    async (visible) => {
+      if (!user?.email) throw new Error("No hay sesión para guardar la preferencia.");
+      await setDoc(
+        doc(db, "userProfiles", user.email.toLowerCase()),
+        { showHelpIcons: visible, updatedAt: serverTimestamp() },
+        { merge: true }
+      );
+    },
+    [user],
+  );
+
   const value = {
     user,
     claims,
@@ -143,6 +159,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    persistShowHelpIcons,
   };
 
   return (
