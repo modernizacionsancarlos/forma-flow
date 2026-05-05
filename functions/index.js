@@ -80,16 +80,6 @@ async function provisionStaffAuthUserCore({
 
   const auth = getAuth();
   try {
-    await auth.getUserByEmail(emailLower);
-    return { created: false, existed: true, email: emailLower };
-  } catch (e) {
-    if (e?.code !== "auth/user-not-found") {
-      console.error("[provisionStaffAuthUser] getUserByEmail", e);
-      throw new HttpsError("internal", "Error al consultar Firebase Auth.");
-    }
-  }
-
-  try {
     await auth.createUser({
       email: emailLower,
       displayName: displayName ? String(displayName).trim() : undefined,
